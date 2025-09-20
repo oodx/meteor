@@ -1,0 +1,44 @@
+[package]
+name = "meteor"
+version = "0.1.0"
+edition = "2021"
+description = "Shooting star token data transport library with context-aware namespacing"
+repository = "https://github.com/oodx/meteor"
+license = "MIT OR Apache-2.0"
+authors = ["oodx contributors"]
+keywords = ["tokens", "transport", "parsing", "namespacing", "rsb"]
+categories = ["parsing", "data-structures"]
+readme = "README.md"
+
+[lib]
+path = "src/lib/lib.rs"
+
+[dependencies]
+# Minimal dependencies - following RSB principles of simplicity
+# External crates will be added as needed during implementation
+
+[dev-dependencies]
+# Test dependencies will be added when implementing test infrastructure
+
+[profile.dev]
+# Development profile for faster compilation during development
+opt-level = 0
+debug = true
+
+[profile.release]
+# Release profile optimized for performance
+opt-level = 3
+debug = false
+lto = true
+codegen-units = 1
+
+[package.metadata.docs.rs]
+# Documentation configuration for docs.rs
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# RSB compliance metadata
+[package.metadata.rsb]
+compliance = "2025-09-20"
+architecture = "ordinality-based"
+api-style = "string-biased"
