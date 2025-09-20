@@ -18,7 +18,8 @@ path = "src/lib/lib.rs"
 # External crates will be added as needed during implementation
 
 [dev-dependencies]
-# Test dependencies will be added when implementing test infrastructure
+#criterion = { version = "0.5", default-features = false, features = ["html_reports", "rayon"] }
+criterion = "0.7"
 
 [profile.dev]
 # Development profile for faster compilation during development
