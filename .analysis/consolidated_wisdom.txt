@@ -1,0 +1,146 @@
+================================================================================
+ 🌟 CONSOLIDATED WISDOM - METEOR PROJECT
+================================================================================
+
+🎯 **Purpose**: Essential architectural insights and technical knowledge for Meteor
+📅 **Created**: 2025-09-20 (META_PROCESS v2 implementation)
+🧠 **Sources**: China's Golden Wisdom + Project Documentation Analysis
+
+================================================================================
+ 🌠 WHAT IS METEOR - CORE UNDERSTANDING
+================================================================================
+
+**Mission**: Shooting star token data transport library providing structured
+key-value data streams with context-aware namespacing and bracket notation extensions.
+
+**Design Philosophy**:
+- **String-first interfaces** - Simple, composable operations
+- **Unix-pipe philosophy** - Data flows through processing stages
+- **Minimal complexity** - Essential functionality only
+- **Consumer responsibility** - Meteor transports, consumers validate
+
+**Core Pattern**: Context-Namespace-Key addressing scheme
+```
+"ctx:namespace:key=value"
+"app:ui.widgets:button[0]=submit"
+```
+
+================================================================================
+ 🏛️ ARCHITECTURAL FOUNDATION - RSB COMPLIANCE
+================================================================================
+
+**Ordinality Organization** (Three-tier hierarchy):
+
+1. **Responsibility Ordinality** (types/ directory):
+   Primary → Secondary → Support
+   Context/Namespace/Key → TokenBucket → MeteorError
+
+2. **Data Flow Ordinality** (utils/ directory):
+   parse → transform → organize → access
+   String→Tokens → Bracket→Dunder → Tokens→Bucket → Query/Retrieve
+
+3. **Complexity Ordinality** (sup/ directory):
+   Complex → Simple → Compatibility
+   bracket.rs → validation.rs → compat.rs
+
+**Central Orchestrator Pattern**:
+Everything loads through `src/lib/lib.rs` - EVERYTHING goes through here.
+
+================================================================================
+ 🔑 TECHNICAL INSIGHTS - CORE INNOVATIONS
+================================================================================
+
+**Context-Namespace-Key Addressing Revolution**:
+- **Context**: Origin identifier (app, user, system, file1, remote1)
+- **Namespace**: Hierarchical organization (ui.widgets, config.database)
+- **Key**: Individual identifier with bracket notation (button[0], list[])
+- **Isolation**: Each context gets separate TokenBucket for security
+
+**Bracket Notation Transformation Magic**:
+```
+"list[0]=item"      → "list__i_0=item"         (numeric index)
+"grid[2,3]=cell"    → "grid__i_2_3=cell"       (coordinates)
+"user[name]=alice"  → "user__name=alice"       (named index)
+"queue[]=task"      → "queue__i_APPEND=task"   (append operation)
+```
+
+**Consumer Responsibility Architecture**:
+Meteor provides transport, consumers handle semantics and validation.
+
+================================================================================
+ 🎯 CRITICAL DECISIONS & PATTERNS
+================================================================================
+
+**String-Biased API Design**:
+Primary interfaces use strings for simplicity over complex type constructors.
+
+**Namespace Depth Management**:
+- Recommended: 1-3 levels
+- Warning: 4 levels
+- Error: 5+ levels
+
+**Context Isolation Strategy**:
+- Separate TokenBucket per context
+- Cross-context access via variable expansion only
+- No direct cross-contamination possible
+
+================================================================================
+ 🚀 IMPLEMENTATION WISDOM
+================================================================================
+
+**Success Patterns to Follow**:
+- Start with ordinality understanding before coding
+- String-biased first, complex types internal
+- Let consumers handle domain-specific validation
+- Reference RSB patterns, don't reinvent
+
+**Reference Implementation Available**:
+- Complete RSB token implementation in docs/ref/rsb_token_src/
+- Test patterns in docs/ref/rsb_token_tests/
+- Migration guidance in RSB_TOKEN_REFERENCE.md
+
+**MVP Success Criteria**:
+1. Parse token streams: "ctx=app; ui:button[0]=click" → TokenBucket
+2. Context isolation: app tokens can't access user tokens
+3. Bracket notation: key[0,1] transforms to key__i_0_1
+4. Namespace hierarchy: Support ui.widgets with depth warnings
+5. Consumer integration: Simple API for layout engines
+
+================================================================================
+ ⚠️ RISK AREAS & ARCHITECTURAL CONCERNS
+================================================================================
+
+**Known Risk Areas**:
+- Bracket parsing complexity (keep algorithms in sup/, simple API in utils/)
+- Context isolation enforcement (need concrete implementation strategy)
+- Performance implications (nested HashMap storage for large datasets)
+- Consumer API design (balance simplicity vs flexibility)
+
+**Architectural Debt to Address**:
+- No concrete function signatures yet (concepts only)
+- Error handling patterns not finalized
+- Performance acceptance criteria undefined
+- Migration timeline lacks specific milestones
+
+================================================================================
+ 🎓 KEY TAKEAWAYS FOR PRODUCTIVE WORK
+================================================================================
+
+**How to Be Immediately Productive**:
+1. Read the trinity: MODULE_PLAN.md + TASKS.txt + TOKEN_NAMESPACE_CONCEPT.md
+2. Address blockers first: Cargo.toml → API signatures → error handling
+3. Start with types/primary.rs: Foundation types everything builds on
+4. Follow ordinality: Respect dependency hierarchy in implementation order
+5. Test early: Create sanity tests alongside implementation
+
+**Extension Points for Future**:
+- Advanced operations: counter[++]=1, list[--]=item
+- Query operators: cache[?]=key for existence checks
+- Stream processing: Traits for large input handling
+- Serialization: serde support for persistence
+
+================================================================================
+Last Updated: 2025-09-20
+Sources: China's Golden Egg Analysis + RSB Documentation + Module Plans
+Implementation Readiness: 80% (architecture complete, foundation tasks ready)
+================================================================================

@@ -1,0 +1,175 @@
+# METEOR TASKS - From China's Analysis Egg #1
+
+## IMMEDIATE BLOCKERS (Must complete before coding)
+
+### TASK-001: Create Cargo.toml
+- [ ] Define project metadata (name, version, description)
+- [ ] Specify Rust edition and minimum version
+- [ ] Add essential dependencies (determine which external crates allowed)
+- [ ] Set up basic features structure (if any)
+- [ ] Add dev-dependencies for testing
+
+### TASK-002: Define Concrete API Function Signatures
+- [ ] Specify main entry point: `parse_token_stream(input: &str) -> Result<TokenBucket, MeteorError>`
+- [ ] Define TokenBucket query methods: `get()`, `set()`, `iterate()`
+- [ ] Specify Context creation: `Context::from_str()`, validation methods
+- [ ] Define Namespace operations: depth validation, hierarchy traversal
+- [ ] Document error types and when each is used
+
+### TASK-003: Specify Error Handling Strategy
+- [ ] Define MeteorError enum with specific variants
+- [ ] Document when to use Result<T, MeteorError> vs panic!
+- [ ] Specify error context preservation through parsing pipeline
+- [ ] Define error recovery strategies for partial failures
+- [ ] Create cross-module error conversion patterns
+
+### TASK-004: Detail Bracket Notation Parsing Algorithm
+- [ ] Specify coordinate parsing logic for grid[2,3] patterns
+- [ ] Define handling of mixed bracket types in same stream
+- [ ] Clarify empty bracket append semantics (list[])
+- [ ] Document error cases for malformed brackets
+- [ ] Create parsing precedence rules
+
+## ARCHITECTURE CLARIFICATIONS
+
+### TASK-005: Map Ordinality Dependencies Explicitly
+- [ ] Create dependency graph: types/primary.rs → types/bucket.rs → utils/parse.rs etc.
+- [ ] Define import rules: what can import what
+- [ ] Document circular dependency prevention
+- [ ] Specify function ordinality within each module
+
+### TASK-006: Define Context Isolation Implementation
+- [ ] Specify context privilege boundaries enforcement (system > user > app > remote)
+- [ ] Document how contexts prevent cross-contamination
+- [ ] Define context switching validation rules in token streams
+- [ ] Create multi-context scenarios with concrete API examples
+
+### TASK-007: Specify Namespace Validation Strategy
+- [ ] Implement warning vs error thresholds (3 vs 4 levels)
+- [ ] Define how to handle warnings (log? fail? continue?)
+- [ ] Create depth counting algorithm for complex hierarchies
+- [ ] Document consumer override capabilities for depth limits
+
+### TASK-008: Define Value Parsing and Storage Rules
+- [ ] Specify quoted string handling rules ("', \") and escaping
+- [ ] Define multi-line value storage format
+- [ ] Clarify JSON-in-string validation/parsing responsibilities
+- [ ] Document Unicode and special character handling
+
+## CONSUMER INTEGRATION
+
+### TASK-009: Define Consumer Integration Patterns
+- [ ] Specify how consumers register for specific namespaces
+- [ ] Document TokenBucket querying API completeness
+- [ ] Define bulk operations support
+- [ ] Specify stream processing vs batch processing patterns
+
+### TASK-010: Create Extensibility Hooks
+- [ ] Design custom bracket notation support mechanism
+- [ ] Define namespace router registration mechanism
+- [ ] Specify context permission handler integration
+- [ ] Document value transformer plugin architecture (if needed)
+
+## MIGRATION STRATEGY
+
+### TASK-011: Create Detailed Migration Plan
+- [ ] Map specific RSB files to meteor modules
+- [ ] Document which functions to migrate vs rewrite
+- [ ] Create adaptation steps for context-namespace-key pattern
+- [ ] Define integration timeline with dependent systems
+
+### TASK-012: Define Compatibility Matrix
+- [ ] Specify RSB version compatibility requirements
+- [ ] Document breaking changes from RSB token format
+- [ ] Create migration path for existing RSB consumers
+- [ ] Define backward compatibility guarantees
+
+### TASK-013: Create Validation Checkpoints
+- [ ] Define how to verify each migration phase success
+- [ ] Create regression testing against RSB behavior
+- [ ] Specify performance benchmarking plans
+- [ ] Document consumer integration testing strategy
+
+## TESTING STRATEGY
+
+### TASK-014: Expand Test Detail Specifications
+- [ ] Create specific test cases for bracket notation edge cases
+- [ ] Define context isolation validation test plans
+- [ ] Specify performance test suite requirements
+- [ ] Create consumer integration test scenarios
+- [ ] Build error condition coverage matrix
+
+### TASK-015: Create Test Infrastructure
+- [ ] Set up tests/ directory structure
+- [ ] Create sanity test templates
+- [ ] Create UAT test templates
+- [ ] Set up test data and fixtures
+
+## QUESTIONS REQUIRING DECISIONS
+
+### QUESTION-001: Dependencies Policy
+- Which external crates are acceptable? (regex, serde, etc.)
+- Should we stay std-only or allow targeted dependencies?
+- What's the policy on transitive dependencies?
+
+### QUESTION-002: Performance Targets
+- What are acceptable latency targets for parsing?
+- What are memory usage constraints?
+- Should we optimize for speed or memory?
+
+### QUESTION-003: Error Strategy Philosophy
+- Fail-fast vs graceful degradation preference?
+- Should malformed input cause panics or return errors?
+- How verbose should error messages be?
+
+### QUESTION-004: Context Security Model
+- How strict should context isolation enforcement be?
+- Should context violations panic or return errors?
+- Do we need runtime vs compile-time isolation?
+
+### QUESTION-005: Backward Compatibility Commitment
+- Must maintain 100% RSB token compatibility?
+- What breaking changes are acceptable?
+- Should we support migration utilities?
+
+### QUESTION-006: Consumer API Design
+- Should consumers register callbacks or poll for updates?
+- Do we need event-driven vs pull-based APIs?
+- Should the API be sync or async?
+
+## TASK PRIORITIZATION
+
+### Phase 1 (Foundation) - Complete these first:
+- TASK-001: Cargo.toml
+- TASK-002: API signatures
+- TASK-003: Error handling
+- QUESTION-001 through QUESTION-006 (make decisions)
+
+### Phase 2 (Core Implementation):
+- TASK-004: Bracket parsing
+- TASK-005: Ordinality dependencies
+- TASK-006: Context isolation
+- TASK-007: Namespace validation
+
+### Phase 3 (Integration):
+- TASK-008: Value parsing
+- TASK-009: Consumer patterns
+- TASK-011: Migration plan
+- TASK-014: Test specifications
+
+### Phase 4 (Polish):
+- TASK-010: Extensibility
+- TASK-012: Compatibility
+- TASK-013: Validation
+- TASK-015: Test infrastructure
+
+## STATUS TRACKING
+
+Use this format for updates:
+- [ ] Not started
+- [~] In progress
+- [x] Complete
+- [?] Blocked/needs decision
+
+Last Updated: 2025-09-18
+Source: China's Analysis Egg #1

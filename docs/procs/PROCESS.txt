@@ -1,0 +1,242 @@
+================================================================================
+ 📋 METEOR SELF-HYDRATING WORKFLOW PROCESS
+================================================================================
+
+🎯 **Project**: Meteor - Shooting Star Token Data Transport Library
+📅 **Created**: 2025-09-20
+🔄 **Status**: Foundation Implementation Phase
+
+================================================================================
+ 📁 PROJECT STRUCTURE & KEY DOCUMENTS
+================================================================================
+
+**Core Process Documents** (docs/procs/):
+├── PROCESS.txt          ← Master workflow guide (YOU ARE HERE)
+├── CONTINUE.md          ← Session status & handoffs
+├── QUICK_REF.txt        ← 30-second context (ultra-fast)
+├── TASKS.txt            ← Detailed task breakdown
+├── SPRINT.txt           ← Current iteration tasks (TO BE CREATED)
+├── ROADMAP.txt          ← Strategic overview (TO BE CREATED)
+└── DONE.txt             ← Completed work archive (TO BE CREATED)
+
+**Reference Documentation** (docs/ref/):
+├── RSB_TOKEN_REFERENCE.md      ← Migration guide from RSB
+├── TOKEN_NAMESPACE_CONCEPT.md  ← Core addressing scheme
+└── rsb_token_src/              ← Reference implementation
+
+**Analysis & Wisdom** (.analysis/):
+├── .eggs/egg.golden.meteor-wisdom.txt        ← China's golden wisdom
+├── .eggs/red_egg.2.meteor-technical-debt-audit.txt  ← Tina's critical audit
+└── .session/                   ← Historical planning sessions
+
+**Project Archives** (docs/misc/):
+├── MODULE_PLAN.md              ← Complete architecture specification
+└── archive/                    ← Archived documents
+
+================================================================================
+ 🔄 SELF-HYDRATING WORKFLOW PROCESS
+================================================================================
+
+## **STEP 1: Context Hydration Checklist**
+
+**For New Agents (5-minute start)**:
+□ Read START.txt (entry point - 30 seconds)
+□ Read this PROCESS.txt (master workflow - 3 minutes)
+□ Read CONTINUE.md (current session status - 1 minute)
+□ Read TASKS.txt (immediate work items - 1 minute)
+□ Review .analysis/.eggs/egg.golden.meteor-wisdom.txt (architectural wisdom)
+□ **READY FOR PRODUCTIVE WORK**
+
+**For Ultra-Fast Context (30 seconds)**:
+□ Read QUICK_REF.txt only
+□ Jump to current tasks in TASKS.txt
+
+**For System Health Check**:
+□ Run ./bin/validate-docs.sh
+□ Verify all referenced files exist
+
+## **STEP 2: Phase Detection**
+
+**Current Phase**: 🏗️ **FOUNDATION IMPLEMENTATION**
+- **Status**: Architecture complete, code implementation starting
+- **Critical Gap**: Documentation exists, ZERO code exists
+- **Blockers**: No Cargo.toml, no lib.rs, no tests, no build system
+
+**Phase Characteristics**:
+- Focus: Creating minimal viable implementation
+- Priority: Critical tickets from Tina's audit (CRITICAL-001, CRITICAL-002)
+- Success Criteria: cargo build && test.sh sanity passes
+
+## **STEP 3: Work Execution Patterns**
+
+**For Foundation Implementation Phase**:
+1. **Address Critical Blockers First**:
+   - CRITICAL-001: Create Cargo.toml
+   - CRITICAL-002: Create bin/test.sh RSB runner
+
+2. **Implement Core Foundation**:
+   - HIGH-001: Basic lib.rs structure
+   - HIGH-002: Core type definitions
+   - HIGH-003: Basic parsing utilities
+
+3. **Establish Testing**:
+   - HIGH-004: Test directory structure
+   - HIGH-005: Sanity test wrappers
+   - HIGH-006: UAT demonstrations
+
+4. **Validate Implementation**:
+   - cargo build succeeds
+   - test.sh sanity passes
+   - Basic parse_token_stream("key=value") works
+
+## **STEP 4: Session Closure & Handoff Requirements**
+
+**MANDATORY CONTINUE.md Update Every Session**:
+```
+# Continue Log – admin/meta-process + foundation-implementation
+
+## HANDOFF-[YYYY-MM-DD]-[HHMM]
+### Session Duration: [X hours]
+### Branch: admin/meta-process
+### Completed:
+- [Specific completed items with file references]
+### Blocked:
+- [Blockers with context]
+### Next Agent MUST:
+- [Critical actions required immediately]
+### Context Hash: [git commit SHA]
+### Files Modified: [count]
+```
+
+================================================================================
+ 📊 PROJECT STATUS QUICK REFERENCE
+================================================================================
+
+**Current Priority**: 🚨 **CRITICAL** - Implement basic functionality
+**Focus Area**: Foundation implementation (core types + parsing)
+**Progress**: Architecture 100% → Implementation 0% (needs critical work)
+
+**Key Metrics**:
+- Story Points: 290 (from Boxy reference project)
+- Tasks: 15 immediate + 6 decision points
+- Implementation Status: 0% (pure planning phase)
+- RSB Compliance: 0% (missing test.sh and tests/)
+
+**Decision Points Still Needed**:
+1. Dependencies Policy (which external crates allowed?)
+2. Performance Targets (latency/memory requirements)
+3. Error Philosophy (fail-fast vs graceful degradation)
+4. Context Security (isolation enforcement strictness)
+5. Compatibility Level (RSB backward compatibility scope)
+6. Consumer API (callback vs polling patterns)
+
+================================================================================
+ 🛠️ COMMON WORKFLOWS
+================================================================================
+
+**Development Session Workflow**:
+1. Read CONTINUE.md for current status
+2. Check TASKS.txt for priority items
+3. Address blockers first, then features
+4. Run validation: cargo check && test.sh sanity
+5. Update CONTINUE.md with progress
+6. Commit changes with descriptive message
+
+**Sprint Planning Workflow** (Not yet applicable):
+1. Review completed work in DONE.txt
+2. Update ROADMAP.txt with progress
+3. Create new SPRINT.txt from TASKS.txt priorities
+4. Update QUICK_REF.txt with new focus
+5. Validate docs with ./bin/validate-docs.sh
+
+**Key Development Commands** (Once implemented):
+```bash
+# Build and validate
+cargo build
+cargo test
+cargo clippy
+
+# RSB compliance
+./bin/test.sh sanity
+./bin/test.sh uat
+./bin/test.sh docs
+
+# Documentation health
+./bin/validate-docs.sh
+```
+
+================================================================================
+ 🎯 AGENT QUICK START GUIDE
+================================================================================
+
+**Essential Context for New Agents**:
+
+**What is Meteor?**
+🌠 Shooting star token data transport library for Rust
+🎯 String-biased API for context-namespace-key addressing
+🏗️ Clean extraction from RSB token functionality
+🔧 Consumer responsibility architecture (Meteor transports, consumers validate)
+
+**Key Architecture Patterns**:
+- **Ordinality Organization**: Primary → Secondary → Support (types/)
+- **Data Flow**: parse → transform → organize → access (utils/)
+- **Bracket Notation**: `list[0]=item` → `list__i_0=item`
+- **Context Isolation**: Separate TokenBucket per context
+
+**Critical Understanding**:
+- **Current State**: Architecture documented, ZERO code exists
+- **Immediate Need**: Implement basic Cargo.toml → lib.rs → core types
+- **Success Pattern**: Follow RSB compliance, string-biased interfaces
+- **Reference Code**: Use docs/ref/rsb_token_src/ as starting patterns
+
+**Workflow Rules**:
+- Always update CONTINUE.md at session end
+- Address critical blockers before features
+- Follow ordinality principles for dependencies
+- Reference golden wisdom in .analysis/.eggs/ for context
+
+================================================================================
+ 📚 REFERENCE LINKS
+================================================================================
+
+**Essential Files by Priority**:
+1. **docs/procs/TASKS.txt** ← Immediate actionable work
+2. **.analysis/.eggs/egg.golden.meteor-wisdom.txt** ← Architectural wisdom
+3. **.analysis/.eggs/red_egg.2.meteor-technical-debt-audit.txt** ← Critical gaps
+4. **docs/misc/MODULE_PLAN.md** ← Complete architecture spec
+5. **docs/ref/TOKEN_NAMESPACE_CONCEPT.md** ← Addressing scheme design
+
+**Topic-Specific References**:
+- **RSB Migration**: docs/ref/RSB_TOKEN_REFERENCE.md
+- **Reference Implementation**: docs/ref/rsb_token_src/
+- **Test Patterns**: docs/ref/rsb_token_tests/
+- **Licenses**: docs/lics/ (Commercial, Community, Overview)
+
+**Testing & Validation** (Once implemented):
+- **Test Runner**: ./bin/test.sh
+- **Doc Validator**: ./bin/validate-docs.sh
+- **Build Commands**: cargo build, cargo test, cargo clippy
+
+================================================================================
+ 🚨 CRITICAL SUCCESS FACTORS
+================================================================================
+
+**Project will be minimally functional when**:
+✅ cargo build succeeds
+✅ cargo test runs (basic tests)
+✅ test.sh sanity passes
+✅ test.sh uat demonstrates functionality
+✅ Basic parse_token_stream("key=value") works
+✅ TokenBucket can store/retrieve simple data
+
+**Always Remember**:
+- 🔥 **Address CRITICAL tickets first** (Cargo.toml, test.sh)
+- 📋 **Update CONTINUE.md every session** (mandatory handoff)
+- 🎯 **Follow RSB patterns** (string-biased, ordinality organization)
+- 🧠 **Reference golden wisdom** (avoid reinventing architecture)
+- ⚡ **Keep it simple** (transport only, consumers handle validation)
+
+================================================================================
+Last Updated: 2025-09-20 (META_PROCESS v2 implementation)
+Next Review: After foundation implementation complete
+================================================================================
