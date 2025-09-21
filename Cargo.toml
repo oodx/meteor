@@ -38,6 +38,32 @@ codegen-units = 1
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+# RSB Test Organization
+[[test]]
+name = "sanity_meteor"
+path = "tests/sanity/meteor.rs"
+
+[[test]]
+name = "sanity_types"
+path = "tests/sanity/types.rs"
+
+[[test]]
+name = "sanity_utils"
+path = "tests/sanity/utils.rs"
+
+[[test]]
+name = "sanity_sup"
+path = "tests/sanity/sup.rs"
+
+[[test]]
+name = "uat_meteor"
+path = "tests/uat/meteor.rs"
+
+# Legacy tests (to be removed once RSB migration complete)
+[[test]]
+name = "sanity_legacy"
+path = "tests/sanity/meteor_legacy.rs"
+
 # RSB compliance metadata
 [package.metadata.rsb]
 compliance = "2025-09-20"

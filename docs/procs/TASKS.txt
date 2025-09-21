@@ -1,6 +1,27 @@
-# METEOR TASKS - From China's Analysis Egg #1
+# METEOR TASKS - From China's Analysis Eggs #1 + #2
 
-## IMMEDIATE BLOCKERS (Must complete before coding)
+## CRITICAL TASKS FROM CHINA'S IMPLEMENTATION REVIEW (CURRENT SPRINT)
+
+### TASK-CRITICAL-001: Implement Bracket Notation Transformation (4-6 hours) 🚨
+- [ ] Create sup/bracket.rs module with transformation algorithms
+- [ ] Implement Key::transform() method in primary.rs
+- [ ] Handle [0], [1,2], [] patterns: list[0] → list__i_0
+- [ ] Update ignored tests to enable bracket notation validation
+- [ ] Test malformed bracket notation error handling
+
+### TASK-CRITICAL-002: Complete Value Parsing Implementation (2-3 hours) 🚨
+- [ ] Implement parse_value() with quote and escape handling
+- [ ] Remove dead code warning for unused function
+- [ ] Add tests for quoted values: "hello world", 'single', \"escaped\"
+- [ ] Handle multi-line values and special characters
+
+### TASK-CRITICAL-003: Create Missing Utils Modules (3-4 hours) 🚨
+- [ ] Implement utils/transform.rs (bracket processing integration)
+- [ ] Implement utils/organize.rs (tokens → TokenBucket pipeline)
+- [ ] Implement utils/access.rs (query and retrieval patterns)
+- [ ] Follow data flow ordinality principle: parse → transform → organize → access
+
+## IMMEDIATE BLOCKERS (Must complete before coding) ✅ COMPLETED
 
 ### TASK-001: Create Cargo.toml
 - [ ] Define project metadata (name, version, description)
