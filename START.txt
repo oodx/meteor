@@ -15,8 +15,15 @@
 ⚡ **Ultra-Fast Start** (30 seconds):
 → Read docs/procs/QUICK_REF.txt for essential context only
 
+🏗️ **RSB Integration Requirements**:
+→ Any RSB feature usage MUST have corresponding sanity tests
+→ See docs/ref/RSB_CLI_FEATURES.md for integration patterns
+→ Use docs/ref/HOWTO_HUB.md for dependency management
+
 🔍 **System Health Check**:
 → Run ./bin/validate-docs.sh to verify documentation integrity
+→ Run ./bin/test.sh sanity to validate all tests pass
+→ Test CLI: cargo run --bin meteor parse "ctx=app; ui:button=click"
 
 📁 **All Process Documents Located in docs/procs/**
 🔄 **Self-Hydrating System**: No manual context reconstruction needed!

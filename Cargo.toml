@@ -13,9 +13,13 @@ readme = "README.md"
 [lib]
 path = "src/lib/lib.rs"
 
+[[bin]]
+name = "meteor"
+path = "src/bin/cli.rs"
+
 [dependencies]
-# Minimal dependencies - following RSB principles of simplicity
-# External crates will be added as needed during implementation
+# Hub integration with lite variants for optimal CLI development (v0.4.0)
+hub = { git = "https://github.com/oodx/hub.git", features = ["core", "cli-ext", "async-ext", "error-ext"] }
 
 [dev-dependencies]
 #criterion = { version = "0.5", default-features = false, features = ["html_reports", "rayon"] }
@@ -63,6 +67,56 @@ path = "tests/uat/meteor.rs"
 [[test]]
 name = "sanity_legacy"
 path = "tests/sanity/meteor_legacy.rs"
+
+# Hub integration tests
+[[test]]
+name = "sanity_hub_integration"
+path = "tests/sanity/hub_integration.rs"
+
+[[test]]
+name = "sanity_hub_lite_performance"
+path = "tests/sanity/hub_lite_performance.rs"
+
+[[test]]
+name = "sanity_hub_deps_baseline"
+path = "tests/sanity/hub_deps_baseline.rs"
+
+# RSB preparatory sanity tests (foundational tests for RSB integration)
+[[test]]
+name = "sanity_rsb_global"
+path = "tests/sanity/rsb_global.rs"
+
+[[test]]
+name = "sanity_rsb_options"
+path = "tests/sanity/rsb_options.rs"
+
+[[test]]
+name = "sanity_rsb_fs"
+path = "tests/sanity/rsb_fs.rs"
+
+[[test]]
+name = "sanity_rsb_strings"
+path = "tests/sanity/rsb_strings.rs"
+
+[[test]]
+name = "sanity_rsb_host"
+path = "tests/sanity/rsb_host.rs"
+
+[[test]]
+name = "sanity_rsb_params"
+path = "tests/sanity/rsb_params.rs"
+
+[[test]]
+name = "sanity_rsb_dev"
+path = "tests/sanity/rsb_dev.rs"
+
+[[test]]
+name = "sanity_rsb_colors"
+path = "tests/sanity/rsb_colors.rs"
+
+[[test]]
+name = "sanity_rsb_integration"
+path = "tests/sanity/rsb_integration.rs"
 
 # RSB compliance metadata
 [package.metadata.rsb]

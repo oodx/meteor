@@ -20,7 +20,7 @@ pub mod types;
 pub mod utils;
 
 // Support modules for internal complexity
-mod sup;
+pub mod sup;
 
 // Re-export main public types and functions
 pub use types::{Context, Namespace, Key, TokenBucket, MeteorError};

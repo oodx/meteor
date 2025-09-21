@@ -1,41 +1,53 @@
-# METEOR TASKS - From China's Analysis Eggs #1 + #2
+# METEOR TASKS - Hub RSB Integration Phase
 
-## CRITICAL TASKS FROM CHINA'S IMPLEMENTATION REVIEW (CURRENT SPRINT)
+## HUB INTEGRATION COMPLETED ✅ (2025-09-21)
 
-### TASK-CRITICAL-001: Implement Bracket Notation Transformation (4-6 hours) 🚨
-- [ ] Create sup/bracket.rs module with transformation algorithms
-- [ ] Implement Key::transform() method in primary.rs
-- [ ] Handle [0], [1,2], [] patterns: list[0] → list__i_0
-- [ ] Update ignored tests to enable bracket notation validation
-- [ ] Test malformed bracket notation error handling
+### TASK-HUB-001: Hub Dependency Integration ✅ COMPLETED
+- [x] Add hub v0.4.0 dependency with lite variants
+- [x] Configure optimal features: core, cli-ext, async-ext, error-ext
+- [x] Create hub integration test suite (10 tests)
+- [x] Validate no regression in existing tests (149 total tests passing)
+- [x] Update test infrastructure with hub test groups
 
-### TASK-CRITICAL-002: Complete Value Parsing Implementation (2-3 hours) 🚨
-- [ ] Implement parse_value() with quote and escape handling
-- [ ] Remove dead code warning for unused function
-- [ ] Add tests for quoted values: "hello world", 'single', \"escaped\"
-- [ ] Handle multi-line values and special characters
+## CRITICAL TASKS FOR RSB FEATURE IMPLEMENTATION (CURRENT SPRINT)
 
-### TASK-CRITICAL-003: Create Missing Utils Modules (3-4 hours) 🚨
-- [ ] Implement utils/transform.rs (bracket processing integration)
-- [ ] Implement utils/organize.rs (tokens → TokenBucket pipeline)
-- [ ] Implement utils/access.rs (query and retrieval patterns)
-- [ ] Follow data flow ordinality principle: parse → transform → organize → access
+### TASK-CRITICAL-001: Hub CLI Enhancement ✅ COMPLETED (2025-09-21)
+- [x] Replace basic CLI argument parsing with hub::cli_ext
+- [x] Implement enhanced CLI command structure using hub patterns
+- [x] Add proper option validation and help text generation
+- [x] Test CLI enhancement with hub-powered features
+- [x] Validate performance benefits of lite variants
+- [x] **DELIVERABLE**: Professional CLI with subcommands, multiple output formats, and robust validation
 
-## IMMEDIATE BLOCKERS (Must complete before coding) ✅ COMPLETED
+### TASK-CRITICAL-002: Hub Global State Integration (3-4 hours) 🚨
+- [ ] Add hub::global for CLI session state management
+- [ ] Implement configuration persistence across CLI commands
+- [ ] Add context-aware state handling for meteor operations
+- [ ] Test global state functionality with CLI commands
+- [ ] Validate state isolation between CLI sessions
 
-### TASK-001: Create Cargo.toml
-- [ ] Define project metadata (name, version, description)
-- [ ] Specify Rust edition and minimum version
-- [ ] Add essential dependencies (determine which external crates allowed)
-- [ ] Set up basic features structure (if any)
-- [ ] Add dev-dependencies for testing
+### TASK-CRITICAL-003: Hub FS + Strings Integration (4-5 hours) 🚨
+- [ ] Enhance file operations with hub::fs context-aware operations
+- [ ] Integrate hub::strings for advanced text processing
+- [ ] Add atomic file operations for configuration management
+- [ ] Implement string escaping and template processing
+- [ ] Test Unicode and special character handling
 
-### TASK-002: Define Concrete API Function Signatures
-- [ ] Specify main entry point: `parse_token_stream(input: &str) -> Result<TokenBucket, MeteorError>`
-- [ ] Define TokenBucket query methods: `get()`, `set()`, `iterate()`
-- [ ] Specify Context creation: `Context::from_str()`, validation methods
-- [ ] Define Namespace operations: depth validation, hierarchy traversal
-- [ ] Document error types and when each is used
+## FOUNDATION COMPLETED ✅
+
+### TASK-001: Create Cargo.toml ✅ COMPLETED
+- [x] Define project metadata (name, version, description)
+- [x] Specify Rust edition and minimum version
+- [x] Add essential dependencies (minimal external crates)
+- [x] Set up basic features structure
+- [x] Add dev-dependencies for testing
+
+### TASK-002: Core API Implementation ✅ COMPLETED
+- [x] Implement main entry point: `parse_token_stream(input: &str) -> Result<TokenBucket, MeteorError>`
+- [x] Define TokenBucket query methods: `get()`, `set()`, `iterate()`
+- [x] Implement Context creation: `Context::from_str()`, validation methods
+- [x] Define Namespace operations: depth validation, hierarchy traversal
+- [x] Document error types and usage patterns
 
 ### TASK-003: Specify Error Handling Strategy
 - [ ] Define MeteorError enum with specific variants
@@ -126,63 +138,49 @@
 - [ ] Create UAT test templates
 - [ ] Set up test data and fixtures
 
-## QUESTIONS REQUIRING DECISIONS
+## RSB INTEGRATION TASKS (NEW PRIORITY)
 
-### QUESTION-001: Dependencies Policy
-- Which external crates are acceptable? (regex, serde, etc.)
-- Should we stay std-only or allow targeted dependencies?
-- What's the policy on transitive dependencies?
+### TASK-RSB-001: RSB Sanity Test Suite (3-4 hours) 🚨
+- [ ] Create tests/sanity/rsb_global.rs for global state testing
+- [ ] Create tests/sanity/rsb_options.rs for CLI argument parsing
+- [ ] Create tests/sanity/rsb_fs.rs for filesystem operations
+- [ ] Create tests/sanity/rsb_strings.rs for text processing
+- [ ] Create tests/sanity/rsb_integration.rs for feature interaction
+- [ ] Test meteor-rsb compatibility and context mapping
+- [ ] Validate 8 RSB integration scenarios
+- [ ] Ensure all tests integrate with bin/test.sh runner
 
-### QUESTION-002: Performance Targets
-- What are acceptable latency targets for parsing?
-- What are memory usage constraints?
-- Should we optimize for speed or memory?
+### TASK-RSB-002: Enhanced CLI Features (4-6 hours)
+- [ ] Add rsb::dev for interactive PTY operations
+- [ ] Integrate rsb::colors for terminal output formatting
+- [ ] Implement development workflow automation
+- [ ] Add color support detection and formatting
+- [ ] Test interactive process spawning and output capture
 
-### QUESTION-003: Error Strategy Philosophy
-- Fail-fast vs graceful degradation preference?
-- Should malformed input cause panics or return errors?
-- How verbose should error messages be?
+### TASK-RSB-003: Performance Validation (2-3 hours)
+- [ ] Create benchmarks for RSB-integrated operations
+- [ ] Compare performance with and without RSB features
+- [ ] Validate no regression in core 48 tests
+- [ ] Profile memory usage with RSB integration
+- [ ] Document performance characteristics
 
-### QUESTION-004: Context Security Model
-- How strict should context isolation enforcement be?
-- Should context violations panic or return errors?
-- Do we need runtime vs compile-time isolation?
+## RSB INTEGRATION PRIORITIZATION
 
-### QUESTION-005: Backward Compatibility Commitment
-- Must maintain 100% RSB token compatibility?
-- What breaking changes are acceptable?
-- Should we support migration utilities?
+### Phase 1 (Core RSB Integration) - IMMEDIATE:
+- TASK-CRITICAL-001: RSB GLOBAL + OPTIONS (CLI foundation)
+- TASK-CRITICAL-002: RSB FS + STRINGS (file/text processing)
+- TASK-RSB-001: RSB Sanity Test Suite (validation)
 
-### QUESTION-006: Consumer API Design
-- Should consumers register callbacks or poll for updates?
-- Do we need event-driven vs pull-based APIs?
-- Should the API be sync or async?
+### Phase 2 (Enhanced Integration) - NEXT:
+- TASK-CRITICAL-003: RSB HOST + PARAMS (environment)
+- TASK-RSB-002: Enhanced CLI Features (DEV + Colors)
+- TASK-RSB-003: Performance Validation (benchmarking)
 
-## TASK PRIORITIZATION
-
-### Phase 1 (Foundation) - Complete these first:
-- TASK-001: Cargo.toml
-- TASK-002: API signatures
-- TASK-003: Error handling
-- QUESTION-001 through QUESTION-006 (make decisions)
-
-### Phase 2 (Core Implementation):
-- TASK-004: Bracket parsing
-- TASK-005: Ordinality dependencies
-- TASK-006: Context isolation
-- TASK-007: Namespace validation
-
-### Phase 3 (Integration):
-- TASK-008: Value parsing
-- TASK-009: Consumer patterns
-- TASK-011: Migration plan
-- TASK-014: Test specifications
-
-### Phase 4 (Polish):
-- TASK-010: Extensibility
-- TASK-012: Compatibility
-- TASK-013: Validation
-- TASK-015: Test infrastructure
+### Phase 3 (Advanced Features) - FUTURE:
+- Advanced namespace features with RSB patterns
+- Consumer integration examples using RSB
+- Migration tools from pure RSB to meteor+RSB
+- Extended validation and error recovery
 
 ## STATUS TRACKING
 
@@ -192,5 +190,5 @@ Use this format for updates:
 - [x] Complete
 - [?] Blocked/needs decision
 
-Last Updated: 2025-09-18
-Source: China's Analysis Egg #1
+Last Updated: 2025-09-21
+Source: China's RSB CLI Features Analysis + Sprint Planning
