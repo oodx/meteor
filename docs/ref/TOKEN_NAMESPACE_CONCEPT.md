@@ -27,24 +27,36 @@ CONTEXT:NAMESPACE:KEY=VALUE
 2. **Namespace** (`namespace`): Hierarchical organization within context
 3. **Key** (`key`): Individual data identifier with optional indexing
 
-### TokenBucket Organization
+### MeteorShower Organization
 
-TokenBucket collects these patterns into structured storage:
+MeteorShower provides the primary storage with cross-context indexing:
 
 ```rust
-// Input token stream:
-"ctx=app; ui.widgets:button[0]=submit; ui.widgets:list[]=item1; config:theme=dark;"
+// Input meteor stream:
+"app:ui.widgets:button[0]=submit,list[]=item1; app:config:theme=dark"
 
-// TokenBucket structure:
-TokenBucket {
-    context: "app",
-    data: {
-        "ui.widgets" → {
-            "button__i_0" → "submit",
-            "list__i_APPEND" → "item1"
-        },
-        "config" → {
-            "theme" → "dark"
+// MeteorShower structure:
+MeteorShower {
+    meteors: [
+        Meteor {
+            context: "app",
+            tokens: [
+                (ui.widgets, button[0]=submit),
+                (ui.widgets, list[]=item1),
+                (config, theme=dark)
+            ]
+        }
+    ],
+    // Storage indexing for fast access:
+    contexts: {
+        "app" → {
+            "ui.widgets" → {
+                "button__i_0" → "submit",
+                "list__i_APPEND" → "item1"
+            },
+            "config" → {
+                "theme" → "dark"
+            }
         }
     }
 }

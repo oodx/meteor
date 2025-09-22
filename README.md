@@ -14,7 +14,7 @@ A Rust library implementing the TOKEN_NAMESPACE_CONCEPT with full addressing, br
 
 ### Full Token Addressing
 ```rust
-use meteor::{parse_shower, Meteor, TokenKey, BracketTransform};
+use meteor::{parse_shower, Meteor, TokenKey, BracketNotation};
 
 // Complete addressing: context:namespace:key=value
 let shower = parse_shower("app:ui.widgets:button[0]=submit")?;
@@ -23,31 +23,32 @@ let meteors = shower.by_context("app");
 // Bracket notation with caching + inverse parsing
 let key = TokenKey::new("list[0]");
 assert_eq!(key.to_string(), "list__i_0");        // Flat (Display)
-assert_eq!(key.to_bracket(), "list[0]");         // Original (BracketTransform)
+assert_eq!(key.to_bracket(), "list[0]");         // Original (BracketNotation)
 assert_eq!("list__i_0".to_bracket(), "list[0]"); // Inverse parsing
 ```
 
-### Dual Collection Architecture
-- **`MeteorShower`** - Object-oriented collection with indexed queries
-- **`TokenBucket`** - Serialized/flattened storage for simple use cases
+### Primary Storage Architecture
+- **`MeteorShower`** - Primary storage with cross-context indexing and object-oriented meteor access
+- **`StorageData`** - Serialized/flattened interchange format for JSON/string export (from MeteorShower)
 
 ### Extensible Design
-- **`BracketTransform`** trait for custom bracket notation
+- **`BracketNotation`** trait for custom bracket notation
 - **MODULE_SPEC** compliant organization
 - **RSB** integration ready
 
 ## Quick Start
 
 ```rust
-use meteor::{parse, parse_shower, TokenKey};
+use meteor::{parse_shower, parse_meteor, TokenKey};
 
-// Simple parsing (TokenBucket)
-let bucket = parse("ui:button=click; config:theme=dark")?;
-assert_eq!(bucket.get("ui", "button"), Some("click"));
-
-// Advanced parsing (MeteorShower)
+// Primary API: Cross-context parsing (MeteorShower)
 let shower = parse_shower("app:ui:button=click; user:settings:theme=dark")?;
 let app_meteors = shower.by_context("app");
+assert_eq!(shower.get("app", "ui", "button"), Some("click"));
+
+// Single context parsing (Meteor)
+let meteor = parse_meteor("app:ui:button=click,theme=dark")?;
+assert_eq!(meteor.context().name(), "app");
 
 // Bracket notation
 let key = TokenKey::new("grid[2,3]");
