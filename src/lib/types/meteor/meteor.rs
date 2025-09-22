@@ -127,7 +127,7 @@ mod tests {
         let meteor = Meteor::parse("app:ui.widgets:button=submit").unwrap();
         assert_eq!(meteor.context().name(), "app");
         assert_eq!(meteor.namespace().to_string(), "ui.widgets");
-        assert_eq!(meteor.token().key(), "button");
+        assert_eq!(meteor.token().key_notation(), "button");
         assert_eq!(meteor.token().value(), "submit");
     }
 
@@ -143,7 +143,7 @@ mod tests {
         let meteor = Meteor::parse("button=submit").unwrap();
         assert_eq!(meteor.context().name(), "app"); // Default
         assert_eq!(meteor.namespace().to_string(), ""); // Root
-        assert_eq!(meteor.token().key(), "button");
+        assert_eq!(meteor.token().key_notation(), "button");
     }
 
     #[test]

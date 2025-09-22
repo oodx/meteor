@@ -96,7 +96,7 @@ impl MeteorShower {
     pub fn find(&self, context: &str, namespace: &str, key: &str) -> Option<&Meteor> {
         self.by_context_namespace(context, namespace)
             .into_iter()
-            .find(|meteor| meteor.token().key() == key || meteor.token().transformed_key() == key)
+            .find(|meteor| meteor.token().key_notation() == key || meteor.token().key_str() == key)
     }
 
     /// Get all unique contexts in the shower
