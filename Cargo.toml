@@ -18,13 +18,13 @@ name = "meteor"
 path = "src/bin/cli.rs"
 
 [dependencies]
-# Hub integration with lite variants for optimal CLI development (v0.4.0)
-hub = { git = "https://github.com/oodx/hub.git", features = ["core", "cli-ext", "async-ext", "error-ext"] }
+# Hub integration for shared dependencies (criterion, etc.) - removed cli-ext for native RSB CLI
+hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext"] }
 rsb = { git = "https://github.com/oodx/rsb.git", features = ["visuals", "stdopts"] }
 
 [dev-dependencies]
-#criterion = { version = "0.5", default-features = false, features = ["html_reports", "rayon"] }
-criterion = "0.7"
+# Use criterion from hub for consistency
+# criterion = "0.7"  # Using hub-provided criterion instead
 
 [profile.dev]
 # Development profile for faster compilation during development
