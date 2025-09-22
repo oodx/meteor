@@ -246,7 +246,53 @@ dispatch!(&args, { "parse" => parse_command });
 **Major Achievement**: Phase 2 completed **4-5 hours ahead of schedule!**
 
 **Last Updated**: 2025-09-22
-**Status**: ✅ Phase 2 COMPLETED - Native RSB CLI operational, ready for Phase 3
+**Status**: ✅ Phase 3 COMPLETED - Native RSB CLI operational with full feature parity
+**Current**: Phase 2 Enhanced Command Surface - REPL-like interface design
+
+## ENHANCED CLI COMMAND SURFACE (2025-09-22)
+
+### TASK-CLI-004: REPL-like Command Interface ⚠️ IN PROGRESS
+**Purpose**: Add comprehensive command surface for meteor string experimentation
+**Timeline**: 2-3 hours
+**Status**: Design phase completed, implementation in progress
+
+#### Design Completed ✅
+- [x] Complete CLI strategy document with 13-command specification
+- [x] Advanced help system framework (show_parse_help function)
+- [x] Command separation strategy (meteor vs meteor-learn vs meteor-debug)
+- [x] Full REPL interface specification with examples
+- [x] Flag and option specifications for all commands
+
+#### Implementation Tasks 🔄 IN PROGRESS
+- [ ] **validate command**: `meteor validate <pattern>` - Validate meteor string format
+  - Use existing `validate_token_organization()` from utils/organize.rs
+  - Show validation errors with helpful suggestions
+  - Advanced help: `meteor help validate`
+- [ ] **help command**: `meteor help <topic>` - Detailed command-specific help
+  - Topics: parse, validate, bucket, shower, transform, etc.
+  - Advanced help menus with colored output and examples
+- [ ] **Enhanced parse flags**: --explain, --validate, --inspect modes
+- [ ] **API exploration**: bucket, shower, transform, access commands
+- [ ] **Interactive REPL**: meteor repl with command history
+
+#### Key Commands to Implement
+```bash
+# Validation and help
+meteor validate "pattern"              # Check if valid meteor format
+meteor help parse                      # Advanced help for parse command
+meteor help validate                   # Advanced help for validate command
+
+# Enhanced parsing
+meteor parse --explain "pattern"       # Show parsing steps
+meteor parse --inspect "pattern"       # Show internal structures
+
+# API exploration
+meteor bucket "pattern"               # TokenBucket API demo
+meteor shower "pattern"               # MeteorShower API demo
+```
+
+**Dependencies**: Native RSB CLI (✅ completed)
+**Benefits**: Interactive meteor string experimentation, learning interface, API exploration
 
 ## IMMEDIATE FIXES COMPLETED ✅ (2025-09-22)
 

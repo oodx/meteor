@@ -104,6 +104,98 @@ fn print_text_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool) {
     }
 }
 
+/// Show advanced help for parse command
+fn show_parse_help() {
+    // Simple colored output using ANSI codes directly
+    fn colorize(text: &str, color: &str) -> String {
+        match color {
+            "blue" => format!("\x1b[34m{}\x1b[0m", text),
+            "cyan" => format!("\x1b[36m{}\x1b[0m", text),
+            "green" => format!("\x1b[32m{}\x1b[0m", text),
+            "white" => format!("\x1b[37m{}\x1b[0m", text),
+            "yellow" => format!("\x1b[33m{}\x1b[0m", text),
+            "bright_black" => format!("\x1b[90m{}\x1b[0m", text),
+            _ => text.to_string(),
+        }
+    }
+
+    println!("{}\n", colorize("meteor parse", "blue"));
+    println!("{}\n", colorize("Parse meteor token streams with analysis options", "cyan"));
+
+    println!("{}", colorize("USAGE:", "green"));
+    println!("  {} {} {}",
+        colorize("meteor parse", "white"),
+        colorize("[FLAGS]", "yellow"),
+        colorize("<PATTERN>", "white"));
+    println!();
+
+    println!("{}", colorize("FLAGS:", "green"));
+    println!("  {}          {}",
+        colorize("--explain", "white"),
+        colorize("Show step-by-step parsing process", "bright_black"));
+    println!("  {}         {}",
+        colorize("--validate", "white"),
+        colorize("Validation-only mode (no parsing output)", "bright_black"));
+    println!("  {}          {}",
+        colorize("--inspect", "white"),
+        colorize("Show internal data structures", "bright_black"));
+    println!("  {}      {}",
+        colorize("--format=FORMAT", "white"),
+        colorize("Output format: text, json, debug [default: text]", "bright_black"));
+    println!("  {}        {}",
+        colorize("-v, --verbose", "white"),
+        colorize("Verbose output with parsing details", "bright_black"));
+    println!("  {}         {}",
+        colorize("-h, --help", "white"),
+        colorize("Show this help message", "bright_black"));
+    println!();
+
+    println!("{}", colorize("EXAMPLES:", "green"));
+    println!("  {}", colorize("# Basic parsing", "bright_black"));
+    println!("  {} {}",
+        colorize("meteor parse", "white"),
+        colorize("\"app:ui:button=click\"", "cyan"));
+    println!();
+    println!("  {}", colorize("# Show parsing steps", "bright_black"));
+    println!("  {} {}",
+        colorize("meteor parse --explain", "white"),
+        colorize("\"list[0,1]=matrix\"", "cyan"));
+    println!();
+    println!("  {}", colorize("# JSON output with validation", "bright_black"));
+    println!("  {} {}",
+        colorize("meteor parse --format=json --verbose", "white"),
+        colorize("\"ctx:ns:key=value;other=data\"", "cyan"));
+    println!();
+    println!("  {}", colorize("# Debug internal structures", "bright_black"));
+    println!("  {} {}",
+        colorize("meteor parse --inspect --format=debug", "white"),
+        colorize("\"complex:pattern[0,1]=data\"", "cyan"));
+    println!();
+    println!("  {}", colorize("# Validate pattern without parsing", "bright_black"));
+    println!("  {} {}",
+        colorize("meteor parse --validate", "white"),
+        colorize("\"potentially:malformed=input\"", "cyan"));
+    println!();
+
+    println!("{}", colorize("PATTERN SYNTAX:", "green"));
+    println!("  {}       {}",
+        colorize("key=value", "white"),
+        colorize("Basic key-value pair", "bright_black"));
+    println!("  {}  {}",
+        colorize("ns:key=value", "white"),
+        colorize("Namespaced key-value", "bright_black"));
+    println!("  {} {}",
+        colorize("ctx:ns:key=value", "white"),
+        colorize("Full context addressing", "bright_black"));
+    println!("  {}    {}",
+        colorize("list[0]=item", "white"),
+        colorize("Bracket notation (transforms to list__i_0)", "bright_black"));
+    println!("  {} {}",
+        colorize("matrix[0,1]=cell", "white"),
+        colorize("Multi-dimensional indexing", "bright_black"));
+    println!();
+}
+
 /// Print JSON format output
 fn print_json_output(bucket: &meteor::TokenBucket, _input: &str, _verbose: bool) {
     // TODO: Implement JSON serialization
