@@ -16,6 +16,9 @@
 // Core type definitions
 pub mod types;
 
+// Parser module for token processing
+pub mod parser;
+
 // Public utilities following data flow ordinality
 pub mod utils;
 
@@ -23,7 +26,7 @@ pub mod utils;
 pub mod sup;
 
 // Re-export main public types and functions
-pub use types::{Context, Namespace, Key, TokenBucket, MeteorError};
+pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, TokenBucket, MeteorError, BracketNotation};
 pub use utils::parse::parse_token_stream;
 
 // Module trait for RSB-compliant module organization
@@ -37,10 +40,10 @@ pub trait Module {
     }
 }
 
-/// Meteor module implementation
-pub struct Meteor;
+/// MeteorModule implementation
+pub struct MeteorModule;
 
-impl Module for Meteor {
+impl Module for MeteorModule {
     fn name(&self) -> &'static str {
         "meteor"
     }
@@ -71,14 +74,37 @@ pub fn parse(input: &str) -> Result<TokenBucket, MeteorError> {
     parse_token_stream(input)
 }
 
+/// Parse a meteor stream into a MeteorShower
+///
+/// Takes fully-qualified meteor tokens and returns a MeteorShower collection.
+/// This is for handling complete meteor addressing format.
+///
+/// # Format
+///
+/// Meteor streams follow the full addressing format:
+/// - Full: `context:namespace:key=value`
+/// - Multiple: `app:ui:button=click; user:settings:theme=dark`
+/// - Minimal: `key=value` (defaults to app context, root namespace)
+///
+/// # Examples
+///
+/// ```ignore
+/// let shower = meteor::parse_shower("app:ui.widgets:button=submit; user:settings:theme=dark");
+/// let meteors = shower.unwrap();
+/// assert_eq!(meteors.len(), 2);
+/// ```
+pub fn parse_shower(input: &str) -> Result<MeteorShower, String> {
+    MeteorShower::parse(input)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_module_trait() {
-        let meteor = Meteor;
-        assert_eq!(meteor.name(), "meteor");
-        assert!(!meteor.version().is_empty());
+        let module = MeteorModule;
+        assert_eq!(module.name(), "meteor");
+        assert!(!module.version().is_empty());
     }
 }

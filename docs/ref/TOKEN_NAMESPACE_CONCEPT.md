@@ -14,6 +14,9 @@ This document defines the unified namespace and key strategy pattern for RSB/XSt
 "user:preferences:theme=dark"
 "system:env:PATH=/usr/bin"
 "file1:config.database:host=localhost"
+
+#general pattern
+CONTEXT:NAMESPACE:KEY=VALUE
 ```
 
 ### Components
@@ -272,7 +275,13 @@ Potential future feature for distributed access control:
 Requires deeper investigation of actual use cases.
 -->
 
-### Extension Points
+### Current Extensions (Implemented)
+- **BracketTransform Trait**: Extensible bracket notation system with caching
+- **MeteorShower Collection**: Object-oriented collection with indexed queries (`by_context()`, `find()`)
+- **Inverse Parsing**: Reconstruction of bracket notation from flat keys
+- **Dual Storage**: Both serialized (TokenBucket) and object-oriented (MeteorShower) collections
+
+### Future Extension Points
 Future extensions may include:
 - **Operations**: `counter[++]=1`, `list[--]=item` (conceptual only)
 - **Queries**: `cache[?]=key` for existence checks
@@ -281,17 +290,31 @@ Future extensions may include:
 
 ## Implementation Notes
 
-### TokenBucket Storage
-- Remains flat `HashMap<String, HashMap<String, String>>`
+### Collection Types
+
+#### TokenBucket Storage (Serialized)
+- Flat `HashMap<String, HashMap<String, String>>` structure
 - Context stored separately in bucket metadata
 - Bracket notation transformed to dunder at parse time
 - Consumer folding reconstructs semantic structures
 
+#### MeteorShower Collection (Object-Oriented)
+- Vector of fully-qualified Meteor objects
+- Indexed lookups by context and namespace for performance
+- Query methods: `by_context()`, `by_context_namespace()`, `find()`
+- Discovery methods: `contexts()`, `namespaces_in_context()`
+- Supports complex meteor addressing queries
+
 ### Parser Transformation
 ```rust
-// Single transformation pipeline:
+// Forward transformation pipeline:
 "app:ui.widgets:list[0]=item"
 → context="app", namespace="ui.widgets", key="list__i_0", value="item"
+
+// Inverse parsing (reconstruction from flat keys):
+"list__i_0" → "list[0]"  // Via BracketTransform trait
+"grid__i_2_3" → "grid[2,3]"
+"user__name" → "user[name]"
 ```
 
 ### Consumer Pattern

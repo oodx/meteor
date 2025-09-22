@@ -1,7 +1,9 @@
 # HOWTO: Hub Integration Guide
 
 ## Overview
-Hub is a centralized dependency management system for the oodx/RSB ecosystem that uses feature flags to provide modular, conflict-free dependency management with clean namespace separation between internal and external dependencies.
+Hub is a centralized dependency management system for the oodx/rebel ecosystem that uses feature flags to provide modular, conflict-free dependency management with clean namespace separation between internal and external dependencies.
+
+Note the RSB module itself is currently isolate from Hub, and should be imported directly.
 
 ## Namespace Philosophy ⚠️ Major Update in v0.3.0
 

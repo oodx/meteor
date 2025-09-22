@@ -7,7 +7,7 @@
 //! and value normalization using RSB patterns.
 
 use crate::types::MeteorError;
-use crate::sup::bracket;
+use crate::parser::bracket;
 
 /// Transform a raw token key using bracket notation rules
 ///

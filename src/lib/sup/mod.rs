@@ -1,13 +1,7 @@
-//! Support modules for internal complexity isolation
+//! Support modules for general helpers
 //!
-//! The sup directory contains complex algorithms and internal utilities
-//! that should not be exposed in the public API. This includes:
-//! - Bracket notation parsing algorithms
-//! - Complex validation logic
-//! - RSB compatibility helpers
+//! The sup directory contains general helper functions and utilities
+//! that don't have a clear home in other modules.
 
-pub mod bracket;
-
-// TODO: Implement these modules when needed
-// pub mod validation;
-// pub mod compat;
+// TODO: Add general helper modules as needed
+// Note: bracket.rs has been moved to parser module where it belongs

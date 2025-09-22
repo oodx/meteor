@@ -7,7 +7,7 @@ extern crate meteor;
 
 #[cfg(test)]
 mod tests {
-    use meteor::sup::bracket;
+    use meteor::parser::bracket;
 
     #[test]
     fn sanity_sup_bracket_transform_simple() {

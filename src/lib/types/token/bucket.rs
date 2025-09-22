@@ -4,7 +4,7 @@
 //! namespace organization. Each context gets its own isolated storage.
 
 use std::collections::HashMap;
-use super::primary::Context;
+use crate::types::Context;
 
 /// Container for parsed token data with context isolation
 ///

@@ -14,13 +14,13 @@
 
 📋 **Current Priority Tasks**:
 1. TASK-CRITICAL-001: Hub CLI Enhancement (4-6 hours)
-2. TASK-CRITICAL-002: Hub Global State Integration (3-4 hours)
+2. TASK-CRITICAL-002: RSB Global State Integration (3-4 hours)
 3. TASK-CRITICAL-003: Hub FS + Strings Integration (4-5 hours)
 
 🏗️ **Architecture**:
 - **Branch**: admin/meta-process
 - **Key Commands**: cargo run --bin meteor parse "token_stream"
-- **Pattern**: Hub-powered RSB features with lite variant optimization
+- **Pattern**: RSB-based cli features with hub dependencies lite variant optimization
 - **Hub Features**: core, cli-ext, async-ext, error-ext
 
 ⚡ **Immediate Next Steps**:

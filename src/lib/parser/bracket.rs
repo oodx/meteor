@@ -214,3 +214,84 @@ mod tests {
         assert_eq!(transform_key("grid[ x , y ]").unwrap(), "grid__i_x_y");
     }
 }
+
+/// Reverse transform a flat key back to bracket notation (best effort)
+///
+/// Attempts to reconstruct bracket notation from flat keys.
+/// May not be perfect for all cases, but handles common patterns.
+///
+/// # Examples
+///
+/// ```ignore
+/// use meteor::parser::bracket::reverse_transform_key;
+///
+/// assert_eq!(reverse_transform_key("list__i_0").unwrap(), "list[0]");
+/// assert_eq!(reverse_transform_key("grid__i_2_3").unwrap(), "grid[2,3]");
+/// assert_eq!(reverse_transform_key("queue__i_APPEND").unwrap(), "queue[]");
+/// assert_eq!(reverse_transform_key("normal_key").unwrap(), "normal_key");
+/// ```
+pub fn reverse_transform_key(flat_key: &str) -> Option<String> {
+    // Pattern for dunder notation: base__i_indices or base__name
+    if let Some(dunder_pos) = flat_key.find("__") {
+        let base = &flat_key[..dunder_pos];
+        let suffix = &flat_key[dunder_pos + 2..];
+
+        // Check if it's an index pattern (starts with "i_")
+        if suffix.starts_with("i_") {
+            let indices = &suffix[2..]; // Remove "i_" prefix
+
+            if indices == "APPEND" {
+                // Special case for append
+                return Some(format!("{}[]", base));
+            } else if indices.contains('_') {
+                // Multi-dimensional indices
+                let coords: Vec<&str> = indices.split('_').collect();
+                return Some(format!("{}[{}]", base, coords.join(",")));
+            } else {
+                // Single index
+                return Some(format!("{}[{}]", base, indices));
+            }
+        } else {
+            // Named index (no "i_" prefix)
+            return Some(format!("{}[{}]", base, suffix));
+        }
+    }
+
+    // No dunder pattern found, return as-is
+    Some(flat_key.to_string())
+}
+
+#[cfg(test)]
+mod reverse_tests {
+    use super::*;
+
+    #[test]
+    fn test_reverse_transform_numeric() {
+        assert_eq!(reverse_transform_key("list__i_0").unwrap(), "list[0]");
+        assert_eq!(reverse_transform_key("items__i_42").unwrap(), "items[42]");
+    }
+
+    #[test]
+    fn test_reverse_transform_multi_dimensional() {
+        assert_eq!(reverse_transform_key("grid__i_2_3").unwrap(), "grid[2,3]");
+        assert_eq!(reverse_transform_key("matrix__i_x_y_z").unwrap(), "matrix[x,y,z]");
+    }
+
+    #[test]
+    fn test_reverse_transform_append() {
+        assert_eq!(reverse_transform_key("queue__i_APPEND").unwrap(), "queue[]");
+        assert_eq!(reverse_transform_key("list__i_APPEND").unwrap(), "list[]");
+    }
+
+    #[test]
+    fn test_reverse_transform_named() {
+        assert_eq!(reverse_transform_key("person__name").unwrap(), "person[name]");
+        assert_eq!(reverse_transform_key("config__database").unwrap(), "config[database]");
+    }
+
+    #[test]
+    fn test_reverse_transform_no_dunder() {
+        assert_eq!(reverse_transform_key("simple_key").unwrap(), "simple_key");
+        assert_eq!(reverse_transform_key("button").unwrap(), "button");
+    }
+}

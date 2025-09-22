@@ -20,6 +20,7 @@ path = "src/bin/cli.rs"
 [dependencies]
 # Hub integration with lite variants for optimal CLI development (v0.4.0)
 hub = { git = "https://github.com/oodx/hub.git", features = ["core", "cli-ext", "async-ext", "error-ext"] }
+rsb = { git = "https://github.com/oodx/rsb.git", features = ["visuals", "stdopts"] }
 
 [dev-dependencies]
 #criterion = { version = "0.5", default-features = false, features = ["html_reports", "rayon"] }
@@ -81,42 +82,10 @@ path = "tests/sanity/hub_lite_performance.rs"
 name = "sanity_hub_deps_baseline"
 path = "tests/sanity/hub_deps_baseline.rs"
 
-# RSB preparatory sanity tests (foundational tests for RSB integration)
+# RSB baseline sanity tests (real RSB functionality validation)
 [[test]]
-name = "sanity_rsb_global"
-path = "tests/sanity/rsb_global.rs"
-
-[[test]]
-name = "sanity_rsb_options"
-path = "tests/sanity/rsb_options.rs"
-
-[[test]]
-name = "sanity_rsb_fs"
-path = "tests/sanity/rsb_fs.rs"
-
-[[test]]
-name = "sanity_rsb_strings"
-path = "tests/sanity/rsb_strings.rs"
-
-[[test]]
-name = "sanity_rsb_host"
-path = "tests/sanity/rsb_host.rs"
-
-[[test]]
-name = "sanity_rsb_params"
-path = "tests/sanity/rsb_params.rs"
-
-[[test]]
-name = "sanity_rsb_dev"
-path = "tests/sanity/rsb_dev.rs"
-
-[[test]]
-name = "sanity_rsb_colors"
-path = "tests/sanity/rsb_colors.rs"
-
-[[test]]
-name = "sanity_rsb_integration"
-path = "tests/sanity/rsb_integration.rs"
+name = "sanity_rsb_baseline"
+path = "tests/sanity/rsb_baseline.rs"
 
 # RSB compliance metadata
 [package.metadata.rsb]

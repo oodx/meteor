@@ -7,7 +7,7 @@ extern crate meteor;
 
 #[cfg(test)]
 mod tests {
-    use meteor::{Context, Namespace, Key, TokenBucket, MeteorError};
+    use meteor::{Context, Namespace, Token, TokenKey, TokenBucket, MeteorError};
     use std::str::FromStr;
 
     #[test]
@@ -66,28 +66,41 @@ mod tests {
     }
 
     #[test]
-    fn sanity_types_key_creation() {
-        let simple = Key::new("button");
+    fn sanity_types_token_key_creation() {
+        let simple = TokenKey::new("button");
         assert_eq!(simple.base(), "button");
         assert_eq!(simple.transformed(), "button");
         assert!(!simple.has_brackets());
 
-        let bracket = Key::new("list[0]");
+        let bracket = TokenKey::new("list[0]");
         assert_eq!(bracket.base(), "list[0]");
         assert_eq!(bracket.transformed(), "list__i_0");
         assert!(bracket.has_brackets());
     }
 
     #[test]
-    fn sanity_types_key_bracket_transformation() {
-        let list_key = Key::new("list[0]");
-        assert_eq!(list_key.transformed(), "list__i_0");
+    fn sanity_types_token_creation() {
+        let simple = Token::new("button", "submit");
+        assert_eq!(simple.key(), "button");
+        assert_eq!(simple.transformed_key(), "button");
+        assert!(!simple.has_brackets());
 
-        let grid_key = Key::new("grid[2,3]");
-        assert_eq!(grid_key.transformed(), "grid__i_2_3");
+        let bracket = Token::new("list[0]", "item");
+        assert_eq!(bracket.key(), "list[0]");
+        assert_eq!(bracket.transformed_key(), "list__i_0");
+        assert!(bracket.has_brackets());
+    }
 
-        let append_key = Key::new("queue[]");
-        assert_eq!(append_key.transformed(), "queue__i_APPEND");
+    #[test]
+    fn sanity_types_token_bracket_transformation() {
+        let list_token = Token::new("list[0]", "item");
+        assert_eq!(list_token.transformed_key(), "list__i_0");
+
+        let grid_token = Token::new("grid[2,3]", "cell");
+        assert_eq!(grid_token.transformed_key(), "grid__i_2_3");
+
+        let append_token = Token::new("queue[]", "task");
+        assert_eq!(append_token.transformed_key(), "queue__i_APPEND");
     }
 
     #[test]

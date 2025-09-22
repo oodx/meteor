@@ -3,7 +3,7 @@
 //! This module provides the main entry point for parsing token streams
 //! into structured TokenBucket data.
 
-use crate::types::{Context, Namespace, Key, TokenBucket, MeteorError};
+use crate::types::{Context, Namespace, Token, TokenBucket, MeteorError};
 use std::str::FromStr;
 
 /// Parse a token stream into a TokenBucket
@@ -81,42 +81,78 @@ fn parse_token(
         return Ok(());
     }
 
-    // Parse namespace and key
-    let (namespace, key_str) = parse_namespace_key(left)?;
+    // Parse context:namespace:key or namespace:key
+    let (context_opt, namespace, key_str) = parse_full_address(left)?;
+
+    // Switch context if one was specified
+    if let Some(context) = context_opt {
+        bucket.switch_context(context);
+    }
 
     // Apply bracket transformation to key
-    let key = Key::new(key_str);
+    let token = Token::new(key_str, parse_value(right)?);
 
-    // Parse the value with quote/escape handling
-    let parsed_value = parse_value(right)?;
-    bucket.set(&namespace, key.transformed(), parsed_value);
+    // Store using transformed key
+    bucket.set(&namespace, token.transformed_key(), token.value().to_string());
 
     Ok(())
 }
 
-/// Parse a namespace:key combination
-fn parse_namespace_key(input: &str) -> Result<(String, String), MeteorError> {
-    if let Some(colon_pos) = input.find(':') {
-        let namespace = input[..colon_pos].trim();
-        let key = input[colon_pos + 1..].trim();
+/// Parse full address: context:namespace:key, namespace:key, or key
+fn parse_full_address(input: &str) -> Result<(Option<Context>, String, String), MeteorError> {
+    let colon_count = input.chars().filter(|&c| c == ':').count();
 
-        if namespace.is_empty() {
-            return Err(MeteorError::invalid_token(input, "empty namespace"));
+    match colon_count {
+        0 => {
+            // Just key, no namespace or context
+            Ok((None, "".to_string(), input.to_string()))
         }
-        if key.is_empty() {
-            return Err(MeteorError::invalid_token(input, "empty key after namespace"));
-        }
+        1 => {
+            // namespace:key (no context specified)
+            let parts: Vec<&str> = input.splitn(2, ':').collect();
+            let namespace = parts[0].trim();
+            let key = parts[1].trim();
 
-        // Check namespace depth
-        let ns = Namespace::from_string(namespace);
-        if ns.is_too_deep() {
-            return Err(MeteorError::namespace_too_deep(namespace, ns.depth()));
-        }
+            if namespace.is_empty() {
+                return Err(MeteorError::invalid_token(input, "empty namespace"));
+            }
+            if key.is_empty() {
+                return Err(MeteorError::invalid_token(input, "empty key after namespace"));
+            }
 
-        Ok((namespace.to_string(), key.to_string()))
-    } else {
-        // No namespace, just key
-        Ok((String::new(), input.to_string()))
+            // Check namespace depth
+            let ns = Namespace::from_string(namespace);
+            if ns.is_too_deep() {
+                return Err(MeteorError::namespace_too_deep(namespace, ns.depth()));
+            }
+
+            Ok((None, namespace.to_string(), key.to_string()))
+        }
+        2 => {
+            // context:namespace:key (full format)
+            let parts: Vec<&str> = input.splitn(3, ':').collect();
+            let context = Context::from_str(parts[0].trim())
+                .map_err(|e| MeteorError::parse(0, e))?;
+            let namespace = parts[1].trim();
+            let key = parts[2].trim();
+
+            if key.is_empty() {
+                return Err(MeteorError::invalid_token(input, "empty key"));
+            }
+
+            // Check namespace depth if not empty
+            if !namespace.is_empty() {
+                let ns = Namespace::from_string(namespace);
+                if ns.is_too_deep() {
+                    return Err(MeteorError::namespace_too_deep(namespace, ns.depth()));
+                }
+            }
+
+            Ok((Some(context), namespace.to_string(), key.to_string()))
+        }
+        _ => {
+            Err(MeteorError::invalid_token(input, "too many colons in address"))
+        }
     }
 }
 
@@ -345,5 +381,49 @@ mod tests {
         // Mismatched quotes
         let result = parse_token_stream("bad=\"mismatched'");
         assert!(result.is_ok()); // This actually parses as unquoted value - that's RSB string-biased behavior
+    }
+
+    #[test]
+    fn test_full_meteor_spec_support() {
+        // Full format: context:namespace:key=value
+        let result = parse_token_stream("user:settings:theme=dark");
+        assert!(result.is_ok());
+        let bucket = result.unwrap();
+
+        // Should be in user context now
+        assert_eq!(bucket.context().name(), "user");
+        assert_eq!(bucket.get("settings", "theme"), Some("dark"));
+
+        // Multiple full format tokens
+        let result = parse_token_stream("app:ui.widgets:button=click; system:env:PATH=/usr/bin");
+        assert!(result.is_ok());
+        let bucket = result.unwrap();
+
+        // Should be in system context (last one parsed)
+        assert_eq!(bucket.context().name(), "system");
+        assert_eq!(bucket.get("env", "PATH"), Some("/usr/bin"));
+
+        // Mixed format - full and namespace-only
+        let result = parse_token_stream("user:settings:theme=dark; ui:button=click");
+        assert!(result.is_ok());
+        let mut bucket = result.unwrap();
+
+        // Should be in user context
+        assert_eq!(bucket.context().name(), "user");
+        assert_eq!(bucket.get("settings", "theme"), Some("dark"));
+        assert_eq!(bucket.get("ui", "button"), Some("click"));
+    }
+
+    #[test]
+    fn test_default_app_context() {
+        // No context specified should default to app
+        let result = parse_token_stream("ui:button=click; key=value");
+        assert!(result.is_ok());
+        let bucket = result.unwrap();
+
+        // Should be in app context (default)
+        assert_eq!(bucket.context().name(), "app");
+        assert_eq!(bucket.get("ui", "button"), Some("click"));
+        assert_eq!(bucket.get("", "key"), Some("value"));
     }
 }
