@@ -245,7 +245,7 @@ SystemContext {
 3. **Folding**: Related namespaces can be grouped by consumers
 
 ### Key Implications
-1. **Storage**: All keys stored as flattened strings in TokenBucket
+1. **Storage**: All keys stored as flattened strings in MeteorShower storage
 2. **Semantics**: Bracket notation provides hints, consumers enforce meaning
 3. **Extensibility**: Dunder pattern allows unlimited extension types
 
@@ -262,7 +262,7 @@ The token system provides **data transport**, not **semantic validation**. Consu
 
 ### Mixed Data Scenarios
 ```rust
-// TokenBucket accepts mixed semantics:
+// MeteorShower accepts mixed semantics:
 "ui.layout:grid[]=item1; ui.layout:grid[2,3]=item2; ui.layout:grid[name]=item3;"
 
 // Consumer (GridLayoutManager) decides:
@@ -295,7 +295,7 @@ Requires deeper investigation of actual use cases.
 - **BracketTransform Trait**: Extensible bracket notation system with caching
 - **MeteorShower Collection**: Object-oriented collection with indexed queries (`by_context()`, `find()`)
 - **Inverse Parsing**: Reconstruction of bracket notation from flat keys
-- **Dual Storage**: Both serialized (TokenBucket) and object-oriented (MeteorShower) collections
+- **Storage & Interchange**: Primary storage (MeteorShower) with serialized interchange format (StorageData)
 
 ### Future Extension Points
 Future extensions may include:
@@ -308,13 +308,13 @@ Future extensions may include:
 
 ### Collection Types
 
-#### TokenBucket Storage (Serialized)
-- Flat `HashMap<String, HashMap<String, String>>` structure
-- Context stored separately in bucket metadata
+#### MeteorShower Storage (Primary)
+- Cross-context indexed storage with object-oriented meteor access
+- Internal flat `HashMap<String, HashMap<String, String>>` for fast key-value lookup
 - Bracket notation transformed to dunder at parse time
 - Consumer folding reconstructs semantic structures
 
-#### MeteorShower Collection (Object-Oriented)
+#### StorageData Format (Serialized Interchange)
 - Vector of fully-qualified Meteor objects
 - Indexed lookups by context and namespace for performance
 - Query methods: `by_context()`, `by_context_namespace()`, `find()`
@@ -337,7 +337,7 @@ Future extensions may include:
 ```rust
 // Consumers implement domain-specific logic:
 impl LayoutManager {
-    fn consume_tokens(&mut self, bucket: &TokenBucket) -> Result<()> {
+    fn consume_tokens(&mut self, shower: &MeteorShower) -> Result<()> {
         // 1. Check context permissions
         // 2. Route by namespace
         // 3. Parse bracket hints from keys
