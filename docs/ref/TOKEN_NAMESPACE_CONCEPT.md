@@ -69,21 +69,23 @@ MeteorShower {
 
 ### Multi-Context Example
 ```rust
-// Multiple contexts (separate TokenBuckets):
-AppBucket {
+// Multiple contexts stored in MeteorShower:
+AppContext {
     context: "app",
     data: { "ui.widgets" → { "button__i_0" → "submit" } }
 }
 
-UserBucket {
+UserContext {
     context: "user",
     data: { "preferences" → { "theme" → "dark" } }
 }
 
-SystemBucket {
+SystemContext {
     context: "system",
     data: { "env" → { "PATH" → "/usr/bin" } }
 }
+
+// All stored together in single MeteorShower with cross-context indexing
 ```
 
 ## Context Rules
