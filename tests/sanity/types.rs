@@ -81,12 +81,12 @@ mod tests {
     #[test]
     fn sanity_types_token_creation() {
         let simple = Token::new("button", "submit");
-        assert_eq!(simple.key(), "button");
+        assert_eq!(simple.key_notation(), "button");
         assert_eq!(simple.transformed_key(), "button");
         assert!(!simple.has_brackets());
 
         let bracket = Token::new("list[0]", "item");
-        assert_eq!(bracket.key(), "list[0]");
+        assert_eq!(bracket.key_notation(), "list[0]");
         assert_eq!(bracket.transformed_key(), "list__i_0");
         assert!(bracket.has_brackets());
     }
