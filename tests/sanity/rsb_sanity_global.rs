@@ -134,25 +134,30 @@ mod tests {
 
     #[test]
     fn test_global_variable_types() {
-        // Test different types of values in global store
+        // Test different types of values per FEATURES_GLOBAL.md API
 
         // String values
         set_var("STRING_VAL", "hello world");
         assert_eq!(get_var("STRING_VAL"), "hello world");
 
-        // Boolean-like values (CLI flags)
-        set_var("BOOL_TRUE", "true");
-        set_var("BOOL_FALSE", "false");
-        set_var("BOOL_ONE", "1");
-        set_var("BOOL_ZERO", "0");
+        // Boolean semantics per RSB docs: is_true/is_false check for "1"/"0"
+        set_var("FLAG_TRUE", "1");
+        set_var("FLAG_FALSE", "0");
+        set_var("FLAG_TEXT", "enabled");
 
-        // Test boolean interpretation
-        assert_eq!(get_var("BOOL_TRUE"), "true");
-        assert_eq!(get_var("BOOL_FALSE"), "false");
-        assert_eq!(get_var("BOOL_ONE"), "1");
-        assert_eq!(get_var("BOOL_ZERO"), "0");
+        // Test RSB boolean semantics from FEATURES_GLOBAL.md
+        // is_true(key) checks if get_var(key) == "1"
+        // is_false(key) checks if get_var(key) == "0"
+        assert_eq!(get_var("FLAG_TRUE"), "1");
+        assert_eq!(get_var("FLAG_FALSE"), "0");
+        assert_eq!(get_var("FLAG_TEXT"), "enabled");
 
-        // Number-like values
+        // Test get_all_vars() API
+        let all_vars = get_all_vars();
+        assert!(all_vars.contains_key("STRING_VAL"));
+        assert!(all_vars.contains_key("FLAG_TRUE"));
+
+        // Number-like values (stored as strings)
         set_var("NUMBER", "42");
         assert_eq!(get_var("NUMBER"), "42");
 
@@ -162,10 +167,9 @@ mod tests {
 
         // Cleanup
         unset_var("STRING_VAL");
-        unset_var("BOOL_TRUE");
-        unset_var("BOOL_FALSE");
-        unset_var("BOOL_ONE");
-        unset_var("BOOL_ZERO");
+        unset_var("FLAG_TRUE");
+        unset_var("FLAG_FALSE");
+        unset_var("FLAG_TEXT");
         unset_var("NUMBER");
         unset_var("JSON_CONFIG");
     }
@@ -201,6 +205,48 @@ mod tests {
     }
 
     #[test]
+    fn test_rsb_introspection_api() {
+        // Test RSB GLOBAL introspection features per FEATURES_GLOBAL.md
+
+        // Test function registry
+        register_function("parse", "Parse meteor token streams");
+        register_function("validate", "Validate configuration");
+
+        // Test list_functions()
+        let functions = list_functions();
+        assert!(functions.len() >= 2);
+
+        // Find our registered functions
+        let parse_func = functions.iter().find(|(name, _)| name == "parse");
+        let validate_func = functions.iter().find(|(name, _)| name == "validate");
+
+        assert!(parse_func.is_some());
+        assert!(validate_func.is_some());
+
+        if let Some((_, desc)) = parse_func {
+            assert_eq!(desc, "Parse meteor token streams");
+        }
+
+        // Test call stack
+        push_call("parse", &["input.txt".to_string(), "--verbose".to_string()]);
+        push_call("validate", &["config.toml".to_string()]);
+
+        let stack = get_call_stack();
+        assert_eq!(stack.len(), 2);
+
+        // Pop and verify
+        let last_call = pop_call();
+        assert!(last_call.is_some());
+
+        let remaining_stack = get_call_stack();
+        assert_eq!(remaining_stack.len(), 1);
+
+        // Cleanup remaining call
+        let _ = pop_call();
+        assert_eq!(get_call_stack().len(), 0);
+    }
+
+    #[test]
     fn test_global_functions_integration() {
         // Test that all global functions work together
 
@@ -223,5 +269,20 @@ mod tests {
         unset_var("TEST_INTEGRATION");
         assert!(!has_var("TEST_INTEGRATION"));
         assert_eq!(get_var("TEST_INTEGRATION"), "");
+    }
+
+    #[test]
+    fn test_token_stream_validation() {
+        // Test is_token_stream() helper from FEATURES_GLOBAL.md
+
+        // Valid token streams
+        assert!(is_token_stream("key=value"));
+        assert!(is_token_stream("a=1,b=2"));
+        assert!(is_token_stream("ctx:ns:key=val;other=data"));
+
+        // Invalid token streams
+        assert!(!is_token_stream("just text"));
+        assert!(!is_token_stream("malformed=="));
+        assert!(!is_token_stream(""));
     }
 }

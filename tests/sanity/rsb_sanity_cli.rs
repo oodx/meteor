@@ -13,7 +13,8 @@ mod tests {
 
     #[test]
     fn test_args_bash_like_basic() {
-        // Test bash-like args handling
+        // Test bash-like args handling per FEATURES_CLI.md
+        // Args wrapper provides 1-indexed access (skips argv[0])
         let test_args = vec![
             "meteor".to_string(),       // argv[0] - program name
             "parse".to_string(),        // argv[1] - command
@@ -23,59 +24,86 @@ mod tests {
 
         let args = Args::new(&test_args);
 
-        // Test basic bash-like properties
-        assert_eq!(args.len(), 4); // Total args including argv[0]
-        assert_eq!(args.get(0), "meteor".to_string()); // argv[0] - program name
-        assert_eq!(args.get(1), "parse".to_string());  // argv[1] - first real arg
-        assert_eq!(args.get(2), "--verbose".to_string()); // argv[2] - flag
-        assert_eq!(args.get(3), "input.txt".to_string()); // argv[3] - file
+        // Per RSB CLI docs: get(n) is 1-indexed and skips argv[0]
+        assert_eq!(args.get(1), "parse".to_string());     // First real arg
+        assert_eq!(args.get(2), "--verbose".to_string()); // Second arg
+        assert_eq!(args.get(3), "input.txt".to_string()); // Third arg
+
+        // Test get_or with default
+        assert_eq!(args.get_or(4, "default"), "default".to_string());
+
+        // Test all() returns full args
+        let all_args = args.all();
+        assert_eq!(all_args.len(), 4);
+        assert_eq!(all_args[0], "meteor");
     }
 
     #[test]
     fn test_args_bash_flag_detection() {
-        // Test bash-style flag detection patterns
+        // Test bash-style flag detection per FEATURES_CLI.md API
         let test_args = vec![
             "meteor".to_string(),
             "--verbose".to_string(),
             "-q".to_string(),
             "--format=json".to_string(),
+            "--config".to_string(),
+            "test.conf".to_string(),
             "parse".to_string(),
         ];
 
         let args = Args::new(&test_args);
 
-        // Test bash-like flag detection using has()
+        // Test has() for flag presence
         assert!(args.has("--verbose"));  // Long flag
         assert!(args.has("-q"));         // Short flag
-        assert!(args.has("--format"));   // Flag with value (prefix match)
         assert!(!args.has("--missing")); // Non-existent flag
 
-        // Test positional args (non-flags)
-        assert_eq!(args.get(4), "parse".to_string()); // Last positional arg
+        // Test has_val() for flags with values (--flag=value or --flag value)
+        if let Some(val) = args.has_val("--format") {
+            assert_eq!(val, "json"); // Should extract value from --format=json
+        } else {
+            panic!("Expected --format to have value");
+        }
+
+        if let Some(val) = args.has_val("--config") {
+            assert_eq!(val, "test.conf"); // Should get next arg as value
+        } else {
+            panic!("Expected --config to have value");
+        }
     }
 
     #[test]
     fn test_args_bash_edge_cases() {
-        // Test bash-like edge cases and special patterns
+        // Test bash-like edge cases per RSB CLI API docs
 
         // Empty args (just program name)
         let empty_args = vec!["meteor".to_string()];
         let empty = Args::new(&empty_args);
-        assert_eq!(empty.len(), 1);
-        assert_eq!(empty.get(0), "meteor".to_string());
+        assert_eq!(empty.remaining().len(), 0); // No args after program name
+        assert_eq!(empty.get_or(1, "none"), "none".to_string());
 
-        // Single dash patterns
-        let dash_args = vec![
+        // Test key=value and key:array patterns from CLI docs
+        let kv_args = vec![
             "meteor".to_string(),
-            "-".to_string(),      // stdin marker
-            "--".to_string(),     // end of options marker
-            "file.txt".to_string(),
+            "key1=value1".to_string(),
+            "key2:a,b,c".to_string(),
         ];
-        let dash = Args::new(&dash_args);
-        assert_eq!(dash.get(1), "-".to_string());
-        assert_eq!(dash.get(2), "--".to_string());
-        assert!(dash.has("-"));
-        assert!(dash.has("--"));
+        let kv = Args::new(&kv_args);
+
+        // Test get_kv() for key=value parsing
+        if let Some((k, v)) = kv.get_kv("key1") {
+            assert_eq!(k, "key1");
+            assert_eq!(v, "value1");
+        }
+
+        // Test get_array() for key:a,b,c parsing
+        if let Some((k, arr)) = kv.get_array("key2") {
+            assert_eq!(k, "key2");
+            assert_eq!(arr, vec!["a", "b", "c"]);
+        }
+
+        // Test join() method
+        assert!(kv.join(" ").contains("key1=value1"));
     }
 
     #[test]
