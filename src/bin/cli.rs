@@ -20,17 +20,30 @@ fn main() {
 
 /// Handle the parse command using RSB patterns
 fn parse_command(args: Args) -> i32 {
-    // Get input from positional args (1-indexed, skips argv[0])
-    let input = args.get_or(1, "");
+    // Get input from positional args, skipping flags
+    // RSB Args: get non-flag arguments starting from position 1
+    let mut input = String::new();
+
+    // Find first non-flag argument as input
+    for i in 1..=args.len() {
+        let arg = args.get(i);
+        if !arg.is_empty() && !arg.starts_with('-') {
+            input = arg;
+            break;
+        }
+    }
+
     if input.is_empty() {
         eprintln!("Error: No input provided");
-        eprintln!("Usage: meteor parse <token_string>");
-        eprintln!("Example: meteor parse \"app:ui:button=click\"");
+        eprintln!("Usage: meteor parse [--verbose] [--format=FORMAT] <token_string>");
+        eprintln!("Example: meteor parse --verbose --format=json \"app:ui:button=click\"");
+        eprintln!("Example: meteor parse \"ctx:ns:key=value;other=data\"");
         return 1;
     }
 
     // Get options from RSB global context (set by options! macro)
-    let verbose = has_var("opt_verbose");
+    // Check both --verbose and -v (short flag)
+    let verbose = has_var("opt_verbose") || has_var("opt_v");
     let format = get_var("opt_format");
     let format = if format.is_empty() { "text" } else { &format };
 
