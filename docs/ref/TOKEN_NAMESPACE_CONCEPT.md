@@ -1,5 +1,7 @@
 # Token Namespace Concept
 
+⚠️ **CRITICAL AMENDMENT**: This document contains **architectural errors** discovered during implementation. See **[TOKEN_CONCEPT_AMENDMENT.md](./TOKEN_CONCEPT_AMENDMENT.md)** for critical corrections to the Token/Meteor/MeteorShower hierarchy before using this specification.
+
 ## Overview
 
 This document defines the unified namespace and key strategy pattern for RSB/XStream token systems, providing a consistent addressing scheme across different data access methods while maintaining clear separation of concerns between data transport and semantic validation.
