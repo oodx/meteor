@@ -1,11 +1,11 @@
-# RSB CLI Implementation Plan for Meteor Admin CLI
+# Meteor CLI Strategy & Implementation Plan
 
 ## Overview
 
-This document outlines the implementation plan for replacing the current hub::cli_ext-based CLI with native RSB features, based on actual RSB 0.5.0 capabilities documented in docs/ref/features/.
+This document outlines the meteor CLI ecosystem strategy, including the core meteor CLI for production use and separate specialized CLI tools for learning and experimentation.
 
-**Current Status**: CLI uses hub::cli_ext::clap (works but not RSB-native)
-**Goal**: Replace with native RSB CLI features for proper RSB compliance
+**Current Status**: ✅ Native RSB CLI implemented and operational
+**Updated Goal**: Design comprehensive CLI command surface for meteor string testing and API experimentation
 
 ## Actual RSB Features Available (RSB 0.5.0)
 
@@ -242,17 +242,175 @@ rsb = { git = "https://github.com/oodx/rsb.git", features = ["global", "cli", "s
 4. **Migrate functionality** from hub-based to RSB-native
 5. **Ensure all existing tests pass**
 
+## CLI Ecosystem Strategy
+
+### Core CLI: `meteor`
+**Purpose**: Production-ready tool for parsing and processing meteor strings
+**Target Users**: Developers, scripts, automation
+**Current Commands**:
+- ✅ `meteor parse <input>` - Parse meteor token streams
+- ✅ `meteor help` - Built-in RSB help
+- ✅ `meteor inspect` - List registered functions
+- ✅ `meteor stack` - Show call stack
+
+### Enhanced Commands (Next Phase)
+**REPL-like Interface for String Experimentation**:
+```bash
+# Enhanced parsing with analysis
+meteor parse --explain "ctx:ns:key[0]=value"    # Show parsing steps
+meteor parse --validate "input"                # Validation-only mode
+meteor parse --inspect "list[0,1]=matrix"      # Show internal structure
+
+# API surface exploration
+meteor bucket "key=value;ns:item=data"         # TokenBucket API demo
+meteor shower "app:ui:x=1;user:cfg:y=2"       # MeteorShower API demo
+meteor transform "list[0]=item"               # Show bracket transformation
+meteor access "ns:key=val" --query "ns.key"  # Test access patterns
+
+# Interactive mode
+meteor repl                                   # Start interactive shell
+```
+
+### Learning CLI: `meteor-learn` (Separate Binary)
+**Purpose**: Educational tool for learning meteor concepts
+**Target Users**: New users, tutorials, documentation
+**Planned Commands**:
+```bash
+# Educational features (NOT in core meteor CLI)
+meteor-learn concepts                         # Core concepts guide
+meteor-learn examples                         # Pattern library
+meteor-learn demo <topic>                     # Guided tutorials
+meteor-learn playground                       # Sandbox experimentation
+meteor-learn patterns                         # Common usage patterns
+meteor-learn notation                         # Bracket notation guide
+```
+
+### Debugging CLI: `meteor-debug` (Future)
+**Purpose**: Advanced debugging and analysis
+**Target Users**: Power users, developers
+**Planned Commands**:
+```bash
+meteor-debug lint "patterns"                  # Pattern validation
+meteor-debug diff "pattern1" "pattern2"       # Compare patterns
+meteor-debug stats "token stream"             # Parsing statistics
+meteor-debug profile "complex patterns"       # Performance analysis
+```
+
+## Implementation Phases
+
+### ✅ Phase 1: RSB Native CLI (COMPLETED)
+- Native RSB implementation with bootstrap!, dispatch!, options!
+- Core parse command with full feature parity
+- RSB 0.6 colors/visuals integration
+- Hub dependency optimization (removed cli-ext, kept test-ext)
+
+### 🎯 Phase 2: Enhanced Command Surface (CURRENT)
+**Timeline**: 2-3 hours
+**Focus**: REPL-like interface for meteor string experimentation
+
+#### Enhanced Parse Commands
+```rust
+// Add to dispatch! in src/bin/cli.rs
+dispatch!(&args, {
+    "parse" => parse_command, desc: "Parse meteor token streams",
+    "bucket" => bucket_command, desc: "Explore TokenBucket API",
+    "shower" => shower_command, desc: "Explore MeteorShower API",
+    "transform" => transform_command, desc: "Show bracket transformations",
+    "access" => access_command, desc: "Test access patterns",
+    "repl" => repl_command, desc: "Interactive meteor shell"
+});
+```
+
+#### Command Implementation Strategy
+1. **parse_command** - Enhanced with --explain, --validate, --inspect flags
+2. **bucket_command** - Demonstrate TokenBucket API with examples
+3. **shower_command** - Show MeteorShower multi-context handling
+4. **transform_command** - Live bracket notation transformation
+5. **access_command** - Query pattern testing and validation
+6. **repl_command** - Interactive shell with command history
+
+### 📚 Phase 3: Learning CLI (FUTURE)
+**Timeline**: 4-6 hours
+**Scope**: Separate `meteor-learn` binary
+
+#### Separate Binary Benefits
+- **Focused Core**: Keep meteor CLI lean and production-focused
+- **Rich Learning**: Full educational features without bloat
+- **Different Audiences**: Production users vs learners
+- **Package Size**: Optional learning tools don't affect core CLI
+
+### 🔧 Phase 4: Advanced Tooling (FUTURE)
+**Timeline**: 6-8 hours
+**Scope**: `meteor-debug`, `meteor-bench`, etc.
+
+## Technical Implementation
+
+### Current RSB Implementation
+```rust
+// src/bin/cli.rs - Current structure
+use rsb::prelude::*;
+
+fn main() {
+    let args = bootstrap!();
+    options!(&args);
+
+    dispatch!(&args, {
+        "parse" => parse_command, desc: "Parse meteor token streams"
+    });
+}
+```
+
+### Enhanced Implementation Plan
+```rust
+// Enhanced dispatch with new commands
+dispatch!(&args, {
+    "parse" => parse_command, desc: "Parse meteor token streams",
+    "bucket" => bucket_command, desc: "Explore TokenBucket API",
+    "shower" => shower_command, desc: "Explore MeteorShower API",
+    "transform" => transform_command, desc: "Show transformations",
+    "access" => access_command, desc: "Test access patterns",
+    "repl" => repl_command, desc: "Interactive shell"
+});
+
+// Command implementations follow RSB patterns
+fn bucket_command(args: Args) -> i32 {
+    let input = get_input_or_example(&args);
+
+    match meteor::parse(&input) {
+        Ok(bucket) => {
+            demo_bucket_api(&bucket);
+            0
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            1
+        }
+    }
+}
+```
+
 ## Success Criteria
 
-- [ ] RSB feature sanity tests all pass
-- [ ] CLI works with RSB-native implementation
-- [ ] All existing meteor functionality preserved
-- [ ] No hub dependency needed
-- [ ] CLI follows RSB patterns (bootstrap!, dispatch!, options!)
+### ✅ Phase 1 (COMPLETED)
+- [x] RSB feature sanity tests all pass
+- [x] CLI works with RSB-native implementation
+- [x] All existing meteor functionality preserved
+- [x] Hub dependency optimized (removed cli-ext)
+- [x] CLI follows RSB patterns (bootstrap!, dispatch!, options!)
+- [x] RSB 0.6 colors/visuals integration
+
+### 🎯 Phase 2 (CURRENT TARGET)
+- [ ] Enhanced parse command with --explain, --validate, --inspect
+- [ ] API exploration commands (bucket, shower, transform, access)
+- [ ] Interactive REPL mode for experimentation
+- [ ] Rich output with colors and structured display
+- [ ] All commands follow RSB patterns
+
+### 📚 Future Phases
+- [ ] Separate meteor-learn binary for educational features
+- [ ] Comprehensive examples and tutorial system
+- [ ] Advanced debugging and profiling tools
 
 ---
 
-**Next Steps**:
-1. Start with TASK-RSB-002: Create RSB feature sanity tests
-2. Validate actual RSB 0.5.0 API availability
-3. Implement RSB-native CLI based on validated features
+**Current Focus**: Implement Phase 2 enhanced command surface for meteor string experimentation and API exploration.
