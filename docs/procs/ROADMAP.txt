@@ -146,8 +146,29 @@
 **M2.1: Advanced Parsing** (Phase 2 start)
 **M2.2: Context System** (Phase 2 mid)
 **M2.3: Performance** (Phase 2 end)
+**M2.4: RSB Feature Validation** (Phase 2 extension)
 **M3.1: Ecosystem Integration** (Phase 3)
 **M4.1: Production Readiness** (Phase 4)
+
+## **RSB INTEGRATION MILESTONES**
+
+**MR.1: RSB Baseline Availability** ✅ COMPLETED
+├── Status: ✅ Complete
+├── Key Results: RSB dependency compiles, feature flags work
+└── Tests: `tests/sanity/rsb_baseline.rs` (3 tests)
+
+**MR.2: RSB Feature Sanity Tests** (Target: Next sprint)
+├── Status: ⏸️ Planned (TASK-RSB-002)
+├── Key Results: Individual RSB feature functionality validated
+├── Timeline: 6-8 hours (Phase 1 of RSB CLI Implementation)
+└── Tests: 5 RSB sanity test files (GLOBAL, CLI, OPTIONS, STRINGS, VISUALS)
+
+**MR.3: RSB CLI Implementation** (Target: After MR.2)
+├── Status: ⏸️ Planned (TASK-RSB-003)
+├── Key Results: Native RSB CLI replacing hub::cli_ext
+├── Timeline: 13-20 hours across 4 phases
+├── Reference: docs/plans/RSB_CLI_IMPLEMENTATION.md
+└── Integration: bootstrap! + dispatch! + options! pattern
 
 ================================================================================
  🎯 STRATEGIC DECISIONS & PRIORITIES

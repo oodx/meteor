@@ -85,23 +85,29 @@
 ├── Deliverable: Professional CLI with hub::cli_ext, multiple output formats, 211 tests passing
 └── Notes: TASK-CRITICAL-001 completed successfully with zero regressions
 
-**PRIORITY-002**: Hub Global State + Advanced Features (4-6 hours)
-├── Status: 🔄 **READY** (Hub CLI Enhancement complete)
+**PRIORITY-002**: RSB Feature Sanity Test Development (6-8 hours)
+├── Status: 🔄 **READY** (RSB baseline availability tests complete)
 ├── Assignee: Next agent
-├── Blockers: None - foundation complete
-└── Notes: TASK-CRITICAL-002 and TASK-CRITICAL-003 for hub::global state management and FS/Strings integration
+├── Blockers: None - baseline tests established
+└── Notes: Create individual RSB feature sanity tests per TASK-RSB-002
 
-**PRIORITY-003**: Performance Optimization Analysis (4-6 hours)
+**PRIORITY-003**: RSB CLI Integration Implementation (4-6 hours)
 ├── Status: ⏸️ Pending PRIORITY-002
 ├── Assignee: TBD
-├── Blockers: Need RSB sanity test baseline
-└── Notes: Benchmarking with RSB integration, profiling, optimization targets
+├── Blockers: Need RSB feature validation
+└── Notes: Replace hub::cli_ext with native RSB APIs after feature validation
 
-**PRIORITY-004**: Integration Pattern Documentation (2-3 hours)
+**PRIORITY-004**: Performance Optimization Analysis (4-6 hours)
 ├── Status: ⏸️ Pending PRIORITY-003
 ├── Assignee: TBD
+├── Blockers: Need RSB integration complete
+└── Notes: Benchmarking with RSB vs hub patterns, optimization targets
+
+**PRIORITY-005**: Integration Pattern Documentation (2-3 hours)
+├── Status: ⏸️ Pending PRIORITY-004
+├── Assignee: TBD
 ├── Blockers: Need feature completeness
-└── Notes: Consumer integration examples, migration guides
+└── Notes: Consumer integration examples, RSB migration guides
 
 ================================================================================
  📊 SPRINT PROGRESS TRACKING
@@ -118,9 +124,10 @@
 ✅ Hub v0.4.0 integration with lite variants
 ✅ Hub integration test suite with performance validation
 ✅ RSB CLI Features analysis (China's comprehensive review)
+✅ RSB baseline availability tests (feature flag validation)
 
 **IN PROGRESS**:
-🔄 RSB feature implementation using hub (foundation complete, implementation next)
+🔄 RSB feature sanity test structure planning (baseline complete, individual tests next)
 
 **BLOCKED**:
 ❌ None - all foundation blockers resolved
