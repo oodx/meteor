@@ -208,7 +208,7 @@ pub fn get_value_in_context(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::parse::parse_token_stream;
+    use crate::parser::parse::parse_token_stream;
 
     #[test]
     fn test_get_value() {

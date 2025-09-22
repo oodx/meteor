@@ -301,3 +301,281 @@ meteor shower "pattern"               # MeteorShower API demo
 - [x] Replaced `simple.key()` with `simple.key_notation()` for string comparison
 - [x] All 12 types sanity tests now pass
 - [x] Total test suite: 11 main sanity tests + 12 types tests = 23 passing tests
+
+---
+
+## PARSER MODULE REORGANIZATION & API MODERNIZATION ⚠️ CRITICAL (2025-09-22)
+
+### TASK-PARSER-001: Module Structure Reorganization ✅ COMPLETED
+**Purpose**: Fix misplaced parsing infrastructure in utils/ directory
+**Issue**: Core parsing files (parse.rs, transform.rs, organize.rs) were in utils/ but belong in parser/
+**Timeline**: 2 hours
+
+#### Files Moved ✅ COMPLETED
+- [x] `src/lib/utils/parse.rs` → `src/lib/parser/parse.rs`
+- [x] `src/lib/utils/transform.rs` → `src/lib/parser/transform.rs`
+- [x] `src/lib/utils/organize.rs` → `src/lib/parser/organize.rs`
+- [x] Updated `src/lib/parser/mod.rs` to export moved modules
+- [x] Updated `src/lib/utils/mod.rs` to remove moved modules
+- [x] Fixed imports throughout codebase
+
+#### Architecture Correction ✅ COMPLETED
+**Before (incorrect)**:
+```
+src/lib/utils/          # Essential helper functions
+├── parse.rs           # ❌ WRONG: Core parsing infrastructure
+├── transform.rs       # ❌ WRONG: Core parsing infrastructure
+├── organize.rs        # ❌ WRONG: Core parsing infrastructure
+└── access.rs          # ✅ CORRECT: Access helper functions
+```
+
+**After (correct)**:
+```
+src/lib/parser/         # Core parsing infrastructure
+├── parse.rs           # ✅ CORRECT: String → Tokens
+├── transform.rs       # ✅ CORRECT: Token transformation
+├── organize.rs        # ✅ CORRECT: Tokens → TokenBucket
+└── bracket.rs         # ✅ CORRECT: Bracket notation
+
+src/lib/utils/          # Essential helper functions
+└── access.rs          # ✅ CORRECT: Query/access utilities
+```
+
+### TASK-PARSER-002: API Modernization ⚠️ CRITICAL
+**Purpose**: Fix outdated API usage throughout parser module
+**Issue**: Parser using old patterns instead of new Meteor/MeteorShower/TokenKey API
+**Timeline**: 3-4 hours
+**Status**: Partially completed, needs audit
+
+#### API Issues Identified ⚠️ CRITICAL
+- [ ] **Parser files may use outdated TokenBucket-only patterns**
+  - Need to integrate Meteor/MeteorShower/TokenKey API from TOKEN_NAMESPACE_CONCEPT
+  - Parser should support full context:namespace:key=value addressing
+  - Current parser may be using hallucinated or outdated code patterns
+
+#### CLI Fixes ✅ COMPLETED
+- [x] Updated CLI to use `meteor::parse()` instead of `parse_token_stream()`
+- [x] Fixed validate command to use modern API
+- [x] Removed invalid `parse_meteor_stream` import
+
+#### Meteor Type Fixes ✅ COMPLETED
+- [x] Fixed `Meteor::Display` to use proper component `to_string()` calls
+- [x] Removed invalid `to_address()` function (non-standard naming)
+- [x] Now uses: `context.to_string()`, `namespace.to_string()`, `token.key().to_string()`
+- [x] Verified `Context::default()` returns "app" context as specified
+
+### TASK-PARSER-003: Interchange System ⚠️ PENDING
+**Purpose**: Implement complete conversion chain: String ↔ TokenBucket ↔ MeteorShower ↔ Meteor
+**Timeline**: 4-5 hours
+**Status**: Design phase
+
+#### Conversion Chain Needed
+```
+String ↔ TokenBucket ↔ MeteorShower ↔ Vec<Meteor> ↔ Meteor
+  ↑                                                    ↓
+  └─────────────── Direct (via Display/FromStr) ──────┘
+```
+
+#### Implementation Strategy
+- [ ] **Display implementations**: TokenBucket, MeteorShower → String
+- [ ] **Helper functions** (not traits): MeteorShower ↔ TokenBucket conversions
+- [ ] **Multi-context handling**: MeteorShower → multiple TokenBuckets per context
+- [ ] **Round-trip testing**: Verify String → parse → Display → String consistency
+
+#### Conversion Functions Needed
+```rust
+// In src/lib/utils/interchange.rs
+pub fn shower_to_bucket(shower: &MeteorShower) -> Result<TokenBucket, MeteorError>;
+pub fn shower_to_buckets(shower: &MeteorShower) -> Vec<TokenBucket>;
+pub fn bucket_to_shower(bucket: &TokenBucket) -> Result<MeteorShower, MeteorError>;
+pub fn buckets_to_shower(buckets: &[TokenBucket]) -> Result<MeteorShower, MeteorError>;
+```
+
+### TASK-PARSER-004: Parser Module Audit ⚠️ URGENT
+**Purpose**: Audit parser module for outdated/hallucinated code patterns
+**Timeline**: 2-3 hours
+**Status**: Not started
+
+#### Audit Checklist
+- [ ] **Verify all parser functions use current Meteor/TokenKey API**
+- [ ] **Check for references to removed/outdated functions**
+- [ ] **Validate against TOKEN_NAMESPACE_CONCEPT specification**
+- [ ] **Ensure bracket notation uses TokenKey properly**
+- [ ] **Verify context handling uses "app" default correctly**
+- [ ] **Check all imports and dependencies are valid**
+
+#### Risk Assessment
+- Parser module moved from utils/ but may contain outdated code
+- Functions may reference non-existent APIs or use incorrect patterns
+- Tests may not cover the reorganized structure
+- CLI depends on parser working correctly
+
+### TASK-PARSER-005: Test Suite Validation ⚠️ HIGH PRIORITY
+**Purpose**: Ensure tests cover reorganized parser structure and modern API
+**Timeline**: 2-3 hours
+**Status**: Not started
+
+#### Test Requirements
+- [ ] **Parser module tests**: Verify all parsing functions work with new structure
+- [ ] **Integration tests**: CLI + parser + types working together
+- [ ] **Round-trip tests**: String → parse → Display → String consistency
+- [ ] **Error handling tests**: Invalid inputs handled gracefully
+- [ ] **API compatibility tests**: New vs old API equivalence where applicable
+
+#### Current Test Status
+- ✅ Types tests passing (23 tests)
+- ❓ Parser module tests status unknown after reorganization
+- ❓ Integration tests may be using outdated imports
+- ❓ CLI tests may need updates for new commands
+
+**PRIORITY**: Complete TASK-PARSER-004 (audit) before proceeding with other parser work
+
+---
+
+## PARSER MODULE REBUILD - SHARED PARSING INFRASTRUCTURE ⚠️ CRITICAL (2025-09-22)
+
+### TASK-PARSER-006: Parser Module Architecture Redesign ⚠️ URGENT
+**Purpose**: Replace broken parser module with proper shared parsing infrastructure
+**Issue**: Current parser module is outdated and conflicts with correct Meteor/Token implementations
+**Timeline**: 4-6 hours
+**Status**: Design completed, ready for implementation
+
+#### Problem Analysis ✅ COMPLETED
+- ❌ **Parser module**: Uses outdated `ctx=user; key=value` context-switching API
+- ✅ **Meteor/Token types**: Use correct modern `context:namespace:key=value` API
+- ❌ **Collections missing parsers**: TokenBucket has no parse(), MeteorShower delegates correctly
+- ❌ **No shared infrastructure**: Types have ad-hoc parsing, no reusable logic
+
+#### Correct Architecture Design ✅ COMPLETED
+```rust
+// Shared parsing infrastructure
+parser/
+├── token.rs     // Core token parsing logic: "key=value"
+├── meteor.rs    // Core meteor parsing logic: "context:namespace:key=value"
+├── macros.rs    // Parse macros: parse!, token_parse!, meteor_parse!
+└── mod.rs       // Re-exports and macro definitions
+
+// Types delegate to shared parsers
+Token::parse(s) → parser::token::parse_token(s)
+Meteor::parse(s) → parser::meteor::parse_meteor(s)
+
+// Collections use shared parsers via iteration
+TokenBucket::parse(stream) → splits + Token::parse() for each token
+MeteorShower::parse(stream) → splits + Meteor::parse() for each meteor
+
+// Macros provide ergonomic API
+parse!("ui:button=click; config:theme=dark") → TokenBucket
+meteor_parse!("app:ui:button=click") → Meteor
+token_parse!("key=value") → Token
+```
+
+### TASK-PARSER-007: Implementation Phases ⚠️ SEQUENTIAL
+**Timeline**: 4-6 hours total across 4 phases
+**Status**: Ready to begin
+
+#### Phase 1: Gut Current Parser Module (1 hour)
+- [ ] **Delete outdated parser logic**: Remove parse.rs, transform.rs, organize.rs content
+- [ ] **Keep file structure**: Maintain files but gut their contents
+- [ ] **Update parser/mod.rs**: Remove exports of gutted functions
+- [ ] **Fix broken imports**: Update any remaining references
+
+#### Phase 2: Create Shared Parsing Infrastructure (2-3 hours)
+- [ ] **parser/token.rs**: Implement `parse_token(s: &str) -> Result<Token, MeteorError>`
+  - Move Token::parse() logic to shared parser
+  - Handle "key=value" format with TokenKey bracket notation
+  - Validate input and provide clear error messages
+- [ ] **parser/meteor.rs**: Implement `parse_meteor(s: &str) -> Result<Meteor, MeteorError>`
+  - Move Meteor::parse() logic to shared parser
+  - Handle "context:namespace:key=value" format with colon counting
+  - Support default context ("app") for shorter formats
+- [ ] **Update Type Delegations**:
+  - `Token::parse()` → calls `parser::token::parse_token()`
+  - `Meteor::parse()` → calls `parser::meteor::parse_meteor()`
+
+#### Phase 3: Implement Missing Collection Parsers (1-2 hours)
+- [ ] **TokenBucket::parse()**: Single-context token stream parsing
+  ```rust
+  impl TokenBucket {
+      pub fn parse(input: &str) -> Result<Self, MeteorError> {
+          // Split by semicolon, parse each as Token, organize by namespace
+          // Format: "ui:button=click; config:theme=dark" (single context)
+      }
+  }
+  ```
+- [ ] **Verify MeteorShower::parse()**: Should already work via Meteor::parse() iteration
+- [ ] **Add Display implementations**: TokenBucket/MeteorShower → String for round-trip
+
+#### Phase 4: Parse Macros Implementation (1 hour)
+- [ ] **parser/macros.rs**: Implement ergonomic parse macros
+  ```rust
+  // Basic collection parsing
+  macro_rules! parse {
+      ($input:expr) => { TokenBucket::parse($input) };
+  }
+
+  // Individual parsing
+  macro_rules! token_parse {
+      ($input:expr) => { Token::parse($input) };
+  }
+
+  macro_rules! meteor_parse {
+      ($input:expr) => { Meteor::parse($input) };
+  }
+
+  // Advanced shower parsing
+  macro_rules! shower_parse {
+      ($input:expr) => { MeteorShower::parse($input) };
+  }
+  ```
+- [ ] **parser/mod.rs**: Re-export macros for public API
+- [ ] **lib.rs integration**: Make macros available at crate root
+
+### TASK-PARSER-008: Testing & Validation ⚠️ HIGH PRIORITY
+**Timeline**: 2-3 hours
+**Status**: After implementation phases
+
+#### Test Requirements
+- [ ] **Parser unit tests**: Test shared token/meteor parsers independently
+- [ ] **Collection parser tests**: TokenBucket::parse() and MeteorShower::parse()
+- [ ] **Macro tests**: All parse macros work correctly
+- [ ] **Round-trip tests**: parse → Display → parse consistency
+- [ ] **Error handling tests**: Invalid inputs handled gracefully
+- [ ] **Integration tests**: CLI + new parser infrastructure
+
+#### Test Scenarios
+```rust
+// Token parsing
+token_parse!("key=value") ✅
+token_parse!("list[0]=item") ✅ (bracket notation)
+token_parse!("invalid") ❌
+
+// Meteor parsing
+meteor_parse!("app:ui:button=click") ✅
+meteor_parse!("ui:button=click") ✅ (default app context)
+meteor_parse!("key=value") ✅ (default app context + root namespace)
+
+// Collection parsing
+parse!("ui:button=click; config:theme=dark") ✅ → TokenBucket
+shower_parse!("app:ui:button=click; user:settings:theme=dark") ✅ → MeteorShower
+```
+
+### TASK-PARSER-009: API Integration & Cleanup ⚠️ FINAL PHASE
+**Timeline**: 1 hour
+**Status**: After testing
+
+#### Integration Tasks
+- [ ] **Update CLI**: Use new macros for cleaner CLI code
+- [ ] **Update lib.rs**: Export macros at crate level
+- [ ] **Update documentation**: All examples use new macro API
+- [ ] **Clean up old references**: Remove any remaining parser module legacy code
+
+#### Success Criteria ✅
+1. **Shared parsing infrastructure**: No duplicate parsing logic
+2. **Consistent API**: All parsers use same modern format
+3. **Complete coverage**: Token, Meteor, TokenBucket, MeteorShower all have parsers
+4. **Ergonomic macros**: Easy-to-use parse! family of macros
+5. **Full test coverage**: All parsing scenarios tested
+6. **Working CLI**: validate/parse commands work with new infrastructure
+
+**TOTAL ESTIMATED TIME**: 7-11 hours across 4 phases
+**PRIORITY**: Start with Phase 1 (gut parser module) immediately

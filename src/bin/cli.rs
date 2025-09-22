@@ -14,7 +14,8 @@ fn main() {
 
     // RSB dispatch pattern - handle subcommands
     dispatch!(&args, {
-        "parse" => parse_command, desc: "Parse meteor token streams"
+        "parse" => parse_command, desc: "Parse meteor token streams",
+        "validate" => validate_command, desc: "Validate meteor token format"
     });
 }
 
@@ -53,7 +54,7 @@ fn parse_command(args: Args) -> i32 {
     }
 
     // Use existing meteor parsing logic
-    match meteor::parse_token_stream(&input) {
+    match meteor::parse(&input) {
         Ok(bucket) => {
             print_output(&bucket, &input, verbose, format);
             0
@@ -226,6 +227,76 @@ fn print_json_output(bucket: &meteor::TokenBucket, _input: &str, _verbose: bool)
         }
     }
     println!("}}");
+}
+
+/// Handle the validate command using RSB patterns
+fn validate_command(args: Args) -> i32 {
+    // Get input from positional args, skipping flags
+    let mut input = String::new();
+
+    // Find first non-flag argument as input
+    for i in 1..=args.len() {
+        let arg = args.get(i);
+        if !arg.is_empty() && !arg.starts_with('-') {
+            input = arg;
+            break;
+        }
+    }
+
+    if input.is_empty() {
+        eprintln!("Error: No input provided");
+        eprintln!("Usage: meteor validate [--verbose] <token_string>");
+        eprintln!("Example: meteor validate \"app:ui:button=click\"");
+        eprintln!("Example: meteor validate \"ctx:ns:key=value;list[0]=item\"");
+        return 1;
+    }
+
+    // Get options from RSB global context
+    let verbose = has_var("opt_verbose") || has_var("opt_v");
+
+    if verbose {
+        eprintln!("Validating input: {}", input);
+    }
+
+    // Use existing meteor parsing + validation logic
+    match meteor::parse(&input) {
+        Ok(_bucket) => {
+            if verbose {
+                println!("✅ Valid meteor token format");
+                println!("Input: {}", input);
+                println!("Status: All tokens parsed successfully");
+            } else {
+                println!("✅ Valid meteor format");
+            }
+            0
+        }
+        Err(e) => {
+            if verbose {
+                println!("❌ Invalid meteor token format");
+                println!("Input: {}", input);
+                println!("Error: {}", e);
+                println!();
+                show_validation_help();
+            } else {
+                println!("❌ Invalid meteor format: {}", e);
+            }
+            1
+        }
+    }
+}
+
+/// Show validation help with correct meteor format patterns
+fn show_validation_help() {
+    println!("Valid meteor format patterns:");
+    println!("  key=value                    Basic key-value pair");
+    println!("  ns:key=value                 Namespaced key-value");
+    println!("  ctx:ns:key=value             Full context addressing");
+    println!("  list[0]=item                 Bracket notation");
+    println!("  matrix[0,1]=cell             Multi-dimensional indexing");
+    println!("  key1=val1;key2=val2         Multiple tokens");
+    println!("  ctx=app;ui:button=click      Context switch with data");
+    println!();
+    println!("Use 'meteor help validate' for more detailed information.");
 }
 
 /// Print debug format output

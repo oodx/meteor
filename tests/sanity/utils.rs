@@ -7,7 +7,8 @@ extern crate meteor;
 
 #[cfg(test)]
 mod tests {
-    use meteor::utils::{parse, transform, organize, access};
+    use meteor::parser::{parse, transform, organize};
+    use meteor::utils::access;
 
     #[test]
     fn sanity_utils_parse_basic() {

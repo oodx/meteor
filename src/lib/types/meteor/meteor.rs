@@ -93,20 +93,16 @@ impl Meteor {
         }
     }
 
-    /// Get the full address string
-    pub fn to_address(&self) -> String {
-        format!("{}:{}:{}={}",
-            self.context,
-            self.namespace,
-            self.token.transformed_key(),
-            self.token.value()
-        )
-    }
 }
 
 impl fmt::Display for Meteor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_address())
+        write!(f, "{}:{}:{}={}",
+            self.context.to_string(),
+            self.namespace.to_string(),
+            self.token.key().to_string(),  // Use TokenKey's Display
+            self.token.value()
+        )
     }
 }
 

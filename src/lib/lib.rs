@@ -10,8 +10,9 @@
 //!
 //! Meteor organizes by ordinality and responsibility hierarchy:
 //! - `types/` - Primary data types (Context, Namespace, Key, TokenBucket)
-//! - `utils/` - Public API following data flow (parse -> transform -> organize -> access)
-//! - `sup/` - Internal complexity isolation (bracket parsing, validation)
+//! - `parser/` - Core parsing infrastructure (parse -> transform -> organize -> bracket)
+//! - `utils/` - Essential helper functions (access utilities)
+//! - `sup/` - Internal complexity isolation (support functions)
 
 // Core type definitions
 pub mod types;
@@ -27,7 +28,8 @@ pub mod sup;
 
 // Re-export main public types and functions
 pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, TokenBucket, MeteorError, BracketNotation};
-pub use utils::parse::parse_token_stream;
+// TODO: Re-enable when parser module is rebuilt
+// pub use parser::parse::parse_token_stream;
 
 // Module trait for RSB-compliant module organization
 pub trait Module {
@@ -71,7 +73,8 @@ impl Module for MeteorModule {
 /// assert_eq!(bucket.get("ui", "button"), Some("click"));
 /// ```
 pub fn parse(input: &str) -> Result<TokenBucket, MeteorError> {
-    parse_token_stream(input)
+    // TODO: Implement using new TokenBucket::parse() when available
+    Err(MeteorError::parse(0, "Parser module being rebuilt"))
 }
 
 /// Parse a meteor stream into a MeteorShower
