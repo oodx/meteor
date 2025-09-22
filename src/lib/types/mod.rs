@@ -18,5 +18,5 @@ pub use context::Context;
 pub use namespace::Namespace;
 pub use key::{TokenKey, BracketNotation};
 pub use token::{Token, TokenBucket};
-pub use meteor::{Meteor, MeteorShower};
+pub use meteor::{Meteor, MeteorShower, StorageData};
 pub use error::MeteorError;

@@ -74,11 +74,25 @@
 - [x] Fix "addressing" language → "data format" throughout docs
 - [x] Clarify Meteor is a DATA TYPE throughout documentation
 
-#### Phase 1: Storage Migration 🚧 PENDING
-- [ ] Create `shower_data.rs` storage module
-- [ ] Move TokenBucket storage logic to MeteorShower
-- [ ] Update MeteorShower to be primary storage type
-- [ ] Add interchange format methods
+#### Phase 1: Storage Migration ✅ COMPLETED (2025-09-22)
+- [x] Create `shower_data.rs` storage module
+- [x] Move TokenBucket storage logic to MeteorShower
+- [x] Update MeteorShower to be primary storage type
+- [x] Add interchange format methods
+- [x] Update Meteor to support multiple tokens (Vec<(Namespace, Token)>)
+- [x] Temporarily fix CLI compilation errors
+
+**Current Issues Found:**
+- Tests use OLD Meteor API (single token) - need updating
+- TokenBucket still referenced but unused (warning)
+- CLI uses dummy implementation - needs real parsing
+
+#### Phase 1.5: Fix Broken Tests 🚧 ACTIVE
+- [ ] Update tests/sanity/meteor.rs for new Meteor API (multiple tokens)
+- [ ] Update tests/uat/meteor.rs for new Meteor API
+- [ ] Add comprehensive MeteorShower storage tests
+- [ ] Add StorageData interchange format tests
+- [ ] Test MeteorShower indexing and query methods
 
 #### Phase 2: Delete TokenBucket 🚧 PENDING
 - [ ] Remove TokenBucket type entirely
