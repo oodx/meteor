@@ -1,8 +1,10 @@
 # Meteor Module Plan & Architecture
 
+⚠️ **ARCHITECTURE UPDATE**: This document contains references to **TokenBucket which is BEING REMOVED**. See **[TOKEN_CONCEPT_AMENDMENT.md](./TOKEN_CONCEPT_AMENDMENT.md)** for the corrected MeteorShower-primary architecture.
+
 ## Overview
 
-Meteor is the "shooting star" token data transport library - a foundational component for structured key-value data streams with context-aware namespacing and bracket notation extensions.
+Meteor is the "shooting star" token data transport library - a foundational component for structured key-value data streams with context-aware namespacing and bracket notation extensions. **Meteor** is a DATA TYPE representing structured token data with a single context and one or more tokens.
 
 ## Design Philosophy
 
@@ -21,7 +23,7 @@ This design follows established RSB patterns documented in:
 - **Prelude Policy** (`rsb/bin/test.sh docs PRELUDE_POLICY`) - What goes in prelude vs explicit imports
 - **Test Organization** (`rsb/bin/test.sh docs org`) - Required test structure, naming conventions, ceremony standards
 - **Testing HOWTO** (`rsb/bin/test.sh docs howto`) - Test categories, enforcement modes, pattern validation
-- **Token Namespace Concept** (`docs/ref/TOKEN_NAMESPACE_CONCEPT.md`) - Complete specification of meteor's addressing scheme
+- **Token Namespace Concept** (`docs/ref/TOKEN_NAMESPACE_CONCEPT.md`) - Complete specification of meteor's data format
 
 ### Key Pattern Sources
 
@@ -39,7 +41,7 @@ src/lib/
 ├── lib.rs          # Module orchestrator and re-exports
 ├── types/          # Core data structures (multiple files)
 ├── utils/          # Essential helper functions (multiple files)
-└── sup/            # Support/internal implementations (multiple files)
+└── parser/         # Token parsing infrastructure (multiple files)
 ```
 
 **Prelude Design** (from PRELUDE_POLICY):
@@ -70,7 +72,7 @@ meteor/
 │       ├── lib.rs          # Module orchestrator & prelude
 │       ├── types/          # Core data structures
 │       ├── utils/          # Essential helper functions
-│       └── sup/            # Support/internal implementations
+│       └── parser/         # Parser infrastructure tests
 ├── tests/
 │   ├── sanity.rs           # Core functionality wrapper
 │   ├── uat.rs              # Visual demonstrations wrapper
@@ -102,12 +104,12 @@ pub mod lib;
 // Directory-based modules (each has its own mod.rs)
 pub mod types;      // → types/mod.rs orchestrates types/ directory
 pub mod utils;      // → utils/mod.rs orchestrates utils/ directory
-pub mod sup;        // → sup/mod.rs orchestrates sup/ directory
+pub mod parser;     // → parser/mod.rs orchestrates parser/ directory
 
 // Public prelude for essential items only
 pub mod prelude {
-    pub use super::types::{Context, Namespace, Key, TokenBucket, BucketMode};
-    pub use super::utils::{parse_token_stream, create_bucket, parse_token};
+    pub use super::types::{Context, Namespace, Key, MeteorShower, StorageData};
+    pub use super::utils::{parse_shower, parse_meteor, parse_token};
     // Note: Advanced operations require explicit import
 }
 
@@ -118,12 +120,15 @@ pub use prelude::*;
 ### `/src/lib/types/` - Core Data Structures
 **Purpose**: Essential data types organized by ordinality (responsibility hierarchy)
 ```rust
-// Ordinality-based organization:
+// Current types organization:
 types/
 ├── mod.rs          # Type orchestrator
-├── primary.rs      # Core types: Context, Namespace, Key (foundation)
-├── bucket.rs       # Secondary: TokenBucket (depends on primary types)
-└── error.rs        # Support: Error types (used by all)
+├── context.rs      # Context isolation boundaries
+├── namespace.rs    # Hierarchical organization
+├── error.rs        # Error types (used by all)
+├── key/            # TokenKey with bracket notation
+├── token/          # Key-value pairs
+└── meteor/         # Meteor DATA TYPE + MeteorShower collection
 ```
 
 **Design Patterns**:
@@ -132,7 +137,7 @@ types/
 - **Support types** - Used across the hierarchy
 - String-biased constructors: `Context::from_str("app")`
 - Simple validation: Return `Result<T, MeteorError>`
-- Context isolation: Each context gets separate bucket
+- Context isolation: Each context gets separate meteor in MeteorShower
 
 ### `/src/lib/utils/` - Essential Helper Functions
 **Purpose**: Data flow operations organized by processing ordinality
@@ -152,17 +157,17 @@ utils/
 - **Composable pipeline** - `parse → transform → organize → access`
 - String input/output: `parse_token_stream(input: &str) -> Result<TokenBucket, MeteorError>`
 - Error conversion: Convert parse errors to `MeteorError`
-- No complex algorithms: Push complexity to `sup/` if needed
+- No complex algorithms: Keep functions simple and focused
 
-### `/src/lib/sup/` - Support & Internal Implementation
-**Purpose**: Internal complexity organized by implementation ordinality
+### `/src/lib/parser/` - Token Parsing Infrastructure
+**Purpose**: Parsing logic organized by processing stages
 ```rust
-// Internal complexity ordinality organization:
-sup/
-├── mod.rs          # Support orchestrator
-├── bracket.rs      # Bracket notation parsing internals (complex algorithms)
-├── validation.rs   # Complex validation logic (multi-step validation)
-└── compat.rs       # RSB compatibility helpers (migration support)
+// Parser module organization:
+parser/
+├── mod.rs          # Parser module orchestrator
+├── parse.rs        # Core parsing logic (REMOVED: old content)
+├── transform.rs    # Bracket notation transformation (REMOVED: old content)
+└── organize.rs     # Data organization (REMOVED: old content)
 ```
 
 **Design Patterns**:
@@ -183,9 +188,9 @@ ui:btn[0]=   +Token     →Dunder    Routing     Storage
 submit"      Objects    Transform   Logic      Access
 ```
 
-### Context-Namespace-Key Addressing
+### Context-Namespace-Key Data Format
 ```rust
-// Full addressing: ctx:namespace:key=value
+// Full meteor data format: ctx:namespace:key=value
 "app:ui.widgets:button[0]=submit"
 
 // Resolves to:

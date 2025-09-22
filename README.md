@@ -2,7 +2,7 @@
 
 **Shooting Star Token Data Transport Library**
 
-A Rust library implementing the TOKEN_NAMESPACE_CONCEPT with full addressing, bracket notation, and RSB architecture compliance.
+A Rust library implementing the TOKEN_NAMESPACE_CONCEPT with meteor data format, bracket notation, and RSB architecture compliance. **Meteor** is a DATA TYPE representing structured token data.
 
 ## Current Status (2025-09-22)
 
@@ -12,11 +12,11 @@ A Rust library implementing the TOKEN_NAMESPACE_CONCEPT with full addressing, br
 
 ## Key Features
 
-### Full Token Addressing
+### Meteor Data Format
 ```rust
 use meteor::{parse_shower, Meteor, TokenKey, BracketNotation};
 
-// Complete addressing: context:namespace:key=value
+// Complete meteor data format: context:namespace:key=value
 let shower = parse_shower("app:ui.widgets:button[0]=submit")?;
 let meteors = shower.by_context("app");
 

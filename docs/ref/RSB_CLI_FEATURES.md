@@ -202,8 +202,8 @@ fn parse_command(args: Args) -> i32 {
 
     // Existing meteor functionality
     match meteor::parse_token_stream(input) {
-        Ok(bucket) => {
-            print_output(&bucket, input, verbose, &format);
+        Ok(shower) => {
+            print_output(&shower, input, verbose, &format);
             0
         }
         Err(e) => {
@@ -272,7 +272,7 @@ meteor parse --format=debug "input"            # Debug output format
 #### 2. API Surface Exploration
 ```bash
 # Test different meteor APIs
-meteor bucket "key=value;ns:item=data"         # TokenBucket API demo
+meteor data "key=value;ns:item=data"           # StorageData API demo (via MeteorShower::to_data())
 meteor shower "app:ui:x=1;user:cfg:y=2"       # MeteorShower API demo
 meteor transform "list[0]=item"               # Show bracket transformation
 meteor organize "ns1:a=1;ns2:b=2"            # Show organization patterns
@@ -304,7 +304,7 @@ Type 'help' for commands, 'exit' to quit
 
 meteor> parse "app:ui:button=click"
 ✅ Parsed successfully
-📦 TokenBucket { context: "app", namespaces: ["ui"], tokens: 1 }
+📦 MeteorShower { contexts: ["app"], meteors: 1, indexed: true }
 🔍 ui:button = "click"
 
 meteor> explain "list[0,1]=matrix"
@@ -320,7 +320,7 @@ Available REPL commands:
   explain <pattern>   - Show parsing steps
   validate <pattern>  - Validate without parsing
   transform <key>     - Show bracket transformations
-  bucket <pattern>    - Demo TokenBucket API
+  data <pattern>      - Demo StorageData API (MeteorShower::to_data())
   shower <pattern>    - Demo MeteorShower API
   organize <pattern>  - Show organization
   access <pattern>    - Test access patterns
@@ -374,7 +374,7 @@ meteor-debug profile "complex patterns"       # Performance analysis
 1. **Add validate command**: `meteor validate <pattern>` - Check if string is valid meteor format
 2. **Add help command**: `meteor help <topic>` - Detailed help for specific commands
 3. **Enhanced parse flags**: --explain, --validate, --inspect modes
-4. **API exploration commands**: bucket, shower, transform, access
+4. **API exploration commands**: data, shower, transform, access
 5. **Interactive REPL**: meteor repl with command history
 
 #### Enhanced Parse Commands
@@ -382,7 +382,7 @@ meteor-debug profile "complex patterns"       # Performance analysis
 // Add to dispatch! in src/bin/cli.rs
 dispatch!(&args, {
     "parse" => parse_command, desc: "Parse meteor token streams",
-    "bucket" => bucket_command, desc: "Explore TokenBucket API",
+    "data" => data_command, desc: "Explore StorageData API via MeteorShower::to_data()",
     "shower" => shower_command, desc: "Explore MeteorShower API",
     "transform" => transform_command, desc: "Show bracket transformations",
     "access" => access_command, desc: "Test access patterns",
@@ -392,7 +392,7 @@ dispatch!(&args, {
 
 #### Complete Command Implementation Strategy
 1. **parse_command** - Enhanced with --explain, --validate, --inspect, --format flags
-2. **bucket_command** - Demonstrate TokenBucket API with examples
+2. **data_command** - Demonstrate StorageData API via MeteorShower::to_data() with examples
 3. **shower_command** - Show MeteorShower multi-context handling
 4. **transform_command** - Live bracket notation transformation
 5. **organize_command** - Show token organization patterns
@@ -426,7 +426,7 @@ meteor parse [FLAGS] <PATTERN>
 
 **API Command Patterns**:
 ```bash
-meteor bucket [--demo] <PATTERN>     # TokenBucket API demonstration
+meteor data [--demo] <PATTERN>       # StorageData API demonstration via MeteorShower::to_data()
 meteor shower [--contexts] <PATTERN> # MeteorShower multi-context demo
 meteor access --query=QUERY <PATTERN> # Access pattern testing
 meteor debug [--steps] <PATTERN>     # Debug mode with step tracking
@@ -481,7 +481,7 @@ fn main() {
 // Enhanced dispatch with new commands
 dispatch!(&args, {
     "parse" => parse_command, desc: "Parse meteor token streams",
-    "bucket" => bucket_command, desc: "Explore TokenBucket API",
+    "data" => data_command, desc: "Explore StorageData API via MeteorShower::to_data()",
     "shower" => shower_command, desc: "Explore MeteorShower API",
     "transform" => transform_command, desc: "Show transformations",
     "access" => access_command, desc: "Test access patterns",
@@ -489,12 +489,13 @@ dispatch!(&args, {
 });
 
 // Command implementations follow RSB patterns
-fn bucket_command(args: Args) -> i32 {
+fn data_command(args: Args) -> i32 {
     let input = get_input_or_example(&args);
 
-    match meteor::parse(&input) {
-        Ok(bucket) => {
-            demo_bucket_api(&bucket);
+    match meteor::parse_shower(&input) {
+        Ok(shower) => {
+            let storage_data = shower.to_data();
+            demo_storage_api(&storage_data);
             0
         }
         Err(e) => {
@@ -517,7 +518,7 @@ fn bucket_command(args: Args) -> i32 {
 
 ### 🎯 Phase 2 (CURRENT TARGET)
 - [ ] Enhanced parse command with --explain, --validate, --inspect
-- [ ] API exploration commands (bucket, shower, transform, access)
+- [ ] API exploration commands (data, shower, transform, access)
 - [ ] Interactive REPL mode for experimentation
 - [ ] Rich output with colors and structured display
 - [ ] All commands follow RSB patterns

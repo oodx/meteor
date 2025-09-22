@@ -6,7 +6,7 @@ This directory contains a complete copy of the RSB token implementation and test
 
 Complete RSB token module implementation:
 
-- **`bucket.rs`** - TokenBucket storage and organization
+- **`bucket.rs`** - TokenBucket storage (BEING REMOVED - replaced with StorageData in meteor)
 - **`error.rs`** - Error types and conversions
 - **`format.rs`** - Token formatting utilities
 - **`helpers.rs`** - Internal helper functions
@@ -33,7 +33,7 @@ Comprehensive test suite for token functionality:
 1. **Reference implementation** - Use rsb_token_src/ as starting point for meteor types/
 2. **Test patterns** - Use rsb_token_tests/ as template for meteor test structure
 3. **API patterns** - Follow RSB string-biased interfaces and error handling
-4. **Functionality scope** - Keep core parsing/bucket logic, adapt for context-namespace-key pattern
+4. **Functionality scope** - Keep core parsing logic, TokenBucket BEING REMOVED, adapt for context-namespace-key pattern with MeteorShower/StorageData
 
 ### Key Differences to Implement:
 - **Context management** - Add context origin tracking (app, user, system, file1, etc.)
@@ -42,7 +42,7 @@ Comprehensive test suite for token functionality:
 - **Simplified API** - Focus on essential operations, remove RSB-specific features
 
 ### Migration Strategy:
-1. Start with types.rs and bucket.rs as foundation
+1. Start with types.rs as foundation (bucket.rs BEING REMOVED, replaced with storage_data.rs)
 2. Adapt parse.rs for context:namespace:key pattern
 3. Simplify utils.rs to essential meteor operations
 4. Create new error.rs focused on meteor concerns
@@ -50,4 +50,4 @@ Comprehensive test suite for token functionality:
 
 ## Token Namespace Concept
 
-See `TOKEN_NAMESPACE_CONCEPT.md` for the complete specification of meteor's addressing scheme that builds on this RSB foundation.
+See `TOKEN_NAMESPACE_CONCEPT.md` for the complete specification of meteor's data format that builds on this RSB foundation.

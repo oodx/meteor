@@ -46,9 +46,9 @@
 **Current Type Architecture:**
 - **TokenKey** - Individual key identifiers with bracket transformation
 - **Token** - Key-value pair (uses TokenKey + value)
-- **Meteor** - Complete addressing: context:namespace:key=value
+- **Meteor** - DATA TYPE: context:namespace:key=value format with single context, one or more tokens
 - **MeteorShower** - Collection of Meteor objects with indexed queries
-- **TokenBucket** - Serialized/flattened storage format
+- **StorageData** - Serialized/flattened interchange format (TokenBucket BEING REMOVED)
 - **BracketTransform** - Extensible trait for bracket notation handling
 
 **Parser Features:**
@@ -58,7 +58,41 @@
 - ✅ Default 'app' context support
 - ✅ TokenBucket and MeteorShower compatibility
 
-## CURRENT STATUS: WORKING METEOR LIBRARY ✅
+## ARCHITECTURAL CORRECTION PHASE ⚠️ (2025-09-22)
+
+### TASK-ARCH-005: Critical Architecture Correction ⚠️ ACTIVE
+**CRITICAL**: Documentation correction phase completed. Implementation phases pending.
+
+#### Phase 0: Document Architecture ✅ COMPLETED (2025-09-22)
+- [x] Create TOKEN_CONCEPT_AMENDMENT.md documenting architectural issues
+- [x] Link amendment in main TOKEN_NAMESPACE_CONCEPT.md
+- [x] Update TASKS.txt with correction phases
+- [x] DOC-01: Update README.md examples (TokenBucket → MeteorShower)
+- [x] DOC-02: Update TOKEN_NAMESPACE_CONCEPT.md (remove "addressing" language)
+- [x] DOC-03: Update RSB_CLI_FEATURES.md examples
+- [x] DOC-04: Update all remaining documentation files
+- [x] Fix "addressing" language → "data format" throughout docs
+- [x] Clarify Meteor is a DATA TYPE throughout documentation
+
+#### Phase 1: Storage Migration 🚧 PENDING
+- [ ] Create `shower_data.rs` storage module
+- [ ] Move TokenBucket storage logic to MeteorShower
+- [ ] Update MeteorShower to be primary storage type
+- [ ] Add interchange format methods
+
+#### Phase 2: Delete TokenBucket 🚧 PENDING
+- [ ] Remove TokenBucket type entirely
+- [ ] Update all imports and references
+- [ ] Update CLI to use MeteorShower
+
+#### Phase 3: Parser Rebuild 🚧 PENDING
+- [ ] Continue with shared parsing infrastructure
+- [ ] Use correct MeteorShower-primary architecture
+- [ ] Implement ParseMode correctly
+
+**STATUS**: Documentation is now consistent. Implementation work blocked until architecture is corrected.
+
+## PREVIOUS STATUS: WORKING METEOR LIBRARY ✅ (Architecture Now Known Incorrect)
 
 ### COMPLETED: Basic CLI Implementation ✅ (2025-09-21)
 - [x] Basic CLI using hub::cli_ext::clap (not full RSB features)

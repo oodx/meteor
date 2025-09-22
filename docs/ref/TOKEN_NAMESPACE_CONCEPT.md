@@ -4,14 +4,14 @@
 
 ## Overview
 
-This document defines the unified namespace and key strategy pattern for RSB/XStream token systems, providing a consistent addressing scheme across different data access methods while maintaining clear separation of concerns between data transport and semantic validation.
+This document defines the unified namespace and key strategy pattern for RSB/XStream token systems, providing a consistent data format across different data access methods while maintaining clear separation of concerns between data transport and semantic validation.
 
 ## Pattern Structure
 
 ### Full Pattern: `ctx:namespace:key=value`
 
 ```rust
-// Complete addressing
+// Complete meteor data format
 "app:ui.widgets:button[0]=submit"
 "user:preferences:theme=dark"
 "system:env:PATH=/usr/bin"
@@ -61,7 +61,7 @@ MeteorShower {
     }
 }
 
-// Full addressing resolution:
+// Full meteor data format examples:
 "app:ui.widgets:button__i_0=submit"
 "app:ui.widgets:list__i_APPEND=item1"
 "app:config:theme=dark"
@@ -319,7 +319,7 @@ Future extensions may include:
 - Indexed lookups by context and namespace for performance
 - Query methods: `by_context()`, `by_context_namespace()`, `find()`
 - Discovery methods: `contexts()`, `namespaces_in_context()`
-- Supports complex meteor addressing queries
+- Supports complex meteor data queries
 
 ### Parser Transformation
 ```rust
@@ -347,4 +347,4 @@ impl LayoutManager {
 }
 ```
 
-This design provides a unified addressing scheme while maintaining flexibility for different use cases and clear boundaries between data transport and semantic interpretation.
+This design provides a unified data format while maintaining flexibility for different use cases and clear boundaries between data transport and semantic interpretation.

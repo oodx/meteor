@@ -16,9 +16,9 @@
 - **`MeteorShower`** - Object-oriented collection for Meteor tokens
   - Indexed lookups by context/namespace
   - Query methods: `by_context()`, `find()`, `contexts()`
-- **`TokenBucket`** - Serialized/flattened storage format
-  - Context switching support
-  - Legacy compatibility
+- **`StorageData`** - Serialized/flattened interchange format
+  - Export format from MeteorShower
+  - JSON/string serialization support
 
 ### Extensibility
 - **`BracketTransform`** - Trait for bracket notation handling
@@ -41,8 +41,9 @@
 - Named: `user[name]` → `user__name`
 
 ### API Functions
-- `meteor::parse()` → `TokenBucket` (legacy/simple)
-- `meteor::parse_shower()` → `MeteorShower` (full-featured)
+- `meteor::parse_shower()` → `MeteorShower` (primary API)
+- `meteor::parse_meteor()` → `Meteor` (single context)
+- `MeteorShower::to_data()` → `StorageData` (interchange format)
 
 ## Module Organization (MODULE_SPEC Compliant)
 
@@ -55,14 +56,15 @@ src/lib/
 │   ├── token.rs       # Key-value pairs
 │   ├── meteor.rs      # Complete addressing
 │   ├── shower.rs      # MeteorShower collection
-│   ├── bucket.rs      # TokenBucket storage
+│   ├── storage_data.rs # StorageData interchange format
 │   ├── bracket_transform.rs # Extensible trait
 │   └── error.rs       # Error types
-├── parser/          # Token processing
-│   ├── bracket.rs     # Bracket notation algorithms
+├── parser/          # Token parsing infrastructure
+│   ├── parse.rs       # Core parsing logic (GUTTED)
+│   ├── transform.rs   # Bracket transformation (GUTTED)
+│   ├── organize.rs    # Data organization (GUTTED)
 │   └── mod.rs        # Parser exports
 ├── utils/           # Public API utilities
-├── sup/             # General helpers (empty, ready for use)
 └── lib.rs          # Main exports
 ```
 
@@ -85,9 +87,10 @@ let reconstructed = "list__i_0".to_bracket(); // "list[0]"
 let shower = meteor::parse_shower("app:ui:button=click")?;
 let meteors = shower.by_context("app");
 
-// Serialized (simple storage)
-let bucket = meteor::parse("ui:button=click")?;
-let value = bucket.get("ui", "button");
+// Interchange format (for serialization)
+let shower = meteor::parse_shower("ui:button=click")?;
+let storage_data = shower.to_data();
+let json = storage_data.to_json();
 ```
 
 ## Next Phase: RSB Integration

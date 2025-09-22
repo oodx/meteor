@@ -8,23 +8,9 @@
 
 During parser module audit, we discovered a **fundamental architectural inversion** in the current implementation that conflicts with the intended design.
 
-### Current Wrong Implementation
+### Problem: TokenBucket as Primary Storage
 
-```rust
-// WRONG: TokenBucket as primary storage
-TokenBucket {
-    context: Context,                                    // Single context
-    data: HashMap<String, HashMap<String, String>>,     // namespace -> key -> value
-}
-
-// WRONG: MeteorShower as simple collection
-MeteorShower {
-    meteors: Vec<Meteor>,     // Just a list of meteors
-}
-
-// WRONG: Meteor as single addressing unit
-Meteor { context, namespace, token }  // Only one token per meteor
-```
+The issue is that TokenBucket was positioned as the primary storage type when MeteorShower should be primary.
 
 ### Correct Architecture
 
@@ -32,10 +18,10 @@ Meteor { context, namespace, token }  // Only one token per meteor
 // CORRECT: Token as pure key-value pair
 Token { key: TokenKey, value: String }  // Pure key-value, no context
 
-// CORRECT: Meteor as single context with multiple tokens
+// CORRECT: Meteor data type - single context with multiple tokens
 Meteor {
-    context: Context,
-    tokens: Vec<(Namespace, Token)>      // Multiple tokens in same context
+    context: Context,                    // ONE context per meteor
+    tokens: Vec<(Namespace, Token)>      // MULTIPLE tokens in same context
 }
 
 // CORRECT: MeteorShower as primary storage with indexing
@@ -151,7 +137,7 @@ Meteor::parse("app:ui.widgets.forms:button=click,theme=dark") -> Meteor
 Token::parse("button=click") -> Token
 ```
 
-## Namespace Multi-Dot Addressing
+## Namespace Multi-Dot Format
 
 **Current constraint**: Namespace depth limited to < 5 levels
 **Examples**:
