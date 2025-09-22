@@ -22,24 +22,50 @@ mod tests {
     }
 
     #[test]
-    fn test_color_basic_functionality() {
-        // Test basic color functionality if available
+    fn test_rsb_colors_api_0_6() {
+        // Test RSB 0.6 colors API - moved from rsb::visual::colors to rsb::colors
 
-        // Try to use RSB color functions - this may or may not work depending on features
-        // For now, test that we can compile references to color functions
+        // Import from new RSB 0.6 namespace
+        use rsb::colors::{color_mode, color_enable_with, color, colorize};
 
-        #[allow(dead_code)]
-        fn test_color_compilation() {
-            // Test that color-related code compiles
-            // This is a compilation test for visual features
-            let _test_message = "Testing colors";
-            // In a real implementation, this would test:
-            // color_mode("auto");
-            // let colored_text = colorize("test", "red");
-        }
+        // Test color configuration
+        color_mode("always");  // Force colors on for testing
+        color_enable_with("simple");
 
-        test_color_compilation();
-        assert!(true, "Color compilation test passed");
+        // Test basic color functions
+        let red_code = color("red");
+        let reset_code = color("reset");
+
+        // Colors should return ANSI codes when enabled
+        assert!(!red_code.is_empty(), "Red color should return ANSI code");
+        assert!(!reset_code.is_empty(), "Reset should return ANSI code");
+
+        // Test colorize function
+        let colored_text = colorize("test", "red");
+        assert!(colored_text.contains("test"), "Colorized text should contain original text");
+
+        println!("RSB 0.6 colors API test passed: {} colors work", if red_code.is_empty() { "disabled" } else { "enabled" });
+    }
+
+    #[test]
+    fn test_rsb_visual_glyphs_0_6() {
+        // Test RSB 0.6 visual glyphs API
+
+        use rsb::visual::glyphs::{glyph_enable, glyph, glyphs_enabled};
+
+        // Test glyph functionality
+        glyph_enable();
+        assert!(glyphs_enabled(), "Glyphs should be enabled after glyph_enable()");
+
+        // Test glyph lookup
+        let check_glyph = glyph("pass");
+        let cross_glyph = glyph("fail");
+
+        // Glyphs should return Unicode symbols when enabled
+        assert!(!check_glyph.is_empty(), "Pass glyph should not be empty");
+        assert!(!cross_glyph.is_empty(), "Fail glyph should not be empty");
+
+        println!("RSB 0.6 glyphs test passed: pass={}, fail={}", check_glyph, cross_glyph);
     }
 
     #[test]
