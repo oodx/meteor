@@ -254,21 +254,80 @@ rsb = { git = "https://github.com/oodx/rsb.git", features = ["global", "cli", "s
 - ✅ `meteor stack` - Show call stack
 
 ### Enhanced Commands (Next Phase)
-**REPL-like Interface for String Experimentation**:
+**Complete REPL-like Interface for String Experimentation**:
+
+#### 1. Enhanced Parsing Commands
 ```bash
+# Current (works)
+meteor parse "app:ui:button=click"
+
 # Enhanced parsing with analysis
 meteor parse --explain "ctx:ns:key[0]=value"    # Show parsing steps
-meteor parse --validate "input"                # Validation-only mode
-meteor parse --inspect "list[0,1]=matrix"      # Show internal structure
+meteor parse --validate "malformed input"       # Validation-only mode
+meteor parse --inspect "list[0,1]=matrix"       # Show internal structure
+meteor parse --format=json "input"             # JSON output format
+meteor parse --format=debug "input"            # Debug output format
+```
 
-# API surface exploration
+#### 2. API Surface Exploration
+```bash
+# Test different meteor APIs
 meteor bucket "key=value;ns:item=data"         # TokenBucket API demo
 meteor shower "app:ui:x=1;user:cfg:y=2"       # MeteorShower API demo
 meteor transform "list[0]=item"               # Show bracket transformation
+meteor organize "ns1:a=1;ns2:b=2"            # Show organization patterns
 meteor access "ns:key=val" --query "ns.key"  # Test access patterns
+```
 
-# Interactive mode
-meteor repl                                   # Start interactive shell
+#### 3. Interactive Exploration
+```bash
+# REPL-style interface
+meteor repl                                   # Start interactive mode
+meteor explore "ctx:ns:key=value"              # Guided exploration
+meteor playground                             # Sandbox mode for experimentation
+```
+
+#### 4. Validation & Debugging
+```bash
+# Debugging tools
+meteor debug "complex:pattern[0,1]=value"      # Debug mode with step-by-step
+meteor lint "input patterns"                   # Pattern validation and suggestions
+meteor diff "pattern1" "pattern2"             # Compare patterns
+meteor stats "token stream"                   # Show parsing statistics
+```
+
+#### 5. Interactive REPL Commands
+**Inside `meteor repl` interactive shell**:
+```
+🌟 Meteor Interactive Shell
+Type 'help' for commands, 'exit' to quit
+
+meteor> parse "app:ui:button=click"
+✅ Parsed successfully
+📦 TokenBucket { context: "app", namespaces: ["ui"], tokens: 1 }
+🔍 ui:button = "click"
+
+meteor> explain "list[0,1]=matrix"
+🔄 Parse Steps:
+  1. Key: "list[0,1]" → Transform to "list__i_0_1"
+  2. Value: "matrix"
+  3. Namespace: "" (root)
+  4. Context: "app" (default)
+✅ Result: app::list__i_0_1 = "matrix"
+
+Available REPL commands:
+  parse <pattern>     - Parse meteor string
+  explain <pattern>   - Show parsing steps
+  validate <pattern>  - Validate without parsing
+  transform <key>     - Show bracket transformations
+  bucket <pattern>    - Demo TokenBucket API
+  shower <pattern>    - Demo MeteorShower API
+  organize <pattern>  - Show organization
+  access <pattern>    - Test access patterns
+  stats <pattern>     - Show parsing statistics
+  clear              - Clear screen
+  help               - Show this help
+  exit               - Exit shell
 ```
 
 ### Learning CLI: `meteor-learn` (Separate Binary)
@@ -321,17 +380,64 @@ dispatch!(&args, {
 });
 ```
 
-#### Command Implementation Strategy
-1. **parse_command** - Enhanced with --explain, --validate, --inspect flags
+#### Complete Command Implementation Strategy
+1. **parse_command** - Enhanced with --explain, --validate, --inspect, --format flags
 2. **bucket_command** - Demonstrate TokenBucket API with examples
 3. **shower_command** - Show MeteorShower multi-context handling
 4. **transform_command** - Live bracket notation transformation
-5. **access_command** - Query pattern testing and validation
-6. **repl_command** - Interactive shell with command history
+5. **organize_command** - Show token organization patterns
+6. **access_command** - Query pattern testing and validation
+7. **explore_command** - Guided exploration of meteor patterns
+8. **playground_command** - Sandbox experimentation mode
+9. **debug_command** - Step-by-step parsing analysis
+10. **lint_command** - Pattern validation and suggestions
+11. **diff_command** - Compare two meteor patterns
+12. **stats_command** - Parsing statistics and performance
+13. **repl_command** - Interactive shell with full command set
+
+#### Flag and Option Specifications
+**Global Flags** (work with all commands):
+```bash
+--format=FORMAT     # Output format: text, json, debug
+--verbose, -v       # Verbose output
+--color=MODE        # Color mode: auto, always, never
+--help, -h          # Show command help
+```
+
+**Parse Command Flags**:
+```bash
+meteor parse [FLAGS] <PATTERN>
+  --explain         # Show step-by-step parsing process
+  --validate        # Validation-only mode (no output)
+  --inspect         # Show internal data structures
+  --transform       # Show bracket notation transformations
+  --format=FORMAT   # Output format (text, json, debug)
+```
+
+**API Command Patterns**:
+```bash
+meteor bucket [--demo] <PATTERN>     # TokenBucket API demonstration
+meteor shower [--contexts] <PATTERN> # MeteorShower multi-context demo
+meteor access --query=QUERY <PATTERN> # Access pattern testing
+meteor debug [--steps] <PATTERN>     # Debug mode with step tracking
+meteor stats [--perf] <PATTERN>      # Statistics and performance metrics
+```
 
 ### 📚 Phase 3: Learning CLI (FUTURE)
 **Timeline**: 4-6 hours
 **Scope**: Separate `meteor-learn` binary
+
+#### Educational Commands (Moved to meteor-learn)
+**Note**: These commands were removed from core meteor CLI to keep it focused
+```bash
+# Educational features (NOT in core meteor CLI)
+meteor-learn concepts                         # Core concepts guide
+meteor-learn examples                         # Curated examples library
+meteor-learn patterns                         # Common usage patterns
+meteor-learn notation                         # Bracket notation guide
+meteor-learn contexts                         # Context system explanation
+meteor-learn demo <topic>                     # Guided tutorials
+```
 
 #### Separate Binary Benefits
 - **Focused Core**: Keep meteor CLI lean and production-focused
