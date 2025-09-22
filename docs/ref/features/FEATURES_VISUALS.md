@@ -1,6 +1,6 @@
 # RSB Visual System (MODERN + COMPREHENSIVE)
 
-Updated: 2025-09-16
+Updated: 2025-09-21
 
 ## Purpose
 Provide a complete, feature-gated visual enhancement ecosystem for RSB applications. The visual system offers composable components—colors, glyphs, prompts, and progress indicators—through hierarchical Cargo feature flags that maintain build-time flexibility while providing runtime configurability.
@@ -27,16 +27,17 @@ The RSB visual system follows these principles:
 
 #### Base Layer
 ```toml
-visual = []  # Required foundation for all visual features
+colors-core = []                             # Standalone colors registry and runtime toggles
+visual = ["colors-core"]                    # Visual macros/prompts wiring (imports colors-core)
 ```
 
 #### Color System (Hierarchical)
 ```toml
-colors-simple = ["visual"]                    # 8/16 colors + control codes
-colors-named = ["visual", "colors-simple"]    # Extended named palette
-colors-status = ["visual"]                    # Status-specific colors
-colors-all = ["visual", "colors-simple", "colors-named", "colors-status"]
-colors = ["visual", "colors-simple"]          # Baseline convenience alias
+colors-simple = ["colors-core"]             # 8/16 colors + control codes
+colors-named = ["colors-core", "colors-simple"]
+colors-status = ["colors-core"]
+colors-all = ["colors-core", "colors-simple", "colors-named", "colors-status"]
+colors = ["colors-core", "colors-simple"]  # Baseline convenience alias
 ```
 
 #### Visual Components
@@ -59,9 +60,16 @@ visuals = [
 default = ["visual", "colors-simple", "colors-named", "colors-status", "glyphs", "prompts"]
 ```
 
+### Surface Cheat Sheet
+- Colors: `SimpleColor`, `StatusColor`, `color_mode()`, `set_color_mode()`, `color_enable()`, `color_enable_with()`, `color()`, `get_color()`, `bg()`, `colorize()`, `colorize_bg()`, `colored()`, `get_all_colors()`, `colors_enabled()`, `set_backgrounds_enabled()`, `backgrounds_enabled()`, `get_named_colors()`, `get_boxy_extended_colors()`, `get_named_color()`, `colorize_named()`, `is_named_color()`, `get_simple_colors()`, `get_simple_color()`, `colorize_simple()`, `is_simple_color()`, `get_status_colors()`, `get_status_color()`, `get_status_color_categories()`, `colorize_status()`, `is_status_color()`, `glyph_enable()`, `set_glyphs_enabled()`, `glyphs_enabled()`, `get_all_glyphs()`, `from_name()`.
+- Prompts: `confirm()`, `confirm_default()`, `ask()`, `select()`, `default_from()`, `confirm_with_timeout()`, `ask_with_timeout()`, `select_with_timeout()`, `confirm_default_with_timeout()`, `confirm_timeout!`, `ask_timeout!`, `select_timeout!`, `prompt_timeout!`, `confirm!`, `confirm_default!`, `ask!`, `select!`, `prompt!`.
+- Visual macros & messaging: `colored!`, `info!`, `okay!`, `warn!`, `error!`, `fatal!`, `debug!`, `trace!`.
+- Progress integration: see `FEATURES_PROGRESS.md` for `ProgressManager`, `ProgressStyle`, `ProgressStats`, etc.; the `visuals` feature pulls the progress package automatically.
+
+
 ## Component Overview
 
-### 1. Colors System (`rsb::visual::colors`)
+### 1. Colors System (`rsb::colors`)
 
 **Purpose**: Runtime-configurable color system with string-first API
 
@@ -72,7 +80,7 @@ default = ["visual", "colors-simple", "colors-named", "colors-status", "glyphs",
 
 **Runtime Model**:
 ```rust
-use rsb::visual::colors::{color_mode, color_enable_with, color, colorize};
+use rsb::colors::{color_mode, color_enable_with, color, colorize};
 
 // Configure color behavior
 color_mode("auto");  // "auto" | "always" | "never"
@@ -173,7 +181,7 @@ task.complete("All files processed successfully");
 
 ### Colors API
 ```rust
-use rsb::visual::colors::{
+use rsb::colors::{
     // Configuration
     color_mode, color_enable, color_enable_with,
 
@@ -250,7 +258,7 @@ use rsb::progress::{
 
 ### 1. Full Visual Integration
 ```rust
-use rsb::visual::colors::{color_enable_with, colorize};
+use rsb::colors::{color_enable_with, colorize};
 use rsb::visual::glyphs::{glyph_enable, glyph};
 use rsb::visual::prompts::confirm;
 use rsb::progress::{ProgressManager, ProgressStyle};
@@ -274,7 +282,7 @@ if confirm("Ready to proceed?") {
 ```rust
 // Only enable colors and prompts
 #[cfg(feature = "colors-simple")]
-use rsb::visual::colors::{color_enable, colorize};
+use rsb::colors::{color_enable, colorize};
 
 #[cfg(feature = "prompts")]
 use rsb::visual::prompts::confirm;
@@ -292,7 +300,7 @@ fn colored_output(msg: &str) -> String {
 
 ### 3. Runtime Configuration
 ```rust
-use rsb::visual::colors::{color_mode, color_enable_with};
+use rsb::colors::{color_mode, color_enable_with};
 use rsb::visual::glyphs::{set_glyphs_enabled};
 
 // Configure based on environment or user preferences
@@ -317,7 +325,7 @@ Tests are organized to respect feature boundaries:
 ```rust
 #[cfg(feature = "colors-simple")]
 mod color_tests {
-    use rsb::visual::colors::*;
+    use rsb::colors::*;
 
     #[test]
     fn test_basic_colors() {
@@ -353,7 +361,7 @@ mod glyph_tests {
 // Test graceful degradation when features disabled
 #[test]
 fn test_color_fallback() {
-    use rsb::visual::colors::colorize;
+    use rsb::colors::colorize;
 
     // Should return original text when colors disabled
     let result = colorize("test", "red");
@@ -394,7 +402,7 @@ This document **replaces** the outdated FEATURES_COLORS.md. Key improvements:
 6. **Runtime configuration**: Environment and programmatic control
 
 ### Migration Path
-- Replace imports: `use rsb::visual::colors::*` (still works)
+- Replace imports: `use rsb::colors::*` (still works)
 - New umbrella feature: Use `visuals` for complete visual package
 - Progress indicators: New `rsb::progress` namespace
 - Enhanced glyphs: More symbols and better integration
@@ -425,3 +433,111 @@ All existing color APIs remain unchanged. This document extends rather than brea
 ---
 
 **Next Steps**: After integration, update INDEX.md to link to this comprehensive visual guide and consider deprecation notice for FEATURES_COLORS.md.
+
+<!-- feat:visuals -->
+
+_Generated by bin/feat.py --update-doc._
+
+* `src/visual/colors/mod.rs`
+  - pub use named::* (line 32)
+  - pub use simple::* (line 38)
+  - pub use {named::*, status::*} (line 41)
+
+* `src/visual/colors/named.rs`
+  - pub use super::simple::* (line 7)
+  - fn get_named_colors (line 11)
+  - fn get_boxy_extended_colors (line 22)
+  - fn get_named_color (line 111)
+  - fn colorize_named (line 208)
+  - fn is_named_color (line 218)
+
+* `src/visual/colors/registry.rs`
+  - fn color_enable (line 259)
+  - fn color_enable_with (line 264)
+  - fn color_mode (line 269)
+  - fn color (line 274)
+  - fn get_color (line 288)
+  - fn colorize (line 293)
+  - fn bg (line 329)
+  - fn colorize_bg (line 343)
+  - fn colored (line 353)
+  - fn get_all_colors (line 417)
+
+* `src/visual/colors/simple.rs`
+  - enum SimpleColor (line 13)
+  - fn from_name (line 131)
+  - fn all (line 174)
+  - fn get_simple_colors (line 211)
+  - fn get_simple_color (line 219)
+  - fn colorize_simple (line 226)
+  - fn is_simple_color (line 236)
+
+* `src/visual/colors/status.rs`
+  - enum StatusColor (line 12)
+  - fn from_name (line 155)
+  - fn all (line 206)
+  - fn get_status_colors (line 250)
+  - fn get_status_color (line 258)
+  - fn colorize_status (line 265)
+  - fn is_status_color (line 275)
+  - fn get_status_color_categories (line 280)
+
+* `src/visual/colors/util.rs`
+  - fn set_color_mode (line 10)
+  - fn colors_enabled (line 18)
+  - fn set_backgrounds_enabled (line 30)
+  - fn backgrounds_enabled (line 34)
+
+* `src/visual/glyphs/mod.rs`
+  - fn glyph_enable (line 121)
+  - fn set_glyphs_enabled (line 124)
+  - fn glyphs_enabled (line 127)
+  - fn glyph (line 132)
+  - fn get_all_glyphs (line 145)
+
+* `src/visual/macros.rs`
+  - macro colored! (line 11)
+  - macro info! (line 24)
+  - macro okay! (line 26)
+  - macro warn! (line 28)
+  - macro error! (line 30)
+  - macro fatal! (line 32)
+  - macro debug! (line 34)
+  - macro trace! (line 36)
+  - macro confirm! (line 41)
+  - macro confirm_default! (line 49)
+  - macro ask! (line 57)
+  - macro select! (line 68)
+  - macro prompt! (line 79)
+  - macro confirm_timeout! (line 99)
+  - macro ask_timeout! (line 113)
+  - macro select_timeout! (line 127)
+  - macro prompt_timeout! (line 146)
+
+* `src/visual/mod.rs`
+  - pub use colors::simple::* (line 49)
+  - pub use colors::named::* (line 52)
+  - pub use colors::status::* (line 55)
+  - pub use glyphs::* (line 58)
+  - pub use prompts::* (line 61)
+  - pub use utils::* (line 65)
+  - pub use crate::{colored, debug, error, fatal, info, okay, trace, warn} (line 68)
+
+* `src/visual/prompts/interactive.rs`
+  - fn confirm_default (line 24)
+  - fn confirm (line 61)
+  - fn ask (line 89)
+  - fn select (line 111)
+  - fn default_from (line 165)
+
+* `src/visual/prompts/mod.rs`
+  - pub use interactive::{ask, confirm, confirm_default, default_from, select} (line 40)
+
+* `src/visual/prompts/utils.rs`
+  - fn confirm_with_timeout (line 74)
+  - fn confirm_default_with_timeout (line 92)
+  - fn ask_with_timeout (line 112)
+  - fn select_with_timeout (line 133)
+
+<!-- /feat:visuals -->
+

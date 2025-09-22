@@ -6,47 +6,42 @@
 #[cfg(test)]
 mod tests {
     #[test]
-    fn sanity_hub_cli_ext_basic_functionality() {
-        // Test basic hub::cli_ext functionality (clap-lite)
-        // This should work since we have cli-ext feature enabled
+    fn sanity_hub_test_ext_criterion() {
+        // Test that hub::test_ext provides criterion for benchmarking
+        // This should work since we have test-ext feature enabled
 
-        // Basic command creation test
-        use hub::cli_ext::clap::Command;
+        use hub::criterion::{Criterion, black_box};
 
-        let cmd = Command::new("test-app")
-            .about("Test application")
-            .version("1.0.0");
+        // Test basic criterion functionality
+        let mut criterion = Criterion::default();
 
-        assert_eq!(cmd.get_name(), "test-app");
-        assert!(cmd.get_about().is_some());
+        // Simple benchmark test to verify criterion works
+        let result = black_box(42);
+        assert_eq!(result, 42, "Criterion black_box should work");
+
+        // Test that we can create a benchmark group (compilation test)
+        let _group = criterion.benchmark_group("test_group");
+
+        assert!(true, "Hub test-ext provides working criterion");
     }
 
     #[test]
-    fn sanity_hub_cli_ext_argument_parsing() {
-        // Test that clap-lite can handle basic argument parsing
-        use hub::cli_ext::clap::{Arg, Command};
+    fn sanity_hub_integration_no_cli_ext() {
+        // Test that removing cli-ext doesn't break hub integration
+        // We removed cli-ext since we use native RSB CLI now
 
-        let cmd = Command::new("meteor")
-            .arg(Arg::new("input")
-                .short('i')
-                .long("input")
-                .help("Input file")
-                .required(true))
-            .arg(Arg::new("verbose")
-                .short('v')
-                .long("verbose")
-                .help("Verbose output")
-                .action(hub::cli_ext::clap::ArgAction::SetTrue));
+        // Verify other hub features still work
+        use hub::async_ext::tokio;
+        use hub::error_ext::anyhow::Result;
 
-        // Test that the command structure is valid
-        let args = vec!["meteor", "--input", "test.txt", "--verbose"];
-        let matches = cmd.try_get_matches_from(args);
+        // Test async functionality still works
+        let rt = tokio::runtime::Runtime::new();
+        assert!(rt.is_ok(), "Hub async-ext should work without cli-ext");
 
-        assert!(matches.is_ok(), "Basic argument parsing should work with clap-lite");
+        // Test error handling still works
+        let _result: Result<()> = Ok(());
 
-        let matches = matches.unwrap();
-        assert_eq!(matches.get_one::<String>("input").unwrap(), "test.txt");
-        assert!(matches.get_flag("verbose"));
+        assert!(true, "Hub works correctly without cli-ext dependency");
     }
 
     #[test]

@@ -18,13 +18,12 @@ name = "meteor"
 path = "src/bin/cli.rs"
 
 [dependencies]
-# Hub integration for shared dependencies (criterion, etc.) - removed cli-ext for native RSB CLI
-hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext"] }
+# Hub integration for shared dependencies - removed cli-ext for native RSB CLI, added test-ext for criterion
+hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext", "test-ext"] }
 rsb = { git = "https://github.com/oodx/rsb.git", features = ["visuals", "stdopts"] }
 
 [dev-dependencies]
-# Use criterion from hub for consistency
-# criterion = "0.7"  # Using hub-provided criterion instead
+# criterion provided by hub test-ext feature
 
 [profile.dev]
 # Development profile for faster compilation during development
