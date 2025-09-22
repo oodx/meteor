@@ -1,148 +1,133 @@
-//! Meteor Admin CLI
+//! Meteor RSB CLI
 //!
-//! RSB-compliant command-line interface for meteor token processing.
-//! Provides experimental access to meteor's token parsing and processing capabilities.
-//! Enhanced with hub::cli_ext for robust argument parsing and validation.
+//! Native RSB-compliant command-line interface for meteor token processing.
+//! Implements RSB patterns with bootstrap!, dispatch!, and options! macros.
 
-use hub::cli_ext::clap::{Arg, ArgAction, Command};
-use std::process;
+use rsb::prelude::*;
 
 fn main() {
-    let matches = build_cli().get_matches();
+    // RSB bootstrap pattern - gets Args from environment
+    let args = bootstrap!();
 
-    match matches.subcommand() {
-        Some(("parse", sub_matches)) => {
-            let input = sub_matches.get_one::<String>("input").unwrap();
-            let verbose = sub_matches.get_flag("verbose");
-            let format = sub_matches.get_one::<String>("format").map(|s| s.as_str()).unwrap_or("text");
-            handle_parse(input, verbose, format);
-        }
-        _ => {
-            build_cli().print_help().unwrap();
-            process::exit(1);
-        }
+    // RSB options pattern - parse flags into global context
+    options!(&args);
+
+    // RSB dispatch pattern - handle subcommands
+    dispatch!(&args, {
+        "parse" => parse_command, desc: "Parse meteor token streams"
+    });
+}
+
+/// Handle the parse command using RSB patterns
+fn parse_command(args: Args) -> i32 {
+    // Get input from positional args (1-indexed, skips argv[0])
+    let input = args.get_or(1, "");
+    if input.is_empty() {
+        eprintln!("Error: No input provided");
+        eprintln!("Usage: meteor parse <token_string>");
+        eprintln!("Example: meteor parse \"app:ui:button=click\"");
+        return 1;
     }
-}
 
-fn build_cli() -> Command {
-    Command::new("meteor")
-        .about("Meteor Admin CLI - RSB-compliant token processing tool")
-        .version(env!("CARGO_PKG_VERSION"))
-        .author("oodx contributors")
-        .long_about("Advanced token processing with context isolation, bracket notation, and value escaping")
-        .subcommand(
-            Command::new("parse")
-                .about("Parse and display token stream structure")
-                .long_about("Parse token strings with context-namespace-key pattern support")
-                .arg(
-                    Arg::new("input")
-                        .help("Token string to parse")
-                        .long_help("Token string using meteor syntax: 'ctx=app; ui:button=click'")
-                        .required(true)
-                        .value_name("TOKEN_STRING")
-                )
-                .arg(
-                    Arg::new("verbose")
-                        .short('v')
-                        .long("verbose")
-                        .help("Show detailed parsing information")
-                        .action(ArgAction::SetTrue)
-                )
-                .arg(
-                    Arg::new("format")
-                        .short('f')
-                        .long("format")
-                        .help("Output format")
-                        .value_parser(["text", "json", "debug"])
-                        .default_value("text")
-                        .value_name("FORMAT")
-                )
-        )
-}
+    // Get options from RSB global context (set by options! macro)
+    let verbose = has_var("opt_verbose");
+    let format = get_var("opt_format");
+    let format = if format.is_empty() { "text" } else { &format };
 
-fn handle_parse(input: &str, verbose: bool, format: &str) {
-    match meteor::parse_token_stream(input) {
+    if verbose {
+        eprintln!("Parsing input: {}", input);
+        eprintln!("Output format: {}", format);
+    }
+
+    // Use existing meteor parsing logic
+    match meteor::parse_token_stream(&input) {
         Ok(bucket) => {
-            match format {
-                "json" => print_json_output(&bucket, input, verbose),
-                "debug" => print_debug_output(&bucket, input),
-                _ => print_text_output(&bucket, input, verbose),
-            }
+            print_output(&bucket, &input, verbose, format);
+            0
         }
         Err(e) => {
             eprintln!("Parse error: {}", e);
-            process::exit(1);
+            1
         }
     }
 }
 
-fn print_text_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool) {
-    println!("✓ Successfully parsed token stream");
+/// Print output in the specified format using existing output logic
+fn print_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool, format: &str) {
+    match format {
+        "json" => print_json_output(bucket, input, verbose),
+        "debug" => print_debug_output(bucket, input),
+        _ => print_text_output(bucket, input, verbose),
+    }
+}
 
+/// Print text format output
+fn print_text_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool) {
     if verbose {
+        println!("=== Meteor Token Parse Results ===");
         println!("Input: {}", input);
+        println!("Tokens found: {}", bucket.len());
+        println!();
     }
 
-    println!("Tokens: {}", bucket.len());
-    println!("Context: {}", bucket.context().name());
-
     let namespaces = bucket.namespaces();
-    println!("Namespaces: {}", namespaces.len());
+    for namespace in &namespaces {
+        if namespace.is_empty() {
+            println!("Root namespace:");
+        } else {
+            println!("Namespace '{}':", namespace);
+        }
 
-    for namespace in namespaces {
-        println!("  • {}", namespace);
+        let keys = bucket.keys_in_namespace(namespace);
+        for key in &keys {
+            if let Some(value) = bucket.get(namespace, key) {
+                println!("  {} = {}", key, value);
+            }
+        }
 
-        if verbose {
-            // Show keys in each namespace
-            for (ns, key, value) in bucket.iter() {
-                if ns == *namespace {
-                    println!("    ├─ {} = {}", key, value);
+        if !namespace.is_empty() || namespaces.len() > 1 {
+            println!();
+        }
+    }
+}
+
+/// Print JSON format output
+fn print_json_output(bucket: &meteor::TokenBucket, _input: &str, _verbose: bool) {
+    // TODO: Implement JSON serialization
+    // For now, use debug representation
+    println!("{{");
+    let namespaces = bucket.namespaces();
+    for (i, namespace) in namespaces.iter().enumerate() {
+        let ns_name = if namespace.is_empty() { "root" } else { namespace };
+        println!("  \"{}\": {{", ns_name);
+
+        let keys = bucket.keys_in_namespace(namespace);
+        for (j, key) in keys.iter().enumerate() {
+            if let Some(value) = bucket.get(namespace, key) {
+                print!("    \"{}\": \"{}\"", key, value);
+                if j < keys.len() - 1 {
+                    println!(",");
+                } else {
+                    println!();
                 }
             }
         }
-    }
-}
 
-fn print_json_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool) {
-    println!("{{");
-    println!("  \"status\": \"success\",");
-    if verbose {
-        println!("  \"input\": \"{}\",", escape_json(input));
-    }
-    println!("  \"tokens\": {},", bucket.len());
-    println!("  \"context\": \"{}\",", bucket.context().name());
-    println!("  \"namespaces\": [");
-
-    let namespaces = bucket.namespaces();
-    for (i, namespace) in namespaces.iter().enumerate() {
-        print!("    \"{}\"", namespace);
+        print!("  }}");
         if i < namespaces.len() - 1 {
             println!(",");
         } else {
             println!();
         }
     }
-    println!("  ]");
     println!("}}");
 }
 
+/// Print debug format output
 fn print_debug_output(bucket: &meteor::TokenBucket, input: &str) {
-    println!("=== DEBUG OUTPUT ===");
-    println!("Input: {:?}", input);
-    println!("Parsed tokens: {}", bucket.len());
-    println!("Context: {} (type: {:?})", bucket.context().name(), bucket.context());
-
-    println!("\n--- Token Details ---");
-    for (i, (namespace, key, value)) in bucket.iter().enumerate() {
-        println!("Token {}: {}::{} = {:?}", i, namespace, key, value);
-        println!("  Context: {}", bucket.context().name());
-        println!("  Namespace: {}", namespace);
-        println!("  Key: {}", key);
-        println!("  Value: {:?}", value);
-    }
+    println!("=== DEBUG: Meteor Token Analysis ===");
+    println!("Raw input: {:?}", input);
+    println!("Bucket structure: {:#?}", bucket);
+    println!("Total tokens: {}", bucket.len());
+    println!("Namespaces: {:?}", bucket.namespaces());
 }
-
-fn escape_json(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
-}
-
