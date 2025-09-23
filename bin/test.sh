@@ -65,6 +65,7 @@ declare -A TESTS=(
     # Core RSB test categories
     ["sanity"]="sanity.rs"
     ["uat"]="uat.rs"
+    ["validation"]="validation.rs"
 
     # Future tests (when implemented)
     ["comprehensive"]="comprehensive/meteor.rs"
@@ -84,6 +85,7 @@ show_help() {
     echo "Available Commands:"
     echo "  test.sh [options] sanity              Run core functionality tests"
     echo "  test.sh [options] uat                 Run user acceptance tests with demonstrations"
+    echo "  test.sh [options] validation          Run architecture validation tests (TICKET-003)"
     echo "  test.sh [options] comprehensive       Run complete feature coverage tests"
     echo "  test.sh list                          List available tests"
     echo "  test.sh help                          Show this help"
@@ -99,6 +101,7 @@ show_help() {
     echo "RSB-Compliant Test Categories:"
     echo "  sanity                 Core functionality validation (no ceremony)"
     echo "  uat                    User acceptance tests with visual demonstrations"
+    echo "  validation             Architecture validation (MeteorShower storage)"
     echo "  comprehensive          Complete feature coverage (when implemented)"
     echo ""
     echo "Current Implementation Status:"
@@ -224,7 +227,7 @@ show_docs() {
 
 # Main command dispatch
 case "${1:-help}" in
-    "sanity"|"uat"|"comprehensive"|"smoke"|"demo"|"all")
+    "sanity"|"uat"|"validation"|"comprehensive"|"smoke"|"demo"|"all")
         run_test "$1"
         ;;
     "list")

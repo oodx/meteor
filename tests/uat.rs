@@ -9,7 +9,7 @@ extern crate meteor;
 
 #[cfg(test)]
 mod tests {
-    use meteor::{parse, parse_shower, BracketNotation};
+    use meteor::{parse_shower, BracketNotation, MeteorShower, StorageData};
 
     /// UAT: Basic functionality demonstration
     #[test]
@@ -18,16 +18,18 @@ mod tests {
         println!("==========================");
         println!();
 
-        println!("📝 Parsing simple token: key=value");
-        let bucket = meteor::parse("key=value").unwrap();
-        println!("✅ Successfully parsed!");
-        println!("   Retrieved value: {:?}", bucket.get("", "key"));
+        println!("📝 Parsing simple token: app:ui:key=value");
+        let shower = meteor::parse_shower("app:ui:key=value").unwrap();
+        println!("✅ Successfully parsed into MeteorShower!");
+        let found = shower.find("app", "ui", "key");
+        println!("   Retrieved value: {:?}", found.map(|m| m.token().value()));
         println!();
 
-        println!("📝 Parsing bracket notation: list[0]=item");
-        let bucket = meteor::parse("list[0]=item").unwrap();
-        println!("🔄 Transformed to: list__i_0=item");
-        println!("   Retrieved value: {:?}", bucket.get("", "list__i_0"));
+        println!("📝 Parsing bracket notation: app:list:list[0]=item");
+        let shower = meteor::parse_shower("app:list:list[0]=item").unwrap();
+        println!("🔄 Bracket notation supported");
+        let found = shower.find("app", "list", "list[0]");
+        println!("   Retrieved value: {:?}", found.map(|m| m.token().value()));
         println!();
 
         println!("🎉 Basic functionality demonstration complete!");

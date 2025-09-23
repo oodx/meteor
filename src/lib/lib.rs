@@ -24,7 +24,7 @@ pub mod parser;
 pub mod utils;
 
 // Re-export main public types and functions
-pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, TokenBucket, MeteorError, BracketNotation};
+pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, StorageData, TokenBucket, MeteorError, BracketNotation};
 // TODO: Re-enable when parser module is rebuilt
 // pub use parser::parse::parse_token_stream;
 
