@@ -23,9 +23,6 @@ pub mod parser;
 // Public utilities following data flow ordinality
 pub mod utils;
 
-// Support modules for internal complexity
-pub mod sup;
-
 // Re-export main public types and functions
 pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, TokenBucket, MeteorError, BracketNotation};
 // TODO: Re-enable when parser module is rebuilt

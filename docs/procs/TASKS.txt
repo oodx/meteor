@@ -1,752 +1,289 @@
-# METEOR TASKS - Module Architecture & RSB Integration Phase
+# METEOR TASKS - Architecture Correction & Foundation Repair
 
-## ARCHITECTURE REORGANIZATION COMPLETED ✅ (2025-09-22)
+## 🚨 CRITICAL PATH TICKETS (BLOCKING)
 
-### TASK-ARCH-001: MODULE_SPEC Compliance ✅ COMPLETED
-- [x] Reorganize codebase according to MODULE_SPEC principles
-- [x] Move bracket.rs from sup/ to parser/ module (proper organization)
-- [x] Split primary.rs into separate type files (Context, Namespace, Token, Meteor)
-- [x] Create proper module exports and imports
-- [x] Clean up sup/ directory for general helpers only
-- [x] Fix all compilation errors and test compatibility
+### TICKET-001: Fix Compilation Error
+**Priority**: P0 - BLOCKING ALL DEVELOPMENT
+**Type**: Bugfix
+**Effort**: 30 minutes
+**Assignee**: Completed
+**Status**: ✅ COMPLETED
 
-### TASK-ARCH-002: TokenKey Architecture ✅ COMPLETED
-- [x] Create separate TokenKey type for key identifiers
-- [x] Implement BracketTransform trait for extensible bracket notation
-- [x] Add caching approach (store both original and transformed keys)
-- [x] Implement inverse parser for flat → bracket reconstruction
-- [x] Use Display trait for flat representation (to_string())
-- [x] Design extensible trait system for future bracket types
+**Description**: Duplicate parser module definition in lib.rs preventing compilation
 
-### TASK-ARCH-003: MeteorShower Collection ✅ COMPLETED
-- [x] Create MeteorShower as collection for fully-qualified Meteor tokens
-- [x] Implement indexed lookups by context and namespace
-- [x] Add query methods: by_context(), by_context_namespace(), find()
-- [x] Create discovery methods: contexts(), namespaces_in_context()
-- [x] Support full meteor spec parsing with parse_shower() function
+**Acceptance Criteria**:
+- [ ] `cargo build` succeeds without errors
+- [ ] Only one `pub mod parser;` declaration exists in lib.rs
+- [ ] Parser module properly exports expected functions
 
-### TASK-ARCH-004: Full Meteor Spec Support ✅ COMPLETED
-- [x] Add context:namespace:key=value parsing to TokenBucket
-- [x] Ensure both TokenBucket and MeteorShower support default 'app' context
-- [x] Add with_context() constructors to both types
-- [x] Implement complete TOKEN_NAMESPACE_CONCEPT compliance
-- [x] Add comprehensive tests for full addressing format
+**Technical Details**:
+- Error: `the name 'parser' is defined multiple times` at lib.rs:27
+- Need to find and remove duplicate module declaration
+- Verify parser module structure is correct
 
-## HUB INTEGRATION COMPLETED ✅ (2025-09-21)
-
-### TASK-HUB-001: Hub Dependency Integration ✅ COMPLETED
-- [x] Add hub v0.4.0 dependency with lite variants
-- [x] Configure optimal features: core, cli-ext, async-ext, error-ext
-- [x] Create hub integration test suite (10 tests)
-- [x] Validate no regression in existing tests (149 total tests passing)
-- [x] Update test infrastructure with hub test groups
-
-## CURRENT ARCHITECTURE STATUS ✅ (2025-09-22)
-
-**Current Type Architecture:**
-- **TokenKey** - Individual key identifiers with bracket transformation
-- **Token** - Key-value pair (uses TokenKey + value)
-- **Meteor** - DATA TYPE: context:namespace:key=value format with single context, one or more tokens
-- **MeteorShower** - Collection of Meteor objects with indexed queries
-- **StorageData** - Serialized/flattened interchange format (TokenBucket BEING REMOVED)
-- **BracketTransform** - Extensible trait for bracket notation handling
-
-**Parser Features:**
-- ✅ Full `context:namespace:key=value` parsing
-- ✅ Bracket notation: `list[0]`, `grid[2,3]`, `queue[]`
-- ✅ Inverse parsing: `list__i_0` → `list[0]`
-- ✅ Default 'app' context support
-- ✅ TokenBucket and MeteorShower compatibility
-
-## ARCHITECTURAL CORRECTION PHASE ⚠️ (2025-09-22)
-
-### TASK-ARCH-005: Critical Architecture Correction ⚠️ ACTIVE
-**CRITICAL**: Documentation correction phase completed. Implementation phases pending.
-
-#### Phase 0: Document Architecture ✅ COMPLETED (2025-09-22)
-- [x] Create TOKEN_CONCEPT_AMENDMENT.md documenting architectural issues
-- [x] Link amendment in main TOKEN_NAMESPACE_CONCEPT.md
-- [x] Update TASKS.txt with correction phases
-- [x] DOC-01: Update README.md examples (TokenBucket → MeteorShower)
-- [x] DOC-02: Update TOKEN_NAMESPACE_CONCEPT.md (remove "addressing" language)
-- [x] DOC-03: Update RSB_CLI_FEATURES.md examples
-- [x] DOC-04: Update all remaining documentation files
-- [x] Fix "addressing" language → "data format" throughout docs
-- [x] Clarify Meteor is a DATA TYPE throughout documentation
-
-#### Phase 1: Storage Migration ✅ COMPLETED (2025-09-22)
-- [x] Create `shower_data.rs` storage module
-- [x] Move TokenBucket storage logic to MeteorShower
-- [x] Update MeteorShower to be primary storage type
-- [x] Add interchange format methods
-- [x] Update Meteor to support multiple tokens (Vec<(Namespace, Token)>)
-- [x] Temporarily fix CLI compilation errors
-
-**Current Issues Found:**
-- Tests use OLD Meteor API (single token) - need updating
-- TokenBucket still referenced but unused (warning)
-- CLI uses dummy implementation - needs real parsing
-
-#### Phase 1.5: Fix Broken Tests 🚧 ACTIVE
-- [ ] Update tests/sanity/meteor.rs for new Meteor API (multiple tokens)
-- [ ] Update tests/uat/meteor.rs for new Meteor API
-- [ ] Add comprehensive MeteorShower storage tests
-- [ ] Add StorageData interchange format tests
-- [ ] Test MeteorShower indexing and query methods
-
-#### Phase 2: Delete TokenBucket 🚧 PENDING
-- [ ] Remove TokenBucket type entirely
-- [ ] Update all imports and references
-- [ ] Update CLI to use MeteorShower
-
-#### Phase 3: Parser Rebuild 🚧 PENDING
-- [ ] Continue with shared parsing infrastructure
-- [ ] Use correct MeteorShower-primary architecture
-- [ ] Implement ParseMode correctly
-
-**STATUS**: Documentation is now consistent. Implementation work blocked until architecture is corrected.
-
-## PREVIOUS STATUS: WORKING METEOR LIBRARY ✅ (Architecture Now Known Incorrect)
-
-### COMPLETED: Basic CLI Implementation ✅ (2025-09-21)
-- [x] Basic CLI using hub::cli_ext::clap (not full RSB features)
-- [x] Command structure with parse subcommand
-- [x] Multiple output formats (text, json, debug)
-- [x] Help text and option validation
-- [x] **DELIVERABLE**: Working CLI for token parsing (basic functionality)
-
-### COMPLETED: Architecture & Tests ✅ (2025-09-22)
-- [x] MODULE_SPEC compliance with types/ subfolders
-- [x] TokenKey + BracketNotation trait implementation
-- [x] MeteorShower vs TokenBucket dual architecture
-- [x] Test cleanup (removed hallucinated RSB integration tests)
-- [x] **DELIVERABLE**: Clean, working token parsing library
-
-## POTENTIAL FUTURE WORK (If Needed)
-
-### OPTIONAL: Real RSB Integration (Not Currently Planned)
-- [ ] Actual RSB CLI features (beyond hub::cli_ext)
-- [ ] RSB global state management
-- [ ] RSB filesystem operations
-- [ ] RSB string processing utilities
-
-**Note**: Current implementation works well with hub pattern for shared dependencies.
-RSB integration would be additional work if specifically needed.
-
-## PROJECT STATUS SUMMARY ✅
-
-**Current State**: Fully functional token parsing library
-- ✅ **Core Parsing**: context:namespace:key=value format working
-- ✅ **Bracket Notation**: list[0] → list__i_0 with inverse parsing
-- ✅ **Collections**: MeteorShower (object-oriented) + TokenBucket (serialized)
-- ✅ **Architecture**: MODULE_SPEC compliant, types/ subfolders
-- ✅ **CLI**: Basic functionality using hub::cli_ext::clap
-- ✅ **Tests**: Clean test suite, no hallucinated content
-- ✅ **Hub Integration**: Shared dependencies working correctly
-
-**What Works**: All core functionality implemented and tested
-**What's Missing**: Advanced RSB features (if actually needed)
-**Next Steps**: Use the library as-is or add features as requirements emerge
-
-## TEST COVERAGE EXPANSION
-
-### TEST-01: CLI Integration Tests (2-3 hours)
-- [ ] CLI parsing with complex bracket notation examples
-- [ ] Output format validation (text, json, debug modes)
-- [ ] Error handling and user feedback validation
-- [ ] Verbose mode functionality testing
-- [ ] Invalid input handling and error messages
-
-### TEST-02: TokenKey API Integration Tests (1-2 hours)
-- [x] New API methods validation (`key()`, `key_notation()`, `key_str()`) ✅ COMPLETED
-- [ ] BracketNotation trait integration across all types
-- [ ] TokenKey usage patterns in realistic scenarios
-- [ ] API consistency validation across Token/Meteor/MeteorShower
-
-### TEST-03: End-to-End Workflow Tests (2-3 hours)
-- [ ] Complete parsing workflows with multiple contexts
-- [ ] TokenBucket ↔ MeteorShower integration patterns
-- [ ] Complex bracket notation in full addressing scenarios
-- [ ] Real-world data processing examples
-
-### TEST-04: Edge Cases & Error Scenarios (1-2 hours)
-- [ ] Malformed bracket notation comprehensive testing
-- [ ] Context switching error conditions
-- [ ] Namespace depth validation edge cases
-- [ ] Memory/performance validation with large datasets
-
-### TEST-05: Visual UAT Demonstrations (2-3 hours)
-- [ ] Complete feature demonstration scenarios
-- [ ] CLI usage examples with realistic data
-- [ ] API usage patterns for library consumers
-- [ ] Visual validation of output formatting
-
-### TEST-06: Hub Integration Validation (1 hour)
-- [ ] Hub dependency functionality verification
-- [ ] CLI-ext integration comprehensive testing
-- [ ] RSB baseline feature validation
-- [ ] Shared dependency usage patterns
-
-**Total Estimated Effort**: 9-14 hours
-**Priority**: Medium (current coverage is solid, these improve confidence)
+**Blockers**: None
+**Dependencies**: None
+**Blocks**: All other development work
 
 ---
 
-## RSB SANITY TEST UPDATES COMPLETED ✅ (2025-09-22)
+### TICKET-002: Clean Broken Test Files
+**Priority**: P0 - BLOCKING TESTING
+**Type**: Technical Debt
+**Effort**: 30 minutes
+**Assignee**: Completed
+**Status**: ✅ COMPLETED
 
-### TASK-RSB-001: RSB Feature Availability Tests ✅ COMPLETED
-- [x] Fixed RSB baseline tests to only test RSB feature availability (not functionality)
-- [x] Replaced 7 generic functionality tests with 3 focused feature availability tests
-- [x] Tests now properly validate:
-  - RSB dependency compiles successfully
-  - RSB visuals feature is available (feature flag works)
-  - RSB stdopts feature is available (feature flag works)
-- [x] Added TODO comments for future specific RSB API availability tests
-- [x] Baseline tests now follow correct pattern: test availability, not functionality
+**Description**: Remove test content using old/non-existent APIs while preserving file structure
 
-### TASK-RSB-002: RSB Feature Sanity Test Structure ✅ COMPLETED
-**Purpose**: Create individual sanity tests for each RSB feature we need for CLI
-**Structure**: One test file per RSB feature with real functionality validation
-**Reference**: See `docs/plans/RSB_CLI_IMPLEMENTATION.md` for complete implementation plan
+**Acceptance Criteria**:
+- [ ] `cargo test` runs without compilation errors
+- [ ] Test file structure preserved (keep .rs files)
+- [ ] No references to `parse_token_stream()` function
+- [ ] No references to `TokenBucket` in test imports
+- [ ] Tests can be empty initially
 
-#### RSB Feature Tests Completed (Phase 1 of RSB CLI Implementation):
-- [x] `tests/sanity/rsb_sanity_global.rs` - GLOBAL feature functionality ✅ COMPLETED
-  - ✅ Test global variable store operations (set_var, get_var, has_var, unset_var)
-  - ✅ Test variable expansion (expand_vars)
-  - ✅ Test CLI configuration storage and session management
-  - ✅ Test path construction and context-aware expansion
+**Files to Clean**:
+- `tests/sanity/meteor.rs` - remove broken API usage
+- `tests/sanity/types.rs` - remove TokenBucket imports
+- Any other tests referencing old APIs
 
-- [x] `tests/sanity/rsb_sanity_cli.rs` - CLI feature functionality ✅ COMPLETED
-  - ✅ Test Args wrapper (bash-style CLI utilities)
-  - ✅ Test bash-like argument patterns (1-indexed, skips argv[0])
-  - ✅ Test flag detection and positional argument handling
-  - ✅ Test CLI session management with global integration
-
-- [x] `tests/sanity/rsb_sanity_options.rs` - OPTIONS feature functionality ✅ COMPLETED
-  - ✅ Test options! macro behavior
-  - ✅ Test declarative options parsing (--long=value, --flag)
-  - ✅ Test standard CLI patterns with global integration
-  - ✅ Test boolean semantics and value parsing
-
-- [x] `tests/sanity/rsb_sanity_visuals.rs` - VISUALS feature functionality ✅ COMPLETED
-  - ✅ Test visual feature compilation and availability
-  - ✅ Test color configuration via global variables
-  - ✅ Test CLI patterns for visual options
-  - ✅ Test progress indicator simulation with global state
-
-#### Main Sanity Test Integration ✅ COMPLETED
-- [x] Added 7 RSB feature tests to main `tests/sanity.rs` (total: 11 tests)
-- [x] All tests pass via `test.sh sanity` runner
-- [x] Confirmed RSB GLOBAL, CLI, OPTIONS, STRINGS features available
-- [x] Validated bash-like patterns and global variable integration
-
-**Timeline**: 6-8 hours total (completed in 6 hours)
-**Priority**: HIGH ✅ COMPLETED
-**Result**: Foundation established for TASK-RSB-003 (RSB CLI implementation)
-
-### TASK-RSB-003: RSB CLI Implementation ✅ PHASE 2 COMPLETED
-**Purpose**: Replace hub::cli_ext-based CLI with native RSB implementation
-**Structure**: 4-phase implementation following RSB patterns
-**Reference**: See `docs/plans/RSB_CLI_IMPLEMENTATION.md` for complete plan
-
-#### Implementation Phases:
-- [x] **Phase 1**: RSB Feature Validation (TASK-RSB-002) ✅ COMPLETED - 6 hours
-- [x] **Phase 2**: RSB CLI Core Implementation ✅ COMPLETED - 2 hours
-  - ✅ Replace main() with bootstrap! + dispatch! pattern
-  - ✅ Implement parse_command using RSB Args and global state
-  - ✅ Migrate output functions to work with RSB options
-  - ✅ Built-in commands (help, inspect, stack) working
-  - ✅ RSB patterns fully operational
-- [ ] **Phase 3**: Feature Parity & Enhancement → **READY** - 2-4 hours
-  - Validate CLI options processing with correct RSB syntax
-  - Ensure all current CLI functionality preserved
-  - Test edge cases and error scenarios
-- [ ] **Phase 4**: Dependencies & Cleanup - 1-2 hours
-  - Remove hub dependency from Cargo.toml
-  - Clean up hub imports from codebase
-  - Validate all tests still pass
-
-#### Key Changes:
-```rust
-// Before (hub-based)
-use hub::cli_ext::clap::{Command, Arg};
-let matches = build_cli().get_matches();
-
-// After (RSB-native)
-use rsb::prelude::*;
-let args = bootstrap!();
-options!(&args);
-dispatch!(&args, { "parse" => parse_command });
-```
-
-**Timeline**: 13-20 hours total across 4 phases (8 hours completed, 3-6 hours remaining)
-**Priority**: HIGH - Phase 2 completed successfully
-**Dependencies**: TASK-RSB-002 ✅ COMPLETED
-**Benefits**: Native RSB compliance, simpler code, built-in help/inspect/stack ✅ DELIVERED
-
-**Working RSB CLI Commands**:
-```bash
-./target/debug/meteor help                           # ✅ Built-in help with RSB commands
-./target/debug/meteor inspect                        # ✅ Lists registered functions
-./target/debug/meteor parse "app:ui:button=click"    # ✅ Native RSB parsing
-```
-
-**Major Achievement**: Phase 2 completed **4-5 hours ahead of schedule!**
-
-**Last Updated**: 2025-09-22
-**Status**: ✅ Phase 3 COMPLETED - Native RSB CLI operational with full feature parity
-**Current**: Phase 2 Enhanced Command Surface - REPL-like interface design
-
-## ENHANCED CLI COMMAND SURFACE (2025-09-22)
-
-### TASK-CLI-004: REPL-like Command Interface ⚠️ IN PROGRESS
-**Purpose**: Add comprehensive command surface for meteor string experimentation
-**Timeline**: 2-3 hours
-**Status**: Design phase completed, implementation in progress
-
-#### Design Completed ✅
-- [x] Complete CLI strategy document with 13-command specification
-- [x] Advanced help system framework (show_parse_help function)
-- [x] Command separation strategy (meteor vs meteor-learn vs meteor-debug)
-- [x] Full REPL interface specification with examples
-- [x] Flag and option specifications for all commands
-
-#### Implementation Tasks 🔄 IN PROGRESS
-- [ ] **validate command**: `meteor validate <pattern>` - Validate meteor string format
-  - Use existing `validate_token_organization()` from utils/organize.rs
-  - Show validation errors with helpful suggestions
-  - Advanced help: `meteor help validate`
-- [ ] **help command**: `meteor help <topic>` - Detailed command-specific help
-  - Topics: parse, validate, bucket, shower, transform, etc.
-  - Advanced help menus with colored output and examples
-- [ ] **Enhanced parse flags**: --explain, --validate, --inspect modes
-- [ ] **API exploration**: bucket, shower, transform, access commands
-- [ ] **Interactive REPL**: meteor repl with command history
-
-#### Key Commands to Implement
-```bash
-# Validation and help
-meteor validate "pattern"              # Check if valid meteor format
-meteor help parse                      # Advanced help for parse command
-meteor help validate                   # Advanced help for validate command
-
-# Enhanced parsing
-meteor parse --explain "pattern"       # Show parsing steps
-meteor parse --inspect "pattern"       # Show internal structures
-
-# API exploration
-meteor bucket "pattern"               # TokenBucket API demo
-meteor shower "pattern"               # MeteorShower API demo
-```
-
-**Dependencies**: Native RSB CLI (✅ completed)
-**Benefits**: Interactive meteor string experimentation, learning interface, API exploration
-
-## IMMEDIATE FIXES COMPLETED ✅ (2025-09-22)
-
-### BUGFIX-001: TokenKey Comparison Tests ✅ COMPLETED
-- [x] Fixed `tests/sanity/types.rs` compilation errors
-- [x] Replaced `simple.key()` with `simple.key_notation()` for string comparison
-- [x] All 12 types sanity tests now pass
-- [x] Total test suite: 11 main sanity tests + 12 types tests = 23 passing tests
+**Blockers**: TICKET-001 (compilation must work first)
+**Dependencies**: TICKET-001
+**Blocks**: Test development work
 
 ---
 
-## PARSER MODULE REORGANIZATION & API MODERNIZATION ⚠️ CRITICAL (2025-09-22)
+## 🎯 ARCHITECTURE VALIDATION TICKETS
 
-### TASK-PARSER-001: Module Structure Reorganization ✅ COMPLETED
-**Purpose**: Fix misplaced parsing infrastructure in utils/ directory
-**Issue**: Core parsing files (parse.rs, transform.rs, organize.rs) were in utils/ but belong in parser/
-**Timeline**: 2 hours
+### TICKET-003: Validate MeteorShower Storage Implementation
+**Priority**: P1 - HIGH
+**Type**: Architecture Validation
+**Effort**: 4-6 hours
+**Assignee**: TBD
+**Status**: Open
 
-#### Files Moved ✅ COMPLETED
-- [x] `src/lib/utils/parse.rs` → `src/lib/parser/parse.rs`
-- [x] `src/lib/utils/transform.rs` → `src/lib/parser/transform.rs`
-- [x] `src/lib/utils/organize.rs` → `src/lib/parser/organize.rs`
-- [x] Updated `src/lib/parser/mod.rs` to export moved modules
-- [x] Updated `src/lib/utils/mod.rs` to remove moved modules
-- [x] Fixed imports throughout codebase
+**Description**: Validate that MeteorShower can fully replace TokenBucket as primary storage
 
-#### Architecture Correction ✅ COMPLETED
-**Before (incorrect)**:
-```
-src/lib/utils/          # Essential helper functions
-├── parse.rs           # ❌ WRONG: Core parsing infrastructure
-├── transform.rs       # ❌ WRONG: Core parsing infrastructure
-├── organize.rs        # ❌ WRONG: Core parsing infrastructure
-└── access.rs          # ✅ CORRECT: Access helper functions
-```
+**Acceptance Criteria**:
+- [ ] MeteorShower has all storage functionality TokenBucket provides
+- [ ] Cross-context indexing works correctly
+- [ ] Parse/display round-trip functionality verified
+- [ ] StorageData interchange format working
+- [ ] Query methods (by_context, find) functional
+- [ ] Performance acceptable for primary storage use
 
-**After (correct)**:
-```
-src/lib/parser/         # Core parsing infrastructure
-├── parse.rs           # ✅ CORRECT: String → Tokens
-├── transform.rs       # ✅ CORRECT: Token transformation
-├── organize.rs        # ✅ CORRECT: Tokens → TokenBucket
-└── bracket.rs         # ✅ CORRECT: Bracket notation
+**Technical Validation**:
+- [ ] Test MeteorShower storing tokens across multiple contexts
+- [ ] Test namespace organization and hierarchy
+- [ ] Test key-value retrieval and updates
+- [ ] Test serialization/deserialization via StorageData
+- [ ] Benchmark vs current TokenBucket implementation
 
-src/lib/utils/          # Essential helper functions
-└── access.rs          # ✅ CORRECT: Query/access utilities
-```
-
-### TASK-PARSER-002: API Modernization ⚠️ CRITICAL
-**Purpose**: Fix outdated API usage throughout parser module
-**Issue**: Parser using old patterns instead of new Meteor/MeteorShower/TokenKey API
-**Timeline**: 3-4 hours
-**Status**: Partially completed, needs audit
-
-#### API Issues Identified ⚠️ CRITICAL
-- [ ] **Parser files may use outdated TokenBucket-only patterns**
-  - Need to integrate Meteor/MeteorShower/TokenKey API from TOKEN_NAMESPACE_CONCEPT
-  - Parser should support full context:namespace:key=value addressing
-  - Current parser may be using hallucinated or outdated code patterns
-
-#### CLI Fixes ✅ COMPLETED
-- [x] Updated CLI to use `meteor::parse()` instead of `parse_token_stream()`
-- [x] Fixed validate command to use modern API
-- [x] Removed invalid `parse_meteor_stream` import
-
-#### Meteor Type Fixes ✅ COMPLETED
-- [x] Fixed `Meteor::Display` to use proper component `to_string()` calls
-- [x] Removed invalid `to_address()` function (non-standard naming)
-- [x] Now uses: `context.to_string()`, `namespace.to_string()`, `token.key().to_string()`
-- [x] Verified `Context::default()` returns "app" context as specified
-
-### TASK-PARSER-003: Interchange System ⚠️ PENDING
-**Purpose**: Implement complete conversion chain: String ↔ TokenBucket ↔ MeteorShower ↔ Meteor
-**Timeline**: 4-5 hours
-**Status**: Design phase
-
-#### Conversion Chain Needed
-```
-String ↔ TokenBucket ↔ MeteorShower ↔ Vec<Meteor> ↔ Meteor
-  ↑                                                    ↓
-  └─────────────── Direct (via Display/FromStr) ──────┘
-```
-
-#### Implementation Strategy
-- [ ] **Display implementations**: TokenBucket, MeteorShower → String
-- [ ] **Helper functions** (not traits): MeteorShower ↔ TokenBucket conversions
-- [ ] **Multi-context handling**: MeteorShower → multiple TokenBuckets per context
-- [ ] **Round-trip testing**: Verify String → parse → Display → String consistency
-
-#### Conversion Functions Needed
-```rust
-// In src/lib/utils/interchange.rs
-pub fn shower_to_bucket(shower: &MeteorShower) -> Result<TokenBucket, MeteorError>;
-pub fn shower_to_buckets(shower: &MeteorShower) -> Vec<TokenBucket>;
-pub fn bucket_to_shower(bucket: &TokenBucket) -> Result<MeteorShower, MeteorError>;
-pub fn buckets_to_shower(buckets: &[TokenBucket]) -> Result<MeteorShower, MeteorError>;
-```
-
-### TASK-PARSER-004: Parser Module Audit ⚠️ URGENT
-**Purpose**: Audit parser module for outdated/hallucinated code patterns
-**Timeline**: 2-3 hours
-**Status**: Not started
-
-#### Audit Checklist
-- [ ] **Verify all parser functions use current Meteor/TokenKey API**
-- [ ] **Check for references to removed/outdated functions**
-- [ ] **Validate against TOKEN_NAMESPACE_CONCEPT specification**
-- [ ] **Ensure bracket notation uses TokenKey properly**
-- [ ] **Verify context handling uses "app" default correctly**
-- [ ] **Check all imports and dependencies are valid**
-
-#### Risk Assessment
-- Parser module moved from utils/ but may contain outdated code
-- Functions may reference non-existent APIs or use incorrect patterns
-- Tests may not cover the reorganized structure
-- CLI depends on parser working correctly
-
-### TASK-PARSER-005: Test Suite Validation ⚠️ HIGH PRIORITY
-**Purpose**: Ensure tests cover reorganized parser structure and modern API
-**Timeline**: 2-3 hours
-**Status**: Not started
-
-#### Test Requirements
-- [ ] **Parser module tests**: Verify all parsing functions work with new structure
-- [ ] **Integration tests**: CLI + parser + types working together
-- [ ] **Round-trip tests**: String → parse → Display → String consistency
-- [ ] **Error handling tests**: Invalid inputs handled gracefully
-- [ ] **API compatibility tests**: New vs old API equivalence where applicable
-
-#### Current Test Status
-- ✅ Types tests passing (23 tests)
-- ❓ Parser module tests status unknown after reorganization
-- ❓ Integration tests may be using outdated imports
-- ❓ CLI tests may need updates for new commands
-
-**PRIORITY**: Complete TASK-PARSER-004 (audit) before proceeding with other parser work
+**Blockers**: TICKET-001, TICKET-002
+**Dependencies**: TICKET-001, TICKET-002
+**Blocks**: TICKET-006 (TokenBucket removal)
 
 ---
 
-## PARSER MODULE REBUILD - SHARED PARSING INFRASTRUCTURE ⚠️ CRITICAL (2025-09-22)
+### TICKET-004: Create TokenKey & Token Foundation Tests
+**Priority**: P1 - HIGH
+**Type**: Test Development
+**Effort**: 2-3 hours
+**Assignee**: TBD
+**Status**: Open
 
-### TASK-PARSER-006: Parser Module Architecture Redesign ⚠️ URGENT
-**Purpose**: Replace broken parser module with proper shared parsing infrastructure
-**Issue**: Current parser module is outdated and conflicts with correct Meteor/Token implementations
-**Timeline**: 4-6 hours
-**Status**: Design completed, ready for implementation
+**Description**: Build comprehensive test foundation for core types using current APIs
 
-#### Problem Analysis ✅ COMPLETED
-- ❌ **Parser module**: Uses outdated `ctx=user; key=value` context-switching API
-- ✅ **Meteor/Token types**: Use correct modern `context:namespace:key=value` API
-- ❌ **Collections missing parsers**: TokenBucket has no parse(), MeteorShower delegates correctly
-- ❌ **No shared infrastructure**: Types have ad-hoc parsing, no reusable logic
+**Acceptance Criteria**:
+- [ ] TokenKey bracket notation tests (`list[0]` → `list__i_0`)
+- [ ] TokenKey caching and inverse parsing tests
+- [ ] Token key-value pair tests with TokenKey API
+- [ ] Token display format tests
+- [ ] All tests use current, working APIs only
 
-#### Correct Architecture Design ✅ COMPLETED
-```rust
-// Shared parsing infrastructure
-parser/
-├── token.rs     // Core token parsing logic: "key=value"
-├── meteor.rs    // Core meteor parsing logic: "context:namespace:key=value"
-├── macros.rs    // Parse macros: parse!, token_parse!, meteor_parse!
-└── mod.rs       // Re-exports and macro definitions
+**Test Coverage**:
+- [ ] Bracket notation transformation and inverse
+- [ ] TokenKey comparison and equality
+- [ ] Token creation and manipulation
+- [ ] Error handling for invalid inputs
+- [ ] Edge cases (empty values, special characters)
 
-// Types delegate to shared parsers
-Token::parse(s) → parser::token::parse_token(s)
-Meteor::parse(s) → parser::meteor::parse_meteor(s)
-
-// Collections use shared parsers via iteration
-TokenBucket::parse(stream) → splits + Token::parse() for each token
-MeteorShower::parse(stream) → splits + Meteor::parse() for each meteor
-
-// Macros provide ergonomic API
-parse!("ui:button=click; config:theme=dark") → TokenBucket
-meteor_parse!("app:ui:button=click") → Meteor
-token_parse!("key=value") → Token
-```
-
-### TASK-PARSER-007: Implementation Phases ⚠️ SEQUENTIAL
-**Timeline**: 4-6 hours total across 4 phases
-**Status**: Ready to begin
-
-#### Phase 1: Gut Current Parser Module (1 hour)
-- [ ] **Delete outdated parser logic**: Remove parse.rs, transform.rs, organize.rs content
-- [ ] **Keep file structure**: Maintain files but gut their contents
-- [ ] **Update parser/mod.rs**: Remove exports of gutted functions
-- [ ] **Fix broken imports**: Update any remaining references
-
-#### Phase 2: Create Shared Parsing Infrastructure (2-3 hours)
-- [ ] **parser/token.rs**: Implement `parse_token(s: &str) -> Result<Token, MeteorError>`
-  - Move Token::parse() logic to shared parser
-  - Handle "key=value" format with TokenKey bracket notation
-  - Validate input and provide clear error messages
-- [ ] **parser/meteor.rs**: Implement `parse_meteor(s: &str) -> Result<Meteor, MeteorError>`
-  - Move Meteor::parse() logic to shared parser
-  - Handle "context:namespace:key=value" format with colon counting
-  - Support default context ("app") for shorter formats
-- [ ] **Update Type Delegations**:
-  - `Token::parse()` → calls `parser::token::parse_token()`
-  - `Meteor::parse()` → calls `parser::meteor::parse_meteor()`
-
-#### Phase 3: Implement Missing Collection Parsers (1-2 hours)
-- [ ] **TokenBucket::parse()**: Single-context token stream parsing
-  ```rust
-  impl TokenBucket {
-      pub fn parse(input: &str) -> Result<Self, MeteorError> {
-          // Split by semicolon, parse each as Token, organize by namespace
-          // Format: "ui:button=click; config:theme=dark" (single context)
-      }
-  }
-  ```
-- [ ] **Verify MeteorShower::parse()**: Should already work via Meteor::parse() iteration
-- [ ] **Add Display implementations**: TokenBucket/MeteorShower → String for round-trip
-
-#### Phase 4: Parse Macros Implementation (1 hour)
-- [ ] **parser/macros.rs**: Implement ergonomic parse macros
-  ```rust
-  // Basic collection parsing
-  macro_rules! parse {
-      ($input:expr) => { TokenBucket::parse($input) };
-  }
-
-  // Individual parsing
-  macro_rules! token_parse {
-      ($input:expr) => { Token::parse($input) };
-  }
-
-  macro_rules! meteor_parse {
-      ($input:expr) => { Meteor::parse($input) };
-  }
-
-  // Advanced shower parsing
-  macro_rules! shower_parse {
-      ($input:expr) => { MeteorShower::parse($input) };
-  }
-  ```
-- [ ] **parser/mod.rs**: Re-export macros for public API
-- [ ] **lib.rs integration**: Make macros available at crate root
-
-### TASK-PARSER-008: Testing & Validation ⚠️ HIGH PRIORITY
-**Timeline**: 2-3 hours
-**Status**: After implementation phases
-
-#### Test Requirements
-- [ ] **Parser unit tests**: Test shared token/meteor parsers independently
-- [ ] **Collection parser tests**: TokenBucket::parse() and MeteorShower::parse()
-- [ ] **Macro tests**: All parse macros work correctly
-- [ ] **Round-trip tests**: parse → Display → parse consistency
-- [ ] **Error handling tests**: Invalid inputs handled gracefully
-- [ ] **Integration tests**: CLI + new parser infrastructure
-
-#### Test Scenarios
-```rust
-// Token parsing
-token_parse!("key=value") ✅
-token_parse!("list[0]=item") ✅ (bracket notation)
-token_parse!("invalid") ❌
-
-// Meteor parsing
-meteor_parse!("app:ui:button=click") ✅
-meteor_parse!("ui:button=click") ✅ (default app context)
-meteor_parse!("key=value") ✅ (default app context + root namespace)
-
-// Collection parsing
-parse!("ui:button=click; config:theme=dark") ✅ → TokenBucket
-shower_parse!("app:ui:button=click; user:settings:theme=dark") ✅ → MeteorShower
-```
-
-### TASK-PARSER-009: API Integration & Cleanup ⚠️ FINAL PHASE
-**Timeline**: 1 hour
-**Status**: After testing
-
-#### Integration Tasks
-- [ ] **Update CLI**: Use new macros for cleaner CLI code
-- [ ] **Update lib.rs**: Export macros at crate level
-- [ ] **Update documentation**: All examples use new macro API
-- [ ] **Clean up old references**: Remove any remaining parser module legacy code
-
-#### Success Criteria ✅
-1. **Shared parsing infrastructure**: No duplicate parsing logic
-2. **Consistent API**: All parsers use same modern format
-3. **Complete coverage**: Token, Meteor, TokenBucket, MeteorShower all have parsers
-4. **Ergonomic macros**: Easy-to-use parse! family of macros
-5. **Full test coverage**: All parsing scenarios tested
-6. **Working CLI**: validate/parse commands work with new infrastructure
-
-**TOTAL ESTIMATED TIME**: 7-11 hours across 4 phases
-**PRIORITY**: ⚠️ **BLOCKED** - Critical architectural correction needed first
+**Blockers**: TICKET-001, TICKET-002
+**Dependencies**: TICKET-001, TICKET-002
+**Blocks**: TICKET-005
 
 ---
 
-## CRITICAL ARCHITECTURAL CORRECTION ⚠️ URGENT (2025-09-22)
+### TICKET-005: Create Meteor Multi-Token Tests
+**Priority**: P1 - HIGH
+**Type**: Test Development
+**Effort**: 2-3 hours
+**Assignee**: TBD
+**Status**: Open
 
-### DISCOVERY: Fundamental Architecture Inversion
-**Issue**: During parser audit, discovered that our Token/Meteor/MeteorShower hierarchy is **architecturally inverted**.
-**Impact**: CRITICAL - affects all documentation, code, API design, and development work
-**Reference**: See `docs/ref/TOKEN_CONCEPT_AMENDMENT.md` for complete analysis
+**Description**: Test Meteor type with multi-token implementation (Vec<(Namespace, Token)>)
 
-#### Current Wrong Implementation ❌
-```
-TokenBucket (primary storage)
-└── Token[] (key-value pairs)
+**Acceptance Criteria**:
+- [ ] Meteor creation with multiple tokens in same context
+- [ ] Context:namespace:key=value parsing tests
+- [ ] Default "app" context handling tests
+- [ ] Meteor display format tests
+- [ ] Namespace organization within Meteor
 
-MeteorShower (simple collection)
-└── Meteor[] (single addressing units)
-```
+**Test Scenarios**:
+- [ ] Single context, multiple namespaces
+- [ ] Multiple tokens per namespace
+- [ ] Default context inference
+- [ ] Full address parsing
+- [ ] Error cases (invalid formats)
 
-#### Correct Architecture ✅
-```
-MeteorShower (primary storage with cross-context indexing)
-├── Meteor("app" context with multiple tokens)
-│   ├── (ui.widgets.buttons namespace) → Token[], Token[], Token[]
-│   └── (config.theme namespace) → Token[], Token[]
-├── Meteor("user" context)
-│   └── (settings.lang namespace) → Token[]
-└── Meteor("system" context)
-    └── (env.network namespace) → Token[]
-```
+**Blockers**: TICKET-004
+**Dependencies**: TICKET-004
+**Blocks**: TICKET-003 (helps validate MeteorShower)
 
-### TASK-ARCH-005: Critical Architecture Correction ⚠️ BLOCKS ALL DEVELOPMENT
-**Timeline**: 6-10 hours across 5 phases
-**Status**: Must complete before ANY other development work
+---
 
-#### Phase 0: Documentation Safety Net ✅ COMPLETED
-- [x] Created `TOKEN_CONCEPT_AMENDMENT.md` with complete analysis
-- [x] Linked amendment in main `TOKEN_NAMESPACE_CONCEPT.md`
-- [x] Updated TASKS.txt to reflect correction phases
+### TICKET-006: Remove TokenBucket Type
+**Priority**: P2 - MEDIUM (After validation)
+**Type**: Architecture Change
+**Effort**: 1-2 hours
+**Assignee**: TBD
+**Status**: Blocked
 
-#### Phase 1: Storage Migration (2-3 hours)
-- [ ] **Create shower_data.rs**: Storage interchange module for MeteorShower
-  ```rust
-  // src/lib/types/meteor/shower_data.rs
-  pub struct StorageData {
-      pub contexts: HashMap<String, HashMap<String, HashMap<String, String>>>,
-  }
-  impl StorageData {
-      pub fn to_json(&self) -> String;
-      pub fn to_string(&self) -> String; // Flat token stream
-  }
+**Description**: Delete TokenBucket type after MeteorShower storage is proven complete
+
+**Acceptance Criteria**:
+- [ ] `src/lib/types/token/bucket.rs` deleted
+- [ ] All TokenBucket exports removed from module files
+- [ ] All TokenBucket imports removed from codebase
+- [ ] No compilation errors after removal
+- [ ] All functionality available through MeteorShower
+
+**Files to Update**:
+- [ ] Delete `src/lib/types/token/bucket.rs`
+- [ ] Update `src/lib/types/token/mod.rs`
+- [ ] Update `src/lib/types/mod.rs`
+- [ ] Update `src/lib/lib.rs`
+- [ ] Search and remove any remaining imports
+
+**CRITICAL DEPENDENCY**: TICKET-003 must be COMPLETED first
+**Blockers**: TICKET-003 (MeteorShower storage validation)
+**Dependencies**: TICKET-003
+**Blocks**: Clean architecture completion
+
+---
+
+## 🔧 INTEGRATION TICKETS
+
+### TICKET-007: RSB CLI Architecture Integration
+**Priority**: P2 - MEDIUM
+**Type**: Integration
+**Effort**: 2-3 hours
+**Assignee**: TBD
+**Status**: Open
+
+**Description**: Ensure RSB CLI uses MeteorShower (not TokenBucket) as primary API
+
+**Acceptance Criteria**:
+- [ ] CLI parsing returns MeteorShower instances
+- [ ] All CLI commands work with MeteorShower API
+- [ ] RSB CLI maintains all current functionality
+- [ ] No performance regressions
+- [ ] All 23 RSB tests continue passing
+
+**Technical Tasks**:
+- [ ] Update CLI parsing functions
+- [ ] Verify RSB integration still works
+- [ ] Test all CLI commands with new architecture
+- [ ] Update CLI help text if needed
+
+**Blockers**: TICKET-003, TICKET-006
+**Dependencies**: TICKET-003, TICKET-006
+**Blocks**: TICKET-008
+
+---
+
+### TICKET-008: Complete RSB CLI Phase 3
+**Priority**: P3 - LOW
+**Type**: Feature Completion
+**Effort**: 3-4 hours
+**Assignee**: TBD
+**Status**: Open
+
+**Description**: Edge case testing, advanced options, feature parity validation
+
+**Acceptance Criteria**:
+- [ ] Comprehensive error handling for invalid inputs
+- [ ] Advanced CLI options and validation
+- [ ] Edge case scenarios tested
+- [ ] Performance validation completed
+- [ ] Feature parity with original specification verified
+
+**Features**:
+- [ ] Advanced parsing options
+- [ ] Better error messages and user feedback
+- [ ] Input validation and sanitization
+- [ ] Performance optimization
+- [ ] Comprehensive CLI documentation
+
+**Blockers**: TICKET-007
+**Dependencies**: TICKET-007
+**Blocks**: None (final polish)
+
+---
+
+## ✅ COMPLETED WORK (Reference Only)
+
+### RSB CLI IMPLEMENTATION ✅ COMPLETED (2025-09-22)
+- ✅ Native RSB patterns working (bootstrap!, dispatch!, options!)
+- ✅ Built-in commands functional (help, inspect, stack)
+- ✅ Working CLI commands:
+  ```bash
+  ./target/debug/meteor help
+  ./target/debug/meteor inspect
+  ./target/debug/meteor parse "app:ui:button=click"
   ```
-- [ ] **Migrate TokenBucket storage to MeteorShower**:
-  - Move all HashMap storage logic from TokenBucket to MeteorShower
-  - Add interchange format methods (to_storage_format, from_storage_format)
-  - Keep MeteorShower's object-oriented meteor access methods
-  - Add simple key-value access methods for compatibility
+- ✅ 23 tests passing (11 RSB sanity + 12 types) - when compilation works
 
-#### Phase 2: TokenBucket Deletion (1-2 hours)
-- [ ] **Remove TokenBucket type entirely**:
-  - Delete `src/lib/types/token/bucket.rs`
-  - Remove from `src/lib/types/token/mod.rs`
-  - Remove from `src/lib/lib.rs` exports
-  - Update all imports throughout codebase
-- [ ] **Update CLI to use MeteorShower**:
-  - Change `meteor::parse()` to return `MeteorShower` not `TokenBucket`
-  - Update CLI validate/parse commands
-  - Update all CLI examples and help text
+### CORE ARCHITECTURE TYPES ✅ COMPLETED (2025-09-22)
+- ✅ Context with privilege levels and default "app"
+- ✅ Namespace with dot notation hierarchy
+- ✅ TokenKey with bracket notation and caching
+- ✅ Token with key-value pairs using TokenKey
+- ✅ Meteor with multi-token support (Vec<(Namespace, Token)>)
+- ✅ MeteorShower with cross-context indexing
+- ✅ StorageData for interchange format
 
-#### Phase 3: Namespace Configuration (1-2 hours)
-- [ ] **Add namespace depth configuration**:
-  ```rust
-  #[derive(Debug, Clone)]
-  pub struct NamespaceConfig {
-      pub max_depth: usize,  // Default: 4, configurable
-  }
+---
 
-  // Parser with config
-  MeteorShower::parse_with_config(input: &str, config: NamespaceConfig) -> Result<Self, Error>
-  ```
-- [ ] **Support deep namespaces**: Enable > 4 dot levels when configured
-  - `"ui.widgets.buttons.primary.state"` (depth 5) with config
-  - `"system.network.interfaces.eth0.ipv4.dhcp"` (depth 6) with config
+## 📊 TICKET SUMMARY
 
-#### Phase 4: Parser Correction (1-2 hours)
-- [ ] **Update ParseMode for corrected architecture**:
-  ```rust
-  #[derive(Debug, Clone, Default)]
-  pub enum ParseMode {
-      #[default]
-      BracketNotation,  // list[0] - human readable
-      Flat,            // list__i_0 - storage format
-  }
-  ```
-- [ ] **Correct parsing hierarchy**:
-  - `MeteorShower::parse()` → PRIMARY API (cross-context)
-  - `Meteor::parse()` → SECONDARY API (single context, multiple tokens)
-  - `Token::parse()` → BASIC API (pure key-value)
+**CRITICAL PATH** (Must complete in order):
+1. TICKET-001: Fix compilation → TICKET-002: Clean tests
+2. TICKET-003: Validate MeteorShower storage (parallel with TICKET-004, TICKET-005)
+3. TICKET-006: Remove TokenBucket (only after TICKET-003 complete)
+4. TICKET-007: RSB CLI integration → TICKET-008: CLI Phase 3
 
-#### Phase 5: Documentation Mass Update (2-3 hours)
-**DOC-NN Task Series** - Systematic documentation correction:
-- [ ] **DOC-01**: Update `README.md` - Replace all TokenBucket examples with MeteorShower
-- [ ] **DOC-02**: Update `TOKEN_NAMESPACE_CONCEPT.md` - Fix architecture sections
-- [ ] **DOC-03**: Update `RSB_CLI_FEATURES.md` - CLI examples use MeteorShower API
-- [ ] **DOC-04**: Update all code comments and examples throughout codebase
-- [ ] **DOC-05**: Update test documentation and examples
-- [ ] **DOC-06**: Remove amendment warning once corrections complete
+**ESTIMATED EFFORT**:
+- Critical Path: 2-3 hours (TICKET-001, TICKET-002)
+- Architecture Validation: 8-11 hours (TICKET-003, TICKET-004, TICKET-005)
+- Architecture Cleanup: 1-2 hours (TICKET-006)
+- Integration & Polish: 5-7 hours (TICKET-007, TICKET-008)
 
-### Success Criteria for Architecture Correction ✅
-1. **TokenBucket deleted** - No references remain in entire codebase
-2. **MeteorShower is primary storage** - Has all storage/indexing/interchange capabilities
-3. **Correct hierarchy** - MeteorShower → Meteor → Tokens (not TokenBucket → Tokens)
-4. **All docs corrected** - No TokenBucket examples remain anywhere
-5. **CLI works with MeteorShower** - All commands use correct primary API
-6. **Tests pass** - Updated for correct architecture expectations
-7. **Namespace config works** - Can handle deep dot addressing when configured
+**TOTAL**: 16-23 hours to completion
 
-### Dependencies and Blocking
-**BLOCKS**: All parser development work (TASK-PARSER-006 through TASK-PARSER-009)
-**BLOCKS**: All CLI enhancement work (TASK-CLI-004)
-**BLOCKS**: All feature development until architecture is correct
+**PARALLEL WORK OPPORTUNITIES**:
+- TICKET-004 and TICKET-005 can run parallel to TICKET-003
+- Test development helps validate architecture decisions
 
-**CRITICAL PRIORITY**: Must complete TASK-ARCH-005 before continuing any development work
+**IMMEDIATE PRIORITIES**:
+1. 🔴 TICKET-001: Fix compilation error (blocks everything)
+2. 🔴 TICKET-002: Clean broken tests (enables testing)
+3. 🟡 TICKET-003: Validate MeteorShower storage (critical for architecture)
+
+---
+
+**Last Updated**: 2025-09-22 (Moved from TICKETS.md, removed redundancy)
+**Next Update**: After TICKET-001 and TICKET-002 completion
+**Critical Path**: FOUNDATION → VALIDATION → CLEANUP → INTEGRATION → POLISH
