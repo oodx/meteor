@@ -1,26 +1,22 @@
-//! Parser module for Meteor token processing
+//! Parser Module - Validation and Delegation
 //!
-//! GUTTED: Removing outdated exports, will be replaced with modern shared parsing infrastructure.
+//! This module provides portable parsing logic that validates input
+//! and delegates state/data operations to MeteorEngine.
 //!
-//! Future structure:
-//! - token.rs: Shared token parsing logic
-//! - meteor.rs: Shared meteor parsing logic
-//! - validate.rs: Validation utilities
-//! - macros.rs: Parse and validation macros
-//! - bracket.rs: Bracket notation (already correct)
+//! Parser modules handle:
+//! - Input validation (format, syntax, escapes)
+//! - Control token recognition (ctl:delete=path, ctl:reset=cursor)
+//! - Delegation to MeteorEngine for state/data changes
+//!
+//! Parser modules DO NOT handle:
+//! - State management (that's MeteorEngine's job)
+//! - Storage operations (that's MeteorEngine's job)
+//! - Command history (that's MeteorEngine's job)
 
-pub mod bracket;
-// TODO: Add new modules:
-// pub mod token;
-// pub mod meteor;
-// pub mod validate;
-// pub mod macros;
+pub mod token_stream;
+pub mod meteor_stream;
+pub mod escape;
 
-// Keep existing bracket exports (these are correct)
-pub use bracket::{transform_key, reverse_transform_key};
-
-// TODO: Add new exports:
-// pub use token::parse_token;
-// pub use meteor::parse_meteor;
-// pub use validate::{validate_token, validate_meteor};
-// pub use macros::*;
+pub use token_stream::TokenStreamParser;
+pub use meteor_stream::MeteorStreamParser;
+pub use escape::{parse_escaped_value, validate_escapes};

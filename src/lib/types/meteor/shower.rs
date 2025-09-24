@@ -4,6 +4,10 @@ use super::meteor::Meteor;
 use crate::types::Context;
 use std::collections::HashMap;
 
+/// Delimiter used to separate meteors in a MeteorShower string format
+/// Uses `:;:` pattern which is unlikely to appear in normal token values
+pub const METEOR_DELIMITER: &str = ":;:";
+
 /// A collection of fully-qualified Meteor tokens
 ///
 /// MeteorShower stores complete Meteor tokens (context:namespace:key=value)
@@ -123,31 +127,55 @@ impl MeteorShower {
 
     /// Parse a meteor stream into a MeteorShower
     ///
-    /// Accepts semicolon-separated meteor tokens in full format:
-    /// "app:ui.widgets:button=submit; user:settings:theme=dark"
+    /// Accepts multiple meteors separated by METEOR_DELIMITER (`:;:`):
+    /// "app:ui:button=click; theme=dark :;: user:settings:profile=admin; role=moderator"
+    ///
+    /// Each meteor can contain multiple tokens separated by single semicolons.
+    /// Multiple consecutive semicolons (;;, ;;;) are syntax errors.
     pub fn parse(input: &str) -> Result<Self, String> {
+        let input = input.trim();
+
+        // Empty input is invalid
+        if input.is_empty() {
+            return Err("Empty input is not a valid meteor shower".to_string());
+        }
+
         let mut shower = MeteorShower::new();
 
-        for line in input.split(';') {
-            let line = line.trim();
-            if line.is_empty() {
+        // Split by meteor delimiter
+        for meteor_str in input.split(METEOR_DELIMITER) {
+            let meteor_str = meteor_str.trim();
+            if meteor_str.is_empty() {
                 continue;
             }
 
-            let meteor = Meteor::parse(line)?;
+            // Validate no consecutive semicolons (syntax error)
+            if meteor_str.contains(";;") {
+                return Err(format!(
+                    "Syntax error: consecutive semicolons found in meteor: '{}'",
+                    meteor_str
+                ));
+            }
+
+            let meteor = Meteor::parse(meteor_str)?;
             shower.add(meteor);
+        }
+
+        // Must have at least one meteor
+        if shower.is_empty() {
+            return Err("No valid meteors found in input".to_string());
         }
 
         Ok(shower)
     }
 
-    /// Convert shower to a formatted string
+    /// Convert shower to a formatted string using meteor delimiter
     pub fn to_string(&self) -> String {
         self.meteors
             .iter()
             .map(|m| m.to_string())
             .collect::<Vec<_>>()
-            .join("; ")
+            .join(&format!(" {} ", METEOR_DELIMITER))
     }
 }
 
@@ -202,7 +230,7 @@ mod tests {
 
     #[test]
     fn test_meteor_shower_parse() {
-        let shower = MeteorShower::parse("app:ui:button=click; user:settings:theme=dark").unwrap();
+        let shower = MeteorShower::parse("app:ui:button=click :;: user:settings:theme=dark").unwrap();
 
         assert_eq!(shower.len(), 2);
         assert_eq!(shower.contexts().len(), 2);

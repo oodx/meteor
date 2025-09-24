@@ -21,14 +21,14 @@ fn parse_command(args: Args) -> i32 {
     let format = get_var("opt_format");
     let format = if format.is_empty() { "text" } else { &format };
 
-    // Get remaining non-flag arguments
+    // Get remaining non-flag arguments and join them with spaces
     let remaining = args.remaining();
-    let input = remaining.get(0).unwrap_or(&String::new()).clone();
+    let input = remaining.join(" ");
 
     if input.is_empty() {
         eprintln!("Error: No input provided");
         eprintln!("Usage: meteor parse [--verbose] [--format=FORMAT] <token_string>");
-        eprintln!("Example: meteor parse \"app:ui:button=click\"");
+        eprintln!("Example: meteor parse app:ui:button=click");
         return 1;
     }
 
@@ -37,8 +37,8 @@ fn parse_command(args: Args) -> i32 {
         eprintln!("Output format: {}", format);
     }
 
-    // Parse the meteor token stream
-    match meteor::parse(&input) {
+    // Parse the meteor token stream using MeteorShower::parse
+    match meteor::MeteorShower::parse(&input) {
         Ok(shower) => {
             print_output(&shower, &input, verbose, format);
             0
@@ -55,14 +55,14 @@ fn validate_command(args: Args) -> i32 {
     // Get flags from global context (set by options!)
     let verbose = get_var("opt_verbose") == "true" || get_var("opt_v") == "true";
 
-    // Get remaining non-flag arguments
+    // Get remaining non-flag arguments and join them with spaces
     let remaining = args.remaining();
-    let input = remaining.get(0).unwrap_or(&String::new()).clone();
+    let input = remaining.join(" ");
 
     if input.is_empty() {
         eprintln!("Error: No input provided");
         eprintln!("Usage: meteor validate [--verbose] <token_string>");
-        eprintln!("Example: meteor validate \"app:ui:button=click\"");
+        eprintln!("Example: meteor validate app:ui:button=click");
         return 1;
     }
 
@@ -70,30 +70,33 @@ fn validate_command(args: Args) -> i32 {
         eprintln!("Validating input: {}", input);
     }
 
-    // Validate using parse
-    match meteor::parse(&input) {
-        Ok(_shower) => {
-            if verbose {
-                println!("✅ Valid meteor token format");
-                println!("Input: {}", input);
-                println!("Status: All tokens parsed successfully");
-            } else {
-                println!("✅ Valid meteor format");
-            }
-            0
+    // Validate using is_valid_meteor_shower helper
+    if meteor::is_valid_meteor_shower(&input) {
+        if verbose {
+            println!("✅ Valid meteor token format");
+            println!("Input: {}", input);
+            println!("Status: All tokens parsed successfully");
+        } else {
+            println!("✅ Valid meteor format");
         }
-        Err(e) => {
-            if verbose {
-                println!("❌ Invalid meteor token format");
-                println!("Input: {}", input);
-                println!("Error: {}", e);
-                println!();
-                show_validation_help();
-            } else {
-                println!("❌ Invalid meteor format: {}", e);
+        0
+    } else {
+        if verbose {
+            // Try to get detailed error by parsing
+            match meteor::MeteorShower::parse(&input) {
+                Ok(_) => unreachable!(), // Should not happen if is_valid returned false
+                Err(e) => {
+                    println!("❌ Invalid meteor token format");
+                    println!("Input: {}", input);
+                    println!("Error: {}", e);
+                    println!();
+                    show_validation_help();
+                }
             }
-            1
+        } else {
+            println!("❌ Invalid meteor format");
         }
+        1
     }
 }
 

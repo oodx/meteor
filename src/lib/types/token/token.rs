@@ -62,7 +62,15 @@ impl Token {
             return Err(format!("Invalid token format: {}", s));
         }
 
-        Ok(Token::new(parts[0], parts[1]))
+        let key = parts[0].trim();
+        let value = parts[1];
+
+        // Key cannot be empty
+        if key.is_empty() {
+            return Err(format!("Token key cannot be empty: {}", s));
+        }
+
+        Ok(Token::new(key, value))
     }
 }
 

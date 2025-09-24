@@ -17,7 +17,7 @@ pub trait BracketNotation {
 
 impl BracketNotation for str {
     fn to_bracket(&self) -> String {
-        crate::parser::bracket::reverse_transform_key(self)
+        super::bracket::reverse_transform_key(self)
             .unwrap_or_else(|| self.to_string())
     }
 

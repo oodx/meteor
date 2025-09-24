@@ -16,7 +16,7 @@ mod error;
 // Re-export all public types
 pub use context::Context;
 pub use namespace::Namespace;
-pub use key::{TokenKey, BracketNotation};
-pub use token::Token;
-pub use meteor::{Meteor, MeteorShower, StorageData};
+pub use key::{TokenKey, BracketNotation, transform_key, reverse_transform_key, has_brackets, extract_base_name};
+pub use token::{Token, TokenBucket};
+pub use meteor::{Meteor, MeteorShower, MeteorEngine, StorageData, ControlCommand, METEOR_DELIMITER};
 pub use error::MeteorError;

@@ -3,7 +3,9 @@
 mod meteor;
 mod shower;
 mod storage_data;
+mod engine;
 
 pub use meteor::Meteor;
-pub use shower::MeteorShower;
+pub use shower::{MeteorShower, METEOR_DELIMITER};
 pub use storage_data::StorageData;
+pub use engine::{MeteorEngine, ControlCommand};

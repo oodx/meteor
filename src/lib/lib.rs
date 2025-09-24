@@ -10,23 +10,26 @@
 //!
 //! Meteor organizes by ordinality and responsibility hierarchy:
 //! - `types/` - Primary data types (Context, Namespace, Key, Token, Meteor, MeteorShower)
-//! - `parser/` - Core parsing infrastructure (parse -> transform -> organize -> bracket)
+//! - `validation/` - Format validation utilities (is_valid_token, is_valid_meteor, etc.)
 //! - `utils/` - Essential helper functions (access utilities)
-//! - `sup/` - Internal complexity isolation (support functions)
 
 // Core type definitions
 pub mod types;
 
-// Parser module for token processing
-pub mod parser;
+// Validation utilities
+pub mod validation;
 
 // Public utilities following data flow ordinality
 pub mod utils;
 
+// Parser module for stream processing
+pub mod parser;
+
 // Re-export main public types and functions
-pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, StorageData, MeteorError, BracketNotation};
-// TODO: Re-enable when parser module is rebuilt
-// pub use parser::parse::parse_token_stream;
+pub use types::{Context, Namespace, TokenKey, Token, TokenBucket, Meteor, MeteorShower, MeteorEngine, StorageData, ControlCommand, MeteorError, BracketNotation};
+pub use validation::{is_valid_token, is_valid_meteor, is_valid_meteor_shower};
+pub use utils::{is_valid_token_format, is_valid_meteor_format, is_valid_meteor_shower_format};
+pub use parser::{TokenStreamParser, MeteorStreamParser, parse_escaped_value, validate_escapes};
 
 // Module trait for RSB-compliant module organization
 pub trait Module {
@@ -48,31 +51,6 @@ impl Module for MeteorModule {
     }
 }
 
-/// Parse a token stream into a MeteorShower
-///
-/// This is the main entry point for Meteor. Takes a string containing
-/// token data and returns a structured MeteorShower with context isolation.
-///
-/// # Format
-///
-/// Token streams follow the format:
-/// - Basic: `key=value`
-/// - Namespaced: `namespace:key=value`
-/// - Context-aware: `ctx=app; ui:button=click`
-/// - Bracket notation: `list[0]=item` -> `list__i_0=item`
-///
-/// # Examples
-///
-/// ```ignore
-/// let tokens = meteor::parse("key=value; ui:button=click");
-/// let bucket = tokens.unwrap();
-/// assert_eq!(bucket.get("", "key"), Some("value"));
-/// assert_eq!(bucket.get("ui", "button"), Some("click"));
-/// ```
-pub fn parse(input: &str) -> Result<MeteorShower, MeteorError> {
-    // TODO: Implement using new MeteorShower::parse() when available
-    Err(MeteorError::parse(0, "Parser module being rebuilt"))
-}
 
 /// Parse a meteor stream into a MeteorShower
 ///
