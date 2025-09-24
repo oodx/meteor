@@ -12,7 +12,6 @@
 //! - Dot-notation path operations
 
 use crate::types::{Context, Namespace, StorageData};
-use crate::types::namespace::parse_dot_path;
 
 /// Command execution record for audit trail
 #[derive(Debug, Clone)]
@@ -139,16 +138,16 @@ impl MeteorEngine {
     // Dot-notation Path Operations
     // ================================
 
-    /// Set value at dot-notation path
+    /// Set value at meteor path (explicit addressing)
     pub fn set(&mut self, path: &str, value: &str) -> Result<(), String> {
-        let (context, namespace, key) = parse_dot_path(path)?;
+        let (context, namespace, key) = parse_meteor_path(path)?;
         self.storage.set(&context, &namespace, &key, value);
         Ok(())
     }
 
-    /// Get value at dot-notation path
+    /// Get value at meteor path (explicit addressing)
     pub fn get(&self, path: &str) -> Option<&str> {
-        let (context, namespace, key) = parse_dot_path(path).ok()?;
+        let (context, namespace, key) = parse_meteor_path(path).ok()?;
         self.storage.get(&context, &namespace, &key)
     }
 
@@ -157,10 +156,10 @@ impl MeteorEngine {
         self.get(path).is_some()
     }
 
-    /// Delete item at dot-notation path
+    /// Delete item at meteor path (explicit addressing)
     /// Note: Command history is managed by execute_control_command, not here
     pub fn delete(&mut self, path: &str) -> Result<bool, String> {
-        match parse_dot_path(path) {
+        match parse_meteor_path(path) {
             Ok((context, namespace, key)) => {
                 let result = if key.is_empty() {
                     if namespace.is_empty() {
@@ -321,8 +320,43 @@ impl Default for MeteorEngine {
 }
 
 // ================================
-// Path Parsing Utilities
+// Meteor Path Parsing Utilities
 // ================================
+
+/// Parse meteor path into (context, namespace, key)
+///
+/// Handles colon-delimited meteor format: CONTEXT:NAMESPACE:KEY
+/// - "app:ui.widgets:button" → ("app", "ui.widgets", "button")
+/// - "user:settings:theme" → ("user", "settings", "theme")
+/// - "app::button" → ("app", "", "button") (empty namespace)
+/// - "app:ui.forms.inputs:field" → ("app", "ui.forms.inputs", "field")
+///
+/// Namespaces can contain dots for hierarchy, but colons separate the three main parts.
+fn parse_meteor_path(path: &str) -> Result<(String, String, String), String> {
+    if path.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+
+    let parts: Vec<&str> = path.split(':').collect();
+
+    match parts.len() {
+        1 => {
+            // Just key: "button" - assume app context, root namespace
+            Ok(("app".to_string(), "".to_string(), parts[0].to_string()))
+        }
+        2 => {
+            // Context and key: "app:button" - assume root namespace
+            Ok((parts[0].to_string(), "".to_string(), parts[1].to_string()))
+        }
+        3 => {
+            // Full meteor format: "app:ui.widgets:button"
+            Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
+        }
+        _ => {
+            Err(format!("Invalid meteor path format: '{}' - expected CONTEXT:NAMESPACE:KEY", path))
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -360,11 +394,11 @@ mod tests {
 
         // Store token using cursor
         engine.store_token("button", "click");
-        assert_eq!(engine.get("app.main.button"), Some("click"));
+        assert_eq!(engine.get("app:main:button"), Some("click"));
 
         // Store with explicit addressing
         engine.store_token_at("user", "settings", "theme", "dark");
-        assert_eq!(engine.get("user.settings.theme"), Some("dark"));
+        assert_eq!(engine.get("user:settings:theme"), Some("dark"));
     }
 
 
@@ -403,10 +437,10 @@ mod tests {
         engine.store_token("name", "John");
 
         // Verify data stored correctly
-        assert_eq!(engine.get("app.main.host"), Some("localhost"));
-        assert_eq!(engine.get("app.db.user"), Some("admin"));
-        assert_eq!(engine.get("app.db.password"), Some("secret"));
-        assert_eq!(engine.get("user.db.name"), Some("John"));
+        assert_eq!(engine.get("app:main:host"), Some("localhost"));
+        assert_eq!(engine.get("app:db:user"), Some("admin"));
+        assert_eq!(engine.get("app:db:password"), Some("secret"));
+        assert_eq!(engine.get("user:db:name"), Some("John"));
     }
 
     #[test]
@@ -414,12 +448,12 @@ mod tests {
         let mut engine = MeteorEngine::new();
 
         // Store test data
-        engine.set("app.ui.button", "click").unwrap();
-        engine.set("app.ui.theme", "dark").unwrap();
-        engine.set("user.profile.name", "Alice").unwrap();
+        engine.set("app:ui:button", "click").unwrap();
+        engine.set("app:ui:theme", "dark").unwrap();
+        engine.set("user:profile:name", "Alice").unwrap();
 
         // Execute various control commands
-        let _ = engine.execute_control_command("delete", "app.ui.button"); // May succeed or fail due to StorageData limitations
+        let _ = engine.execute_control_command("delete", "app:ui:button"); // May succeed or fail due to StorageData limitations
         engine.execute_control_command("reset", "cursor").unwrap();
         engine.execute_control_command("invalid", "command").unwrap_err();
 
@@ -429,7 +463,7 @@ mod tests {
 
         // First command: delete button (should succeed)
         assert_eq!(history[0].command_type, "delete");
-        assert_eq!(history[0].target, "app.ui.button");
+        assert_eq!(history[0].target, "app:ui:button");
         // Note: delete might not actually work due to StorageData limitations
 
         // Second command: reset cursor (should succeed)
@@ -459,8 +493,8 @@ mod tests {
         engine.store_token_at("app", "ui", "button", "click");
 
         // Verify both stored correctly
-        assert_eq!(engine.get("user.settings.theme"), Some("dark"));
-        assert_eq!(engine.get("app.ui.button"), Some("click"));
+        assert_eq!(engine.get("user:settings:theme"), Some("dark"));
+        assert_eq!(engine.get("app:ui:button"), Some("click"));
 
         // Cursor should be unchanged
         assert_eq!(engine.current_context.name(), "user");
@@ -472,17 +506,17 @@ mod tests {
         let mut engine = MeteorEngine::new();
 
         // Test various path formats
-        engine.set("app.ui.forms.login.username", "alice").unwrap();
-        engine.set("system.logs.error.network.timeout", "30s").unwrap();
+        engine.set("app:ui.forms.login:username", "alice").unwrap();
+        engine.set("system:logs.error.network:timeout", "30s").unwrap();
 
         // Verify complex paths work
-        assert_eq!(engine.get("app.ui.forms.login.username"), Some("alice"));
-        assert_eq!(engine.get("system.logs.error.network.timeout"), Some("30s"));
+        assert_eq!(engine.get("app:ui.forms.login:username"), Some("alice"));
+        assert_eq!(engine.get("system:logs.error.network:timeout"), Some("30s"));
 
         // Test existence checks
-        assert!(engine.exists("app.ui.forms.login.username"));
-        assert!(engine.exists("system.logs.error.network.timeout"));
-        assert!(!engine.exists("nonexistent.path"));
+        assert!(engine.exists("app:ui.forms.login:username"));
+        assert!(engine.exists("system:logs.error.network:timeout"));
+        assert!(!engine.exists("nonexistent:path"));
     }
 
     #[test]
@@ -517,7 +551,7 @@ mod tests {
         engine.switch_context(Context::user());
         engine.switch_namespace(Namespace::from_string("profile"));
         engine.store_token("name", "Bob");
-        engine.set("app.ui.theme", "light").unwrap();
+        engine.set("app:ui:theme", "light").unwrap();
 
         // Test cursor reset
         engine.reset_cursor();
@@ -525,13 +559,13 @@ mod tests {
         assert_eq!(engine.current_namespace.to_string(), "main");
 
         // Data should still exist
-        assert_eq!(engine.get("user.profile.name"), Some("Bob"));
-        assert_eq!(engine.get("app.ui.theme"), Some("light"));
+        assert_eq!(engine.get("user:profile:name"), Some("Bob"));
+        assert_eq!(engine.get("app:ui:theme"), Some("light"));
 
         // Test storage reset
         engine.clear_storage();
-        assert!(engine.get("user.profile.name").is_none());
-        assert!(engine.get("app.ui.theme").is_none());
+        assert!(engine.get("user:profile:name").is_none());
+        assert!(engine.get("app:ui:theme").is_none());
 
         // Test reset all
         engine.switch_context(Context::system());
@@ -540,6 +574,6 @@ mod tests {
 
         assert_eq!(engine.current_context.name(), "app");
         assert_eq!(engine.current_namespace.to_string(), "main");
-        assert!(engine.get("system.main.test").is_none());
+        assert!(engine.get("system:main:test").is_none());
     }
 }
