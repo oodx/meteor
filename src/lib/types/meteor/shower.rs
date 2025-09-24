@@ -161,7 +161,7 @@ impl MeteorShower {
                 ));
             }
 
-            let meteor = Meteor::parse(meteor_str)?;
+            let meteor = Meteor::first(meteor_str)?;
             shower.add(meteor);
         }
 

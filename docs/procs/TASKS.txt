@@ -215,13 +215,37 @@
 - ✅ Clear distinction between meteor addressing vs namespace organization
 - ✅ Visual UAT demonstrates real-world usage patterns
 
-### TICKET-012: CLI Stateful Processing - P1 HIGH
+### TICKET-012: CLI Parser Regression Fix - P0 CRITICAL
+**Priority**: P0 - BLOCKING CRITICAL REGRESSION
+**Type**: Bugfix - Critical
+**Effort**: 2-3 hours
+**Status**: 🚨 **CRITICAL** - MeteorStreamParser completely broken
+
+**Description**: Fix critical regression in MeteorStreamParser causing meteor format parsing to fail
+
+**❌ Critical Issues**:
+- MeteorStreamParser not parsing `CONTEXT:NAMESPACE:KEY=value` format
+- Explicit meteors treated as tokens (wrong architecture)
+- `global:main.help:button[]=click` parsed incorrectly:
+  - Expected: Context=`global`, Namespace=`main.help`, Key=`button[]`
+  - Actual: Context=`app`, Key=`global:main.help:button__i_APPEND` (wrong!)
+- CLI parse command completely broken for meteor format
+- All meteor documentation examples failing
+
+**Root Cause**: Recent changes mixed token parsing logic into meteor parsing
+- Using `Token::from_str()` instead of `Meteor::from_str()`
+- Using `engine.store_token()` (cursor) instead of explicit addressing
+- Lost distinction between meteor format and token format
+
+**Required Fix**: Restore explicit meteor parsing in `process_single_meteor()`
+
+### TICKET-013: CLI Stateful Processing - P1 HIGH
 **Priority**: P1 - USER EXPERIENCE
 **Type**: CLI Enhancement
 **Effort**: 3-4 hours
-**Status**: 🔄 **READY TO START** (MeteorEngine + Parser Module Complete)
+**Status**: 🔄 **BLOCKED** (Waiting for TICKET-012 parser fix)
 
-**Description**: Update CLI for stateful stream processing
+**Description**: Update CLI for stateful stream processing (after parser regression fixed)
 
 **New CLI Commands**:
 - `meteor process-stream` → continuous processing mode
@@ -230,7 +254,7 @@
 - `meteor reset` → reset cursor or clear data
 - `meteor set <path> <value>` → direct data manipulation
 
-### TICKET-013: Escape Sequence Support - P2 MEDIUM
+### TICKET-014: Escape Sequence Support - P2 MEDIUM
 **Priority**: P2 - ROBUSTNESS
 **Type**: Feature Addition
 **Effort**: 2-3 hours
@@ -269,20 +293,20 @@
 
 ### 🚀 NEXT OPTIONS
 
-**Option A: CLI Stateful Processing (TICKET-012)**
-- Add stateful processing commands to CLI
-- `meteor process-stream`, `meteor query`, `meteor history` commands
-- Estimated effort: 3-4 hours - user experience enhancement
+**Option A: Fix Critical Regression (TICKET-012)**
+- Fix broken MeteorStreamParser for explicit meteor format
+- Restore `CONTEXT:NAMESPACE:KEY=value` parsing functionality
+- Estimated effort: 2-3 hours - CRITICAL BLOCKING ISSUE
 
 **Option B: Production Ready**
-- Current architecture is complete and production-ready
-- All core functionality implemented with comprehensive tests
-- Ready for real-world usage
+- ❌ **BLOCKED** - CLI parser regression prevents production use
+- Core architecture complete but CLI broken for meteor format
+- Cannot deploy until TICKET-012 is fixed
 
 **Option C: Advanced Features**
-- Escape sequence support (TICKET-013) - already implemented in parser
-- Additional CLI enhancements
-- Performance optimizations
+- ❌ **BLOCKED** - Must fix parser regression first
+- Cannot add features while core parsing is broken
+- All enhancements depend on working CLI
 
 ---
 
@@ -310,7 +334,7 @@
 ---
 
 **STATEFUL ENGINE + PARSER IMPLEMENTATION: COMPLETE** ✅🎯
-**METEOR PATH PARSING: CRITICAL FIX APPLIED** ✅🎯
-**READY FOR**: CLI Enhancement or Production Deployment
-**QUALITY**: Production-ready implementation with 173 comprehensive tests + visual UAT
-**IMPACT**: Complete stateful data manipulation engine with correct colon-delimited format
+**METEOR PATH PARSING: CRITICAL REGRESSION INTRODUCED** ❌🚨
+**BLOCKED FOR**: CLI Parser Regression Fix (TICKET-012)
+**QUALITY**: 173 tests passing but CLI completely broken for meteor format
+**IMPACT**: Critical regression prevents production deployment - immediate fix required

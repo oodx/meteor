@@ -123,7 +123,7 @@ impl fmt::Display for Namespace {
 
 impl Default for Namespace {
     fn default() -> Self {
-        Namespace::root()
+        Namespace::from_string("main")
     }
 }
 
@@ -179,9 +179,9 @@ mod tests {
         assert!(!deep.should_warn()); // 4 levels are clear now
         assert!(!deep.is_too_deep());
 
-        let warning_deep = Namespace::from_string("ui.widgets.buttons.primary.active");
-        assert_eq!(warning_deep.depth(), 5);
-        assert!(warning_deep.should_warn()); // 5 levels warn
+        let warning_deep = Namespace::from_string("ui.widgets.buttons.primary.active.hover");
+        assert_eq!(warning_deep.depth(), 6);
+        assert!(warning_deep.should_warn()); // 6 levels warn
         assert!(!warning_deep.is_too_deep());
     }
 
@@ -220,8 +220,8 @@ mod tests {
         assert!(Namespace::try_from_string("ui.ctl").is_err());
         assert!(Namespace::try_from_string("root").is_err());
 
-        // Too deep (6+ levels now error)
-        assert!(Namespace::try_from_string("a.b.c.d.e.f").is_err()); // 6 levels = error
+        // Too deep (8+ levels now error in enterprise)
+        assert!(Namespace::try_from_string("a.b.c.d.e.f.g.h").is_err()); // 8 levels = error
 
         // Too long part
         let long_part = "a".repeat(MAX_NAMESPACE_PART_LENGTH + 1);
@@ -230,20 +230,20 @@ mod tests {
 
     #[test]
     fn test_depth_thresholds() {
-        // 4 levels = no warning (clear)
-        let clear_ns = Namespace::try_from_string("a.b.c.d").unwrap();
-        assert_eq!(clear_ns.depth(), 4);
+        // 5 levels = no warning (clear) in enterprise
+        let clear_ns = Namespace::try_from_string("a.b.c.d.e").unwrap();
+        assert_eq!(clear_ns.depth(), 5);
         assert!(!clear_ns.should_warn());
         assert!(!clear_ns.is_too_deep());
 
-        // 5 levels = warning but allowed
-        let warning_ns = Namespace::try_from_string("a.b.c.d.e").unwrap();
-        assert_eq!(warning_ns.depth(), 5);
+        // 6 levels = warning but allowed in enterprise
+        let warning_ns = Namespace::try_from_string("a.b.c.d.e.f").unwrap();
+        assert_eq!(warning_ns.depth(), 6);
         assert!(warning_ns.should_warn());
         assert!(!warning_ns.is_too_deep());
 
-        // 6+ levels = error, should be rejected
-        assert!(Namespace::try_from_string("a.b.c.d.e.f").is_err());
+        // 8+ levels = error, should be rejected in enterprise
+        assert!(Namespace::try_from_string("a.b.c.d.e.f.g.h").is_err());
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! Token type - individual key identifiers with value
 
-use crate::types::TokenKey;
+use crate::types::{TokenKey, Namespace};
 use std::fmt;
 use std::str::FromStr;
 
@@ -12,6 +12,7 @@ use std::str::FromStr;
 /// - `list[]=new` → key: `list[]`, flat: `list__i_APPEND`, value: `new`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Token {
+    namespace: Option<Namespace>,
     key: TokenKey,
     value: String,
 }
@@ -20,6 +21,16 @@ impl Token {
     /// Create a new token with key and value
     pub fn new(key: impl Into<String>, value: impl Into<String>) -> Self {
         Token {
+            namespace: None,
+            key: TokenKey::new(key.into()),
+            value: value.into(),
+        }
+    }
+
+    /// Create a new token with namespace, key and value
+    pub fn new_with_namespace(namespace: Namespace, key: impl Into<String>, value: impl Into<String>) -> Self {
+        Token {
+            namespace: Some(namespace),
             key: TokenKey::new(key.into()),
             value: value.into(),
         }
@@ -45,6 +56,11 @@ impl Token {
         self.key.transformed()
     }
 
+    /// Get the namespace (if any)
+    pub fn namespace(&self) -> Option<&Namespace> {
+        self.namespace.as_ref()
+    }
+
     /// Get the value
     pub fn value(&self) -> &str {
         &self.value
@@ -55,28 +71,72 @@ impl Token {
         self.key.has_brackets()
     }
 
-    /// Parse a token from "key=value" format
-    pub fn parse(s: &str) -> Result<Self, String> {
+    /// Parse all tokens from semicolon-separated string: "key1=val1; key2=val2; namespace:key3=val3"
+    pub fn parse(s: &str) -> Result<Vec<Self>, String> {
+        let token_parts = s.split(';').map(|s| s.trim()).filter(|s| !s.is_empty());
+        let mut tokens = Vec::new();
+
+        for token_str in token_parts {
+            let token = Self::parse_single(token_str)?;
+            tokens.push(token);
+        }
+
+        if tokens.is_empty() {
+            return Err("No valid tokens found".to_string());
+        }
+
+        Ok(tokens)
+    }
+
+    /// Parse the first token from a string (convenience method)
+    pub fn first(s: &str) -> Result<Self, String> {
+        let tokens = Self::parse(s)?;
+        Ok(tokens.into_iter().next().unwrap()) // Safe because parse() ensures non-empty vec
+    }
+
+    /// Parse a single token from "key=value" or "namespace:key=value" format
+    fn parse_single(s: &str) -> Result<Self, String> {
         let parts: Vec<&str> = s.splitn(2, '=').collect();
         if parts.len() != 2 {
             return Err(format!("Invalid token format: {}", s));
         }
 
-        let key = parts[0].trim();
+        let key_part = parts[0].trim();
         let value = parts[1];
 
-        // Key cannot be empty
-        if key.is_empty() {
-            return Err(format!("Token key cannot be empty: {}", s));
-        }
+        // Check if key_part contains namespace prefix
+        if key_part.contains(':') {
+            let key_parts: Vec<&str> = key_part.splitn(2, ':').collect();
+            if key_parts.len() == 2 {
+                let namespace = Namespace::from_string(key_parts[0]);
+                let key = key_parts[1];
 
-        Ok(Token::new(key, value))
+                // Key cannot be empty
+                if key.is_empty() {
+                    return Err(format!("Token key cannot be empty: {}", s));
+                }
+
+                Ok(Token::new_with_namespace(namespace, key, value))
+            } else {
+                return Err(format!("Invalid namespaced token format: {}", s));
+            }
+        } else {
+            // Key cannot be empty
+            if key_part.is_empty() {
+                return Err(format!("Token key cannot be empty: {}", s));
+            }
+
+            Ok(Token::new(key_part, value))
+        }
     }
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}={}", self.transformed_key(), self.value)
+        match &self.namespace {
+            Some(namespace) => write!(f, "{}:{}={}", namespace.to_string(), self.transformed_key(), self.value),
+            None => write!(f, "{}={}", self.transformed_key(), self.value),
+        }
     }
 }
 
@@ -84,7 +144,7 @@ impl FromStr for Token {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Token::parse(s)
+        Token::first(s)
     }
 }
 
@@ -102,11 +162,32 @@ mod tests {
 
     #[test]
     fn test_token_parse() {
-        let token = Token::parse("theme=dark").unwrap();
+        let tokens = Token::parse("theme=dark").unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].key_notation(), "theme");
+        assert_eq!(tokens[0].value(), "dark");
+
+        // Test multiple tokens
+        let tokens = Token::parse("theme=dark; lang=en").unwrap();
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0].key_notation(), "theme");
+        assert_eq!(tokens[1].key_notation(), "lang");
+
+        assert!(Token::parse("invalid").is_err());
+    }
+
+    #[test]
+    fn test_token_first() {
+        let token = Token::first("theme=dark").unwrap();
         assert_eq!(token.key_notation(), "theme");
         assert_eq!(token.value(), "dark");
 
-        assert!(Token::parse("invalid").is_err());
+        // Test first from multiple tokens
+        let token = Token::first("theme=dark; lang=en").unwrap();
+        assert_eq!(token.key_notation(), "theme");
+        assert_eq!(token.value(), "dark");
+
+        assert!(Token::first("invalid").is_err());
     }
 
     #[test]

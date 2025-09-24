@@ -28,11 +28,29 @@ impl MeteorStreamParser {
     /// MeteorStreamParser::process(&mut engine, "app:ui:button=click :;: user:main:profile=admin")?;
     /// ```
     pub fn process(engine: &mut MeteorEngine, input: &str) -> Result<(), String> {
-        // Split by meteor delimiter
+        // Split by meteor delimiter (:;:) to get individual meteors
         let meteors = input.split(METEOR_DELIMITER);
 
         for meteor_str in meteors {
             let trimmed = meteor_str.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            // Process this meteor (which may contain multiple tokens separated by semicolons)
+            Self::process_single_meteor(engine, trimmed)?;
+        }
+
+        Ok(())
+    }
+
+    /// Process a single meteor that may contain multiple semicolon-separated tokens
+    fn process_single_meteor(engine: &mut MeteorEngine, meteor_str: &str) -> Result<(), String> {
+        // Split by semicolon to get individual tokens within this meteor
+        let token_parts = Self::smart_split_by_char(meteor_str, ';');
+
+        for token_str in token_parts {
+            let trimmed = token_str.trim();
             if trimmed.is_empty() {
                 continue;
             }
@@ -43,22 +61,35 @@ impl MeteorStreamParser {
                 continue;
             }
 
-            // Validate meteor format
-            if !is_valid_meteor_format(trimmed) {
-                return Err(format!("Invalid meteor format: {}", trimmed));
+            // Check if it's a namespace control token
+            if trimmed.starts_with("ns=") {
+                let namespace_name = &trimmed[3..];
+                let namespace = crate::types::Namespace::from_string(namespace_name);
+                engine.switch_namespace(namespace);
+                continue;
             }
 
-            // Parse the meteor
-            let meteor = Meteor::from_str(trimmed)
+            // Check if it's a context control token
+            if trimmed.starts_with("ctx=") {
+                let context_name = &trimmed[4..];
+                let context = crate::types::Context::from_str(context_name)
+                    .map_err(|e| format!("Invalid context '{}': {}", context_name, e))?;
+                engine.switch_context(context);
+                continue;
+            }
+
+            // Parse as a complete meteor with explicit addressing
+            let meteor = crate::types::Meteor::first(trimmed)
                 .map_err(|e| format!("Failed to parse meteor '{}': {}", trimmed, e))?;
 
-            // Store using explicit addressing
-            let path = format!("{}.{}.{}",
-                meteor.context().to_string(),
-                meteor.namespace().to_string(),
-                meteor.token().key().transformed()
-            );
-            engine.set(&path, meteor.token().value())?;
+            // Store all tokens from the meteor using explicit addressing
+            for token in meteor.tokens() {
+                let full_path = format!("{}:{}:{}",
+                    meteor.context().name(),
+                    meteor.namespace().to_string(),
+                    token.key().transformed());
+                engine.set(&full_path, token.value())?;
+            }
         }
 
         Ok(())
@@ -162,6 +193,48 @@ impl MeteorStreamParser {
 
         result
     }
+
+    /// Split a string by a single character delimiter, respecting quotes
+    fn smart_split_by_char(input: &str, delimiter: char) -> Vec<String> {
+        let mut result = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut escape_next = false;
+
+        for ch in input.chars() {
+            if escape_next {
+                current.push(ch);
+                escape_next = false;
+                continue;
+            }
+
+            match ch {
+                '\\' if in_quotes => {
+                    escape_next = true;
+                    current.push(ch);
+                }
+                '"' => {
+                    in_quotes = !in_quotes;
+                    current.push(ch);
+                }
+                ch if ch == delimiter && !in_quotes => {
+                    if !current.trim().is_empty() {
+                        result.push(current.trim().to_string());
+                    }
+                    current.clear();
+                }
+                _ => {
+                    current.push(ch);
+                }
+            }
+        }
+
+        if !current.trim().is_empty() {
+            result.push(current.trim().to_string());
+        }
+
+        result
+    }
 }
 
 #[cfg(test)]
@@ -176,8 +249,8 @@ mod tests {
         MeteorStreamParser::process(&mut engine, "app:ui:button=click :;: user:main:profile=admin").unwrap();
 
         // Check values were stored
-        assert_eq!(engine.get("app.ui.button"), Some("click"));
-        assert_eq!(engine.get("user.main.profile"), Some("admin"));
+        assert_eq!(engine.get("app:ui:button"), Some("click"));
+        assert_eq!(engine.get("user:main:profile"), Some("admin"));
 
         // Cursor state should not change
         assert_eq!(engine.current_context.to_string(), "app");
@@ -189,7 +262,7 @@ mod tests {
         let mut engine = MeteorEngine::new();
 
         // Add data then use control command
-        engine.set("app.ui.button", "click").unwrap();
+        engine.set("app:ui:button", "click").unwrap();
         MeteorStreamParser::process(&mut engine, "ctl:reset=cursor :;: app:ui:theme=dark").unwrap();
 
         // Check command was executed
@@ -197,7 +270,7 @@ mod tests {
         assert!(history.iter().any(|cmd| cmd.command_type == "reset" && cmd.target == "cursor"));
 
         // Check data was stored
-        assert_eq!(engine.get("app.ui.theme"), Some("dark"));
+        assert_eq!(engine.get("app:ui:theme"), Some("dark"));
     }
 
     #[test]

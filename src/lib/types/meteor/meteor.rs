@@ -15,7 +15,7 @@ use std::str::FromStr;
 pub struct Meteor {
     context: Context,
     namespace: Namespace,
-    token: Token,
+    tokens: Vec<Token>,
 }
 
 impl Meteor {
@@ -24,7 +24,16 @@ impl Meteor {
         Meteor {
             context,
             namespace,
-            token,
+            tokens: vec![token],
+        }
+    }
+
+    /// Create a new Meteor with multiple tokens
+    pub fn new_with_tokens(context: Context, namespace: Namespace, tokens: Vec<Token>) -> Self {
+        Meteor {
+            context,
+            namespace,
+            tokens,
         }
     }
 
@@ -33,7 +42,7 @@ impl Meteor {
         Meteor {
             context: Context::default(),
             namespace,
-            token,
+            tokens: vec![token],
         }
     }
 
@@ -47,45 +56,63 @@ impl Meteor {
         &self.namespace
     }
 
-    /// Get the token
+    /// Get the first token (for backward compatibility)
     pub fn token(&self) -> &Token {
-        &self.token
+        &self.tokens[0]
     }
 
-    /// Parse from full format: "context:namespace:key=value"
-    pub fn parse(s: &str) -> Result<Self, String> {
+    /// Get all tokens
+    pub fn tokens(&self) -> &[Token] {
+        &self.tokens
+    }
+
+    /// Parse from full format: "context:namespace:key=value;key2=value2"
+    /// Returns Vec<Meteor> to support multiple meteor specifications
+    pub fn parse(s: &str) -> Result<Vec<Self>, String> {
+        let meteor = Self::parse_single(s)?;
+        Ok(vec![meteor])
+    }
+
+    /// Parse the first meteor from a string (convenience method)
+    pub fn first(s: &str) -> Result<Self, String> {
+        let meteors = Self::parse(s)?;
+        Ok(meteors.into_iter().next().unwrap()) // Safe because parse() ensures non-empty vec
+    }
+
+    /// Parse a single meteor from a string (internal method)
+    fn parse_single(s: &str) -> Result<Self, String> {
         // Count colons to determine format
         let colon_count = s.chars().filter(|&c| c == ':').count();
 
         match colon_count {
             0 => {
-                // No context or namespace, just key=value
-                let token = Token::parse(s)?;
-                Ok(Meteor::new(Context::default(), Namespace::default(), token))
+                // No context or namespace, just token(s) - use default namespace
+                let tokens = Self::parse_tokens(s)?;
+                Ok(Meteor::new_with_tokens(Context::default(), Namespace::default(), tokens))
             }
             1 => {
-                // Either context:key=value or namespace:key=value
+                // Format: namespace:token(s)
                 let parts: Vec<&str> = s.splitn(2, ':').collect();
 
                 // Check if second part contains '='
                 if parts[1].contains('=') {
                     // Assume first part is namespace (no context specified)
                     let namespace = Namespace::from_string(parts[0]);
-                    let token = Token::parse(parts[1])?;
-                    Ok(Meteor::new(Context::default(), namespace, token))
+                    let tokens = Self::parse_tokens(parts[1])?;
+                    Ok(Meteor::new_with_tokens(Context::default(), namespace, tokens))
                 } else {
                     return Err(format!("Invalid meteor format: {}", s));
                 }
             }
             2 => {
-                // Full format: context:namespace:key=value
+                // Full format: context:namespace:token(s)
                 let parts: Vec<&str> = s.splitn(3, ':').collect();
 
                 let context = Context::from_str(parts[0])?;
                 let namespace = Namespace::from_string(parts[1]);
-                let token = Token::parse(parts[2])?;
+                let tokens = Self::parse_tokens(parts[2])?;
 
-                Ok(Meteor::new(context, namespace, token))
+                Ok(Meteor::new_with_tokens(context, namespace, tokens))
             }
             _ => {
                 Err(format!("Too many colons in meteor format: {}", s))
@@ -93,15 +120,36 @@ impl Meteor {
         }
     }
 
+    /// Parse semicolon-separated tokens
+    fn parse_tokens(tokens_str: &str) -> Result<Vec<Token>, String> {
+        let token_parts = tokens_str.split(';').map(|s| s.trim()).filter(|s| !s.is_empty());
+        let mut tokens = Vec::new();
+
+        for token_str in token_parts {
+            let token = Token::first(token_str)?;
+            tokens.push(token);
+        }
+
+        if tokens.is_empty() {
+            return Err("No valid tokens found".to_string());
+        }
+
+        Ok(tokens)
+    }
+
 }
 
 impl fmt::Display for Meteor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:{}={}",
+        let tokens_str = self.tokens.iter()
+            .map(|token| format!("{}={}", token.key().to_string(), token.value()))
+            .collect::<Vec<_>>()
+            .join(";");
+
+        write!(f, "{}:{}:{}",
             self.context.to_string(),
             self.namespace.to_string(),
-            self.token.key().to_string(),  // Use TokenKey's Display
-            self.token.value()
+            tokens_str
         )
     }
 }
@@ -110,7 +158,7 @@ impl FromStr for Meteor {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Meteor::parse(s)
+        Meteor::first(s)
     }
 }
 
@@ -120,7 +168,9 @@ mod tests {
 
     #[test]
     fn test_meteor_parse_full() {
-        let meteor = Meteor::parse("app:ui.widgets:button=submit").unwrap();
+        let meteors = Meteor::parse("app:ui.widgets:button=submit").unwrap();
+        assert_eq!(meteors.len(), 1);
+        let meteor = &meteors[0];
         assert_eq!(meteor.context().name(), "app");
         assert_eq!(meteor.namespace().to_string(), "ui.widgets");
         assert_eq!(meteor.token().key_notation(), "button");
@@ -129,16 +179,35 @@ mod tests {
 
     #[test]
     fn test_meteor_parse_no_context() {
-        let meteor = Meteor::parse("ui.widgets:button=submit").unwrap();
+        let meteors = Meteor::parse("ui.widgets:button=submit").unwrap();
+        assert_eq!(meteors.len(), 1);
+        let meteor = &meteors[0];
         assert_eq!(meteor.context().name(), "app"); // Default
         assert_eq!(meteor.namespace().to_string(), "ui.widgets");
     }
 
     #[test]
     fn test_meteor_parse_minimal() {
-        let meteor = Meteor::parse("button=submit").unwrap();
+        let meteors = Meteor::parse("button=submit").unwrap();
+        assert_eq!(meteors.len(), 1);
+        let meteor = &meteors[0];
         assert_eq!(meteor.context().name(), "app"); // Default
-        assert_eq!(meteor.namespace().to_string(), ""); // Root
+        assert_eq!(meteor.namespace().to_string(), "main"); // Default namespace
+        assert_eq!(meteor.token().key_notation(), "button");
+    }
+
+    #[test]
+    fn test_meteor_first() {
+        let meteor = Meteor::first("app:ui.widgets:button=submit").unwrap();
+        assert_eq!(meteor.context().name(), "app");
+        assert_eq!(meteor.namespace().to_string(), "ui.widgets");
+        assert_eq!(meteor.token().key_notation(), "button");
+        assert_eq!(meteor.token().value(), "submit");
+
+        // Test first from single meteor
+        let meteor = Meteor::first("button=submit").unwrap();
+        assert_eq!(meteor.context().name(), "app"); // Default
+        assert_eq!(meteor.namespace().to_string(), "main"); // Default
         assert_eq!(meteor.token().key_notation(), "button");
     }
 
