@@ -38,12 +38,12 @@ meteor help                           # Colored help with command list
 meteor inspect                       # Show registered command handlers
 meteor stack                         # Show call stack
 
-# Meteor commands (FULLY FUNCTIONAL - NO QUOTES NEEDED!)
-meteor parse button=click                              # ✅ Unquoted simple usage
-meteor parse app:ui:button=click                       # ✅ Unquoted context usage
-meteor parse button=click theme=dark --verbose         # ✅ Multiple tokens unquoted
-meteor validate app:ui:button=click                    # ✅ Unquoted validation
-meteor parse 'key="value;;; with semicolons"'          # ✅ Quoted complex values
+# Meteor commands (FULLY FUNCTIONAL - PROPER FORMAT!)
+cargo run --bin meteor -- parse button=click                              # ✅ Simple token
+cargo run --bin meteor -- parse app:ui:button=click                       # ✅ Full meteor format
+cargo run --bin meteor -- parse "button=click; theme=dark" --verbose      # ✅ Multiple tokens
+cargo run --bin meteor -- validate app:ui:button=click                    # ✅ Format validation
+cargo run --bin meteor -- parse 'key="value with spaces"'                 # ✅ Quoted values
 ```
 
 ### 📊 **Current Test Status:**
@@ -168,7 +168,8 @@ cargo run --bin meteor-config       # Verify default profile active
 # Test RSB CLI functionality
 cargo run --bin meteor help         # Built-in help
 cargo run --bin meteor inspect      # Command list
-cargo run --bin meteor -- parse "test" --verbose  # With working parser
+cargo run --bin meteor -- parse "button=click" --verbose  # Working token format
+cargo run --bin meteor -- parse "app:ui:button=click"     # Working meteor format
 ```
 
 ## Previous Handoffs (Historical)
