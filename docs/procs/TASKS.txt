@@ -1,4 +1,4 @@
-# METEOR TASKS - Stateful Engine Architecture Complete
+# METEOR TASKS - Configuration System and Architecture Refactoring Complete
 
 ## ✅ COMPLETED TICKETS
 
@@ -135,7 +135,57 @@
 - ✅ 14 comprehensive tests covering all parser functionality
 - ✅ All 83 tests passing - no compilation errors
 
-### TICKET-009: CLI Stateful Processing - P1 HIGH
+### TICKET-009: Build-time Configuration System ✅ COMPLETED
+**Priority**: P0 - SECURITY + DEPLOYMENT
+**Type**: Core Infrastructure
+**Effort**: 6-8 hours
+**Status**: ✅ **COMPLETED** (2025-09-24)
+
+**Description**: Implement secure build-time configuration system with deployment profiles
+
+**✅ Completed Tasks**:
+- ✅ Created `meteor.toml` configuration file with deployment profiles
+- ✅ Implemented `build.rs` script for compile-time configuration reading
+- ✅ Added conditional compilation for security limits (prevents runtime tampering)
+- ✅ **Deployment Profiles**:
+  - Default: Balanced limits (4 clear, 5 warning, 6+ error namespace depth)
+  - Enterprise: High-performance (10k meteors, 256 char keys, 8k values)
+  - Embedded: Memory-constrained (100 meteors, 32 char keys, 256 values)
+  - Strict: Security-focused (50 meteors, 16 char keys, 128 values)
+- ✅ Environment variable override: `METEOR_PROFILE=enterprise cargo build`
+- ✅ Created `meteor-config` binary for configuration inspection
+- ✅ Comprehensive documentation with security model explanation
+- ✅ All 137 tests passing across all configuration profiles
+
+**✅ Security Benefits**:
+- ✅ Limits compiled into binary - no runtime tampering possible
+- ✅ Profile-specific distributions for different security postures
+- ✅ Build-time immutability prevents configuration attacks
+
+### TICKET-010: Architecture Refactoring ✅ COMPLETED
+**Priority**: P1 - CODE ORGANIZATION
+**Type**: Technical Debt / Architecture
+**Effort**: 2-3 hours
+**Status**: ✅ **COMPLETED** (2025-09-24)
+
+**Description**: Clean up architecture per feedback - move logic to appropriate modules
+
+**✅ Completed Tasks**:
+- ✅ **Moved dot path logic from MeteorEngine to namespace module** (belongs in namespace)
+- ✅ **Moved config constants from namespace.rs to meteor/config.rs** (proper module organization)
+- ✅ **Updated namespace limits to 4 clear, 5 warning, 6+ error** (user-requested improvement)
+- ✅ Updated all meteor.toml profiles with new namespace depth limits
+- ✅ Fixed all namespace validation tests for new thresholds
+- ✅ Updated imports and re-exports for clean module boundaries
+- ✅ All 88 tests passing - no compilation errors
+
+**✅ Architecture Improvements**:
+- ✅ `MeteorEngine` now focused purely on state management
+- ✅ `namespace` module handles all path parsing logic
+- ✅ `meteor::config` module centralized all configuration constants
+- ✅ Clean separation of concerns throughout codebase
+
+### TICKET-011: CLI Stateful Processing - P1 HIGH
 **Priority**: P1 - USER EXPERIENCE
 **Type**: CLI Enhancement
 **Effort**: 3-4 hours

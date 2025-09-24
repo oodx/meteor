@@ -55,8 +55,42 @@ let key = TokenKey::new("grid[2,3]");
 assert_eq!(key.to_string(), "grid__i_2_3");
 ```
 
+## Configuration
+
+Meteor uses **build-time configuration** via `meteor.toml` for security and deployment flexibility:
+
+```toml
+[profile]
+active = "default"  # or "enterprise", "embedded", "strict"
+
+[limits.default]
+max_meteors_per_shower = 1000
+max_command_history = 1000
+max_contexts = 100
+```
+
+**Deployment Profiles:**
+- **Default**: Balanced limits for general use (1k meteors, 128 char keys)
+- **Enterprise**: High-performance (10k meteors, 256 char keys, 8k values)
+- **Embedded**: Memory-constrained (100 meteors, 32 char keys, 256 values)
+- **Strict**: Security-focused (50 meteors, 16 char keys, 128 values)
+
+```bash
+# Build with different profiles
+METEOR_PROFILE=enterprise cargo build --release
+METEOR_PROFILE=strict cargo build --release
+
+# Check current configuration
+cargo run --bin meteor-config
+```
+
+**Security:** Limits are **compiled into the binary** - no runtime tampering possible.
+
+📖 **[Full Configuration Guide](docs/CONFIGURATION.md)**
+
 ## Documentation
 
+- **[Configuration System](docs/CONFIGURATION.md)** - Build-time configuration and deployment profiles
 - **[Architecture Status](docs/procs/ARCHITECTURE_STATUS.md)** - Current type system and capabilities
 - **[Tasks](docs/procs/TASKS.txt)** - Development progress and roadmap
 - **[Token Namespace Concept](docs/ref/TOKEN_NAMESPACE_CONCEPT.md)** - Specification
@@ -70,4 +104,7 @@ cargo test
 
 # Run CLI
 cargo run -- --help
+
+# Configuration inspection
+cargo run --bin meteor-config
 ```

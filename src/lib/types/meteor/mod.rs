@@ -4,6 +4,7 @@ mod meteor;
 mod shower;
 mod storage_data;
 mod engine;
+pub mod config;
 
 pub use meteor::Meteor;
 pub use shower::{MeteorShower, METEOR_DELIMITER};

@@ -12,6 +12,7 @@
 //! - Dot-notation path operations
 
 use crate::types::{Context, Namespace, StorageData};
+use crate::types::namespace::parse_dot_path;
 
 /// Command execution record for audit trail
 #[derive(Debug, Clone)]
@@ -323,43 +324,6 @@ impl Default for MeteorEngine {
 // Path Parsing Utilities
 // ================================
 
-/// Parse dot-notation path into (context, namespace, key)
-///
-/// Examples:
-/// - "app.ui.button" → ("app", "ui", "button")
-/// - "app.main" → ("app", "main", "")
-/// - "user" → ("user", "", "")
-fn parse_dot_path(path: &str) -> Result<(String, String, String), String> {
-    if path.is_empty() {
-        return Err("Path cannot be empty".to_string());
-    }
-
-    let parts: Vec<&str> = path.split('.').collect();
-
-    match parts.len() {
-        1 => {
-            // Just context: "app"
-            Ok((parts[0].to_string(), String::new(), String::new()))
-        }
-        2 => {
-            // Context + namespace: "app.ui"
-            Ok((parts[0].to_string(), parts[1].to_string(), String::new()))
-        }
-        3 => {
-            // Full path: "app.ui.button"
-            Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
-        }
-        _ => {
-            // More than 3 parts - join everything after namespace as key
-            Ok((
-                parts[0].to_string(),
-                parts[1].to_string(),
-                parts[2..].join("."),
-            ))
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,16 +367,6 @@ mod tests {
         assert_eq!(engine.get("user.settings.theme"), Some("dark"));
     }
 
-    #[test]
-    fn test_dot_path_parsing() {
-        assert_eq!(parse_dot_path("app").unwrap(), ("app".to_string(), "".to_string(), "".to_string()));
-        assert_eq!(parse_dot_path("app.ui").unwrap(), ("app".to_string(), "ui".to_string(), "".to_string()));
-        assert_eq!(parse_dot_path("app.ui.button").unwrap(), ("app".to_string(), "ui".to_string(), "button".to_string()));
-
-        // Complex key
-        assert_eq!(parse_dot_path("app.ui.complex.key.name").unwrap(),
-                  ("app".to_string(), "ui".to_string(), "complex.key.name".to_string()));
-    }
 
     #[test]
     fn test_control_commands() {

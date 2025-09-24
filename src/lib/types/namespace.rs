@@ -3,37 +3,8 @@
 use std::fmt;
 use std::str::FromStr;
 
-/// Namespace configuration constants (build-time configured by Cargo features)
-
-// Max length per namespace part
-#[cfg(feature = "enterprise")]
-pub const MAX_NAMESPACE_PART_LENGTH: usize = 128;  // Enterprise: longer names allowed
-#[cfg(feature = "embedded")]
-pub const MAX_NAMESPACE_PART_LENGTH: usize = 32;   // Embedded: memory constrained
-#[cfg(feature = "strict")]
-pub const MAX_NAMESPACE_PART_LENGTH: usize = 16;   // Strict: minimal names
-#[cfg(not(any(feature = "enterprise", feature = "embedded", feature = "strict")))]
-pub const MAX_NAMESPACE_PART_LENGTH: usize = 64;   // Default: balanced
-
-// Namespace depth warning threshold
-#[cfg(feature = "enterprise")]
-pub const NAMESPACE_WARNING_DEPTH: usize = 5;      // Enterprise: deeper hierarchies
-#[cfg(feature = "embedded")]
-pub const NAMESPACE_WARNING_DEPTH: usize = 2;      // Embedded: shallow hierarchies
-#[cfg(feature = "strict")]
-pub const NAMESPACE_WARNING_DEPTH: usize = 2;      // Strict: minimal depth
-#[cfg(not(any(feature = "enterprise", feature = "embedded", feature = "strict")))]
-pub const NAMESPACE_WARNING_DEPTH: usize = 3;      // Default: balanced
-
-// Namespace depth error threshold
-#[cfg(feature = "enterprise")]
-pub const NAMESPACE_ERROR_DEPTH: usize = 8;        // Enterprise: deep hierarchies allowed
-#[cfg(feature = "embedded")]
-pub const NAMESPACE_ERROR_DEPTH: usize = 3;        // Embedded: strict depth limit
-#[cfg(feature = "strict")]
-pub const NAMESPACE_ERROR_DEPTH: usize = 3;        // Strict: strict depth limit
-#[cfg(not(any(feature = "enterprise", feature = "embedded", feature = "strict")))]
-pub const NAMESPACE_ERROR_DEPTH: usize = 4;        // Default: balanced
+// Re-export config constants for backward compatibility
+pub use crate::types::meteor::config::{MAX_NAMESPACE_PART_LENGTH, NAMESPACE_WARNING_DEPTH, NAMESPACE_ERROR_DEPTH};
 
 /// Hierarchical namespace for organizing tokens within a context
 ///
@@ -205,8 +176,13 @@ mod tests {
 
         let deep = Namespace::from_string("ui.widgets.buttons.primary");
         assert_eq!(deep.depth(), 4);
-        assert!(deep.should_warn());
-        assert!(deep.is_too_deep());
+        assert!(!deep.should_warn()); // 4 levels are clear now
+        assert!(!deep.is_too_deep());
+
+        let warning_deep = Namespace::from_string("ui.widgets.buttons.primary.active");
+        assert_eq!(warning_deep.depth(), 5);
+        assert!(warning_deep.should_warn()); // 5 levels warn
+        assert!(!warning_deep.is_too_deep());
     }
 
     #[test]
@@ -244,8 +220,8 @@ mod tests {
         assert!(Namespace::try_from_string("ui.ctl").is_err());
         assert!(Namespace::try_from_string("root").is_err());
 
-        // Too deep (4+ levels)
-        assert!(Namespace::try_from_string("a.b.c.d").is_err()); // 4 levels = error
+        // Too deep (6+ levels now error)
+        assert!(Namespace::try_from_string("a.b.c.d.e.f").is_err()); // 6 levels = error
 
         // Too long part
         let long_part = "a".repeat(MAX_NAMESPACE_PART_LENGTH + 1);
@@ -254,14 +230,20 @@ mod tests {
 
     #[test]
     fn test_depth_thresholds() {
-        // 3 levels = warning but allowed
-        let warning_ns = Namespace::try_from_string("a.b.c").unwrap();
-        assert_eq!(warning_ns.depth(), 3);
+        // 4 levels = no warning (clear)
+        let clear_ns = Namespace::try_from_string("a.b.c.d").unwrap();
+        assert_eq!(clear_ns.depth(), 4);
+        assert!(!clear_ns.should_warn());
+        assert!(!clear_ns.is_too_deep());
+
+        // 5 levels = warning but allowed
+        let warning_ns = Namespace::try_from_string("a.b.c.d.e").unwrap();
+        assert_eq!(warning_ns.depth(), 5);
         assert!(warning_ns.should_warn());
         assert!(!warning_ns.is_too_deep());
 
-        // 4+ levels = error, should be rejected
-        assert!(Namespace::try_from_string("a.b.c.d").is_err());
+        // 6+ levels = error, should be rejected
+        assert!(Namespace::try_from_string("a.b.c.d.e.f").is_err());
     }
 
     #[test]
@@ -271,5 +253,67 @@ mod tests {
         assert!(Namespace::from_str("main").is_ok()); // main is allowed (default namespace)
         assert!(Namespace::from_str("global").is_err()); // global is reserved
         assert!(Namespace::from_str("ui..widgets").is_err());
+    }
+}
+
+/// Dot-notation path parsing utilities
+///
+/// These functions handle parsing of dot-notation paths like "app.ui.button"
+/// into their component parts (context, namespace, key).
+
+/// Parse dot-notation path into (context, namespace, key)
+///
+/// Handles various path formats:
+/// - "app" → ("app", "", "")
+/// - "app.ui" → ("app", "ui", "")
+/// - "app.ui.button" → ("app", "ui", "button")
+/// - "app.ui.complex.key.name" → ("app", "ui", "complex.key.name")
+///
+/// The first part is always the context, second is namespace, and
+/// everything else is treated as a compound key.
+pub fn parse_dot_path(path: &str) -> Result<(String, String, String), String> {
+    if path.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+
+    let parts: Vec<&str> = path.split('.').collect();
+
+    match parts.len() {
+        1 => {
+            // Just context: "app"
+            Ok((parts[0].to_string(), "".to_string(), "".to_string()))
+        }
+        2 => {
+            // Context and namespace: "app.ui"
+            Ok((parts[0].to_string(), parts[1].to_string(), "".to_string()))
+        }
+        _ => {
+            // Context, namespace, and compound key: "app.ui.button.name"
+            let context = parts[0].to_string();
+            let namespace = parts[1].to_string();
+            let key = parts[2..].join(".");
+            Ok((context, namespace, key))
+        }
+    }
+}
+
+#[cfg(test)]
+mod dot_path_tests {
+    use super::*;
+
+    #[test]
+    fn test_dot_path_parsing() {
+        assert_eq!(parse_dot_path("app").unwrap(), ("app".to_string(), "".to_string(), "".to_string()));
+        assert_eq!(parse_dot_path("app.ui").unwrap(), ("app".to_string(), "ui".to_string(), "".to_string()));
+        assert_eq!(parse_dot_path("app.ui.button").unwrap(), ("app".to_string(), "ui".to_string(), "button".to_string()));
+
+        // Complex keys should be preserved
+        assert_eq!(parse_dot_path("app.ui.complex.key.name").unwrap(),
+                   ("app".to_string(), "ui".to_string(), "complex.key.name".to_string()));
+    }
+
+    #[test]
+    fn test_dot_path_errors() {
+        assert!(parse_dot_path("").is_err());
     }
 }

@@ -1,7 +1,7 @@
 # Meteor Architecture Status
 
-**Last Updated:** 2025-09-22
-**Phase:** Module Reorganization Complete, RSB Integration Ready
+**Last Updated:** 2025-09-24
+**Phase:** Configuration System Complete, Architecture Refactored
 
 ## Current Type Architecture
 
@@ -45,27 +45,71 @@
 - `meteor::parse_meteor()` → `Meteor` (single context)
 - `MeteorShower::to_data()` → `StorageData` (interchange format)
 
+## Configuration System ✅
+
+### Build-Time Configuration
+- **`meteor.toml`** - Project-specific configuration file
+- **`build.rs`** - Compile-time configuration reader
+- **`meteor::config`** - Configuration constants module
+- **`meteor-config`** - Configuration inspection binary
+
+### Deployment Profiles
+- **Default**: Balanced (4 clear, 5 warning, 6+ error namespace depth)
+- **Enterprise**: High-performance (10k meteors, 256 char keys, 8k values)
+- **Embedded**: Memory-constrained (100 meteors, 32 char keys, 256 values)
+- **Strict**: Security-focused (50 meteors, 16 char keys, 128 values)
+
+### Security Features
+- ✅ **Build-time immutability** - Limits compiled into binary
+- ✅ **Runtime tamper-proof** - No configuration files at runtime
+- ✅ **Environment override** - `METEOR_PROFILE=enterprise cargo build`
+- ✅ **Profile isolation** - Different binaries for different security postures
+
+## Stream Processing Architecture ✅
+
+### MeteorEngine (Stateful)
+- **Cursor state** - Persistent context/namespace across operations
+- **Command audit trail** - All control commands logged with timestamps
+- **Dot-notation API** - `engine.set("app.ui.button", "click")`
+- **Control commands** - `ctl:delete=path`, `ctl:reset=cursor`
+
+### Parser Modules (Validation + Delegation)
+- **TokenStreamParser** - Handles folding logic with cursor state
+- **MeteorStreamParser** - Handles explicit meteor addressing
+- **Pure validation** - Parsers validate, MeteorEngine controls state
+
 ## Module Organization (MODULE_SPEC Compliant)
 
 ```
 src/lib/
+├── config.rs        # Build-time configuration system
 ├── types/           # Core type definitions
 │   ├── context.rs      # Context isolation
-│   ├── namespace.rs    # Hierarchical organization
+│   ├── namespace.rs    # Hierarchical organization + dot path parsing
 │   ├── key.rs         # TokenKey with bracket transform
-│   ├── token.rs       # Key-value pairs
-│   ├── meteor.rs      # Complete addressing
-│   ├── shower.rs      # MeteorShower collection
-│   ├── storage_data.rs # StorageData interchange format
-│   ├── bracket_transform.rs # Extensible trait
-│   └── error.rs       # Error types
-├── parser/          # Token parsing infrastructure
-│   ├── parse.rs       # Core parsing logic (GUTTED)
-│   ├── transform.rs   # Bracket transformation (GUTTED)
-│   ├── organize.rs    # Data organization (GUTTED)
-│   └── mod.rs        # Parser exports
-├── utils/           # Public API utilities
-└── lib.rs          # Main exports
+│   ├── token/         # Token types
+│   │   ├── token.rs      # Key-value pairs
+│   │   └── bucket.rs     # TokenBucket (legacy, preserved)
+│   ├── meteor/        # Meteor types + configuration
+│   │   ├── meteor.rs     # Complete addressing
+│   │   ├── shower.rs     # MeteorShower collection
+│   │   ├── engine.rs     # MeteorEngine stateful processing
+│   │   ├── storage_data.rs # StorageData interchange format
+│   │   └── config.rs     # Configuration constants
+│   ├── error.rs       # Error types
+│   └── mod.rs        # Type re-exports
+├── parser/          # Stream processing + validation
+│   ├── token_stream.rs  # Token stream parsing with folding
+│   ├── meteor_stream.rs # Meteor stream parsing
+│   ├── escape.rs       # Escape sequence handling
+│   └── mod.rs         # Parser exports
+├── validation/      # Format validation utilities
+├── utils/          # Public API utilities
+└── lib.rs         # Main exports
+
+src/bin/
+├── cli.rs          # Main CLI application
+└── config.rs       # Configuration inspection utility
 ```
 
 ## API Design Patterns

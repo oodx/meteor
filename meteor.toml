@@ -1,0 +1,66 @@
+# Meteor Configuration File
+# Build-time configuration for deployment profiles and security limits
+# This file is read during compilation to set compile-time constants
+
+[profile]
+# Active profile: "default", "enterprise", "embedded", or "strict"
+# Can be overridden with METEOR_PROFILE environment variable
+active = "default"
+
+[limits.default]
+# Balanced limits for general use (4 clear, 5 warning, 6+ error)
+max_namespace_part_length = 64
+namespace_warning_depth = 5
+namespace_error_depth = 6
+max_meteors_per_shower = 1000
+max_command_history = 1000
+max_contexts = 100
+max_token_key_length = 128
+max_token_value_length = 2048
+
+[limits.enterprise]
+# Higher limits for large-scale deployments (5 clear, 6 warning, 8+ error)
+max_namespace_part_length = 128
+namespace_warning_depth = 6
+namespace_error_depth = 8
+max_meteors_per_shower = 10000
+max_command_history = 10000
+max_contexts = 1000
+max_token_key_length = 256
+max_token_value_length = 8192
+
+[limits.embedded]
+# Lower limits for memory-constrained environments (2 clear, 3 warning, 4+ error)
+max_namespace_part_length = 32
+namespace_warning_depth = 3
+namespace_error_depth = 4
+max_meteors_per_shower = 100
+max_command_history = 100
+max_contexts = 10
+max_token_key_length = 32
+max_token_value_length = 256
+
+[limits.strict]
+# Minimal limits for high-security environments (2 clear, 3 warning, 4+ error)
+max_namespace_part_length = 16
+namespace_warning_depth = 3
+namespace_error_depth = 4
+max_meteors_per_shower = 50
+max_command_history = 500
+max_contexts = 5
+max_token_key_length = 16
+max_token_value_length = 128
+
+[security]
+# Security enforcement settings
+prevent_runtime_tampering = true
+validate_namespace_characters = true
+enforce_reserved_words = true
+enable_command_audit_trail = true
+
+[features]
+# Feature flags for optional functionality
+enable_bracket_notation = true
+enable_control_commands = true
+enable_dot_notation_api = true
+enable_stream_continuity = true
