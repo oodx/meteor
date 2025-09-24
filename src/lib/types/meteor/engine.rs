@@ -11,8 +11,6 @@
 //! - Full command audit trail
 //! - Dot-notation path operations
 
-use std::collections::HashMap;
-use std::str::FromStr;
 use crate::types::{Context, Namespace, StorageData};
 
 /// Command execution record for audit trail

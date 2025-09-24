@@ -16,7 +16,7 @@
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // No imports needed for basic test
     // TODO: Add proper tests after TICKET-004, TICKET-005
     // Previous tests used old parse API which is being corrected.
 

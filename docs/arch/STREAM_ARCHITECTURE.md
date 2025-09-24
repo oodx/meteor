@@ -10,7 +10,7 @@ This document captures the critical architectural insights around stream process
 - **Meteor/MeteorShower**: Explicit addressing only (`app:ui:button=click`)
 - **TokenBucket**: Stream processing with folding (`button=click;ns=ui;theme=dark`)
 
-**Solution**: Dual parsing in MeteorShower with StorageData as unified internal format.
+**Solution**: Parallel implementation with MeteorEngine + dedicated parser modules for both stream types.
 
 ## Stream Types
 
@@ -66,74 +66,102 @@ context2 → TokenBucket { namespace → key → value }
 context3 → TokenBucket { namespace → key → value }
 ```
 
-### MeteorShower Internal Format
+### Parallel Architecture Implementation
 
-**New Architecture:**
+**MeteorShower (PRESERVED):**
 ```rust
 pub struct MeteorShower {
-    storage: StorageData,  // PRIMARY internal format
-    // REMOVED: meteors: Vec<Meteor>
-    // REMOVED: context_index, namespace_index (redundant)
+    meteors: Vec<Meteor>,  // ORIGINAL format preserved
+    // Original functionality unchanged
+}
+```
+
+**MeteorEngine (NEW):**
+```rust
+pub struct MeteorEngine {
+    storage: StorageData,              // PRIMARY internal format
+    current_context: Context,          // Cursor state
+    current_namespace: Namespace,      // Cursor state
+    command_history: Vec<ControlCommand>, // Audit trail
 }
 ```
 
 **Benefits:**
-- **Efficient lookups**: HashMap-based instead of Vec linear search
-- **Lazy meteor creation**: Only create Meteor objects when requested
-- **Memory efficient**: No duplicate storage + indices
-- **Same external API**: Users don't see the change
+- **Backward compatibility**: MeteorShower unchanged
+- **Efficient lookups**: HashMap-based in MeteorEngine
+- **State management**: Cursor state in MeteorEngine only
+- **Clear separation**: Static vs dynamic use cases
 
-## Dual Parsing Strategy
+## Parser Module Strategy
 
-### MeteorShower gets two parsing methods:
+### Dedicated parser modules handle validation + delegation:
 
 ```rust
-impl MeteorShower {
-    /// Explicit meteor parsing (existing) - no folding
-    pub fn parse(input: &str) -> Result<Self, String> {
-        // Current logic: validates explicit meteors only
-        // Rejects ns= and ctx= tokens
-    }
-
-    /// Token stream parsing (NEW) - with folding logic
-    pub fn from_token_stream(input: &str) -> Result<Self, String> {
-        // Adapted TokenBucket folding logic
-        // Populates StorageData directly
+// src/lib/parser/token_stream.rs
+pub struct TokenStreamParser;
+impl TokenStreamParser {
+    /// Validates token streams, delegates to MeteorEngine
+    pub fn process(engine: &mut MeteorEngine, input: &str) -> Result<(), String> {
+        // Validates token format
         // Handles ns=, ctx= control tokens
+        // Delegates to engine for state changes
+    }
+}
+
+// src/lib/parser/meteor_stream.rs
+pub struct MeteorStreamParser;
+impl MeteorStreamParser {
+    /// Validates meteor streams, delegates to MeteorEngine
+    pub fn process(engine: &mut MeteorEngine, input: &str) -> Result<(), String> {
+        // Validates explicit meteor format
+        // No cursor state changes
+        // Delegates to engine for storage
+    }
+}
+
+// MeteorShower preserves original parsing (UNCHANGED)
+impl FromStr for MeteorShower {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Original parsing logic preserved
     }
 }
 ```
 
 ### Processing Flow:
 
-**TokenStream → StorageData:**
+**TokenStream → MeteorEngine:**
 ```
 "button=click;ns=ui;theme=dark;ctx=user;profile=admin"
                     ↓
-      [TokenBucket folding logic adapter]
+     TokenStreamParser::process(&mut engine, input)
                     ↓
-        StorageData {
-          "app" → {
-            "main" → { "button" → "click" },
-            "ui" → { "theme" → "dark" }
+        [Validates format + delegates to engine]
+                    ↓
+        MeteorEngine {
+          storage: StorageData {
+            "app" → {
+              "main" → { "button" → "click" },
+              "ui" → { "theme" → "dark" }
+            },
+            "user" → {
+              "main" → { "profile" → "admin" }
+            }
           },
-          "user" → {
-            "main" → { "profile" → "admin" }
-          }
+          current_context: "user",
+          current_namespace: "main"
         }
-                    ↓
-      MeteorShower { storage: StorageData }
 ```
 
-**MeteorStream → StorageData:**
+**MeteorStream → MeteorEngine:**
 ```
 "app:ui:button=click;theme=dark :;: user:main:profile=admin"
                     ↓
-        [Explicit parsing only]
+    MeteorStreamParser::process(&mut engine, input)
                     ↓
-        StorageData (same structure)
+      [Validates explicit format + delegates to engine]
                     ↓
-      MeteorShower { storage: StorageData }
+        MeteorEngine { storage: StorageData (same) }
+        // Note: cursor state unchanged for explicit streams
 ```
 
 ## Query Interface

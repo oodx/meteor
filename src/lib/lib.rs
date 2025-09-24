@@ -13,6 +13,9 @@
 //! - `validation/` - Format validation utilities (is_valid_token, is_valid_meteor, etc.)
 //! - `utils/` - Essential helper functions (access utilities)
 
+// Build-time configuration via Cargo features
+pub mod config;
+
 // Core type definitions
 pub mod types;
 
@@ -30,6 +33,7 @@ pub use types::{Context, Namespace, TokenKey, Token, TokenBucket, Meteor, Meteor
 pub use validation::{is_valid_token, is_valid_meteor, is_valid_meteor_shower};
 pub use utils::{is_valid_token_format, is_valid_meteor_format, is_valid_meteor_shower_format};
 pub use parser::{TokenStreamParser, MeteorStreamParser, parse_escaped_value, validate_escapes};
+pub use config::{config_profile, config_summary};
 
 // Module trait for RSB-compliant module organization
 pub trait Module {

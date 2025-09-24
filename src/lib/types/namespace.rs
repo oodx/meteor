@@ -3,6 +3,38 @@
 use std::fmt;
 use std::str::FromStr;
 
+/// Namespace configuration constants (build-time configured by Cargo features)
+
+// Max length per namespace part
+#[cfg(feature = "enterprise")]
+pub const MAX_NAMESPACE_PART_LENGTH: usize = 128;  // Enterprise: longer names allowed
+#[cfg(feature = "embedded")]
+pub const MAX_NAMESPACE_PART_LENGTH: usize = 32;   // Embedded: memory constrained
+#[cfg(feature = "strict")]
+pub const MAX_NAMESPACE_PART_LENGTH: usize = 16;   // Strict: minimal names
+#[cfg(not(any(feature = "enterprise", feature = "embedded", feature = "strict")))]
+pub const MAX_NAMESPACE_PART_LENGTH: usize = 64;   // Default: balanced
+
+// Namespace depth warning threshold
+#[cfg(feature = "enterprise")]
+pub const NAMESPACE_WARNING_DEPTH: usize = 5;      // Enterprise: deeper hierarchies
+#[cfg(feature = "embedded")]
+pub const NAMESPACE_WARNING_DEPTH: usize = 2;      // Embedded: shallow hierarchies
+#[cfg(feature = "strict")]
+pub const NAMESPACE_WARNING_DEPTH: usize = 2;      // Strict: minimal depth
+#[cfg(not(any(feature = "enterprise", feature = "embedded", feature = "strict")))]
+pub const NAMESPACE_WARNING_DEPTH: usize = 3;      // Default: balanced
+
+// Namespace depth error threshold
+#[cfg(feature = "enterprise")]
+pub const NAMESPACE_ERROR_DEPTH: usize = 8;        // Enterprise: deep hierarchies allowed
+#[cfg(feature = "embedded")]
+pub const NAMESPACE_ERROR_DEPTH: usize = 3;        // Embedded: strict depth limit
+#[cfg(feature = "strict")]
+pub const NAMESPACE_ERROR_DEPTH: usize = 3;        // Strict: strict depth limit
+#[cfg(not(any(feature = "enterprise", feature = "embedded", feature = "strict")))]
+pub const NAMESPACE_ERROR_DEPTH: usize = 4;        // Default: balanced
+
 /// Hierarchical namespace for organizing tokens within a context
 ///
 /// Namespaces use dot notation (e.g., "ui.widgets", "db.config") to create
@@ -23,7 +55,7 @@ impl Namespace {
         Namespace { parts: vec![] }
     }
 
-    /// Parse a namespace from dot-separated string
+    /// Parse a namespace from dot-separated string (unchecked)
     pub fn from_string(s: &str) -> Self {
         if s.is_empty() {
             return Namespace::root();
@@ -33,19 +65,56 @@ impl Namespace {
         }
     }
 
+    /// Parse and validate a namespace from dot-separated string
+    pub fn try_from_string(s: &str) -> Result<Self, String> {
+        if s.is_empty() {
+            return Ok(Namespace::root());
+        }
+
+        let parts: Vec<String> = s.split('.').map(|p| p.to_string()).collect();
+
+        // Validate each part
+        for (i, part) in parts.iter().enumerate() {
+            if part.is_empty() {
+                return Err(format!("Empty namespace part at position {}", i));
+            }
+
+            if part.len() > MAX_NAMESPACE_PART_LENGTH {
+                return Err(format!("Namespace part '{}' too long (max {} chars)", part, MAX_NAMESPACE_PART_LENGTH));
+            }
+
+            // Check for valid identifier characters
+            if !is_valid_namespace_part(part) {
+                return Err(format!("Invalid characters in namespace part '{}'", part));
+            }
+
+            // Check for reserved keywords
+            if is_reserved_namespace(part) {
+                return Err(format!("Reserved namespace part '{}'", part));
+            }
+        }
+
+        // Check depth limits (error at NAMESPACE_ERROR_DEPTH levels)
+        if parts.len() >= NAMESPACE_ERROR_DEPTH {
+            return Err(format!("Namespace too deep: {} levels (max {})", parts.len(), NAMESPACE_ERROR_DEPTH - 1));
+        }
+
+        Ok(Namespace { parts })
+    }
+
     /// Get the namespace depth
     pub fn depth(&self) -> usize {
         self.parts.len()
     }
 
-    /// Check if namespace exceeds warning threshold (3 levels)
+    /// Check if namespace exceeds warning threshold
     pub fn should_warn(&self) -> bool {
-        self.depth() >= 3
+        self.depth() >= NAMESPACE_WARNING_DEPTH
     }
 
-    /// Check if namespace exceeds error threshold (4+ levels)
+    /// Check if namespace exceeds error threshold
     pub fn is_too_deep(&self) -> bool {
-        self.depth() >= 4
+        self.depth() >= NAMESPACE_ERROR_DEPTH
     }
 
     /// Get the namespace parts
@@ -71,7 +140,7 @@ impl FromStr for Namespace {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Namespace::from_string(s))
+        Namespace::try_from_string(s)
     }
 }
 
@@ -85,6 +154,39 @@ impl Default for Namespace {
     fn default() -> Self {
         Namespace::root()
     }
+}
+
+/// Validate a namespace part for valid identifier characters
+fn is_valid_namespace_part(part: &str) -> bool {
+    if part.is_empty() {
+        return false;
+    }
+
+    // Must start with letter or underscore
+    let mut chars = part.chars();
+    let first = chars.next().unwrap();
+    if !first.is_ascii_alphabetic() && first != '_' {
+        return false;
+    }
+
+    // Rest can be letters, digits, underscores, or hyphens
+    for ch in chars {
+        if !ch.is_ascii_alphanumeric() && ch != '_' && ch != '-' {
+            return false;
+        }
+    }
+
+    true
+}
+
+/// Check if a namespace part is reserved
+fn is_reserved_namespace(part: &str) -> bool {
+    matches!(part,
+        "global" | "root" | "default" |           // System namespaces (main allowed)
+        "ctl" | "control" |                       // Control commands
+        "ctx" | "context" |                       // Context switching
+        "ns" | "namespace"                        // Namespace switching (sys/system/test/debug/dev allowed)
+    )
 }
 
 #[cfg(test)]
@@ -113,5 +215,61 @@ mod tests {
         let child = Namespace::from_string("ui.widgets");
         assert!(parent.is_parent_of(&child));
         assert!(!child.is_parent_of(&parent));
+    }
+
+    #[test]
+    fn test_namespace_validation_success() {
+        // Valid namespaces
+        assert!(Namespace::try_from_string("ui").is_ok());
+        assert!(Namespace::try_from_string("ui.widgets").is_ok());
+        assert!(Namespace::try_from_string("_private").is_ok());
+        assert!(Namespace::try_from_string("api-v2").is_ok());
+        assert!(Namespace::try_from_string("").is_ok()); // root
+    }
+
+    #[test]
+    fn test_namespace_validation_failures() {
+        // Empty parts
+        assert!(Namespace::try_from_string("ui..widgets").is_err());
+        assert!(Namespace::try_from_string(".ui").is_err());
+        assert!(Namespace::try_from_string("ui.").is_err());
+
+        // Invalid characters
+        assert!(Namespace::try_from_string("ui widgets").is_err());
+        assert!(Namespace::try_from_string("ui/widgets").is_err());
+        assert!(Namespace::try_from_string("2ui").is_err()); // starts with digit
+
+        // Reserved words
+        assert!(Namespace::try_from_string("global").is_err());
+        assert!(Namespace::try_from_string("ui.ctl").is_err());
+        assert!(Namespace::try_from_string("root").is_err());
+
+        // Too deep (4+ levels)
+        assert!(Namespace::try_from_string("a.b.c.d").is_err()); // 4 levels = error
+
+        // Too long part
+        let long_part = "a".repeat(MAX_NAMESPACE_PART_LENGTH + 1);
+        assert!(Namespace::try_from_string(&long_part).is_err());
+    }
+
+    #[test]
+    fn test_depth_thresholds() {
+        // 3 levels = warning but allowed
+        let warning_ns = Namespace::try_from_string("a.b.c").unwrap();
+        assert_eq!(warning_ns.depth(), 3);
+        assert!(warning_ns.should_warn());
+        assert!(!warning_ns.is_too_deep());
+
+        // 4+ levels = error, should be rejected
+        assert!(Namespace::try_from_string("a.b.c.d").is_err());
+    }
+
+    #[test]
+    fn test_from_str_uses_validation() {
+        // FromStr should now use validation
+        assert!(Namespace::from_str("ui").is_ok());
+        assert!(Namespace::from_str("main").is_ok()); // main is allowed (default namespace)
+        assert!(Namespace::from_str("global").is_err()); // global is reserved
+        assert!(Namespace::from_str("ui..widgets").is_err());
     }
 }

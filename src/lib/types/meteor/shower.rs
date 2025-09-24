@@ -10,6 +10,10 @@ pub const METEOR_DELIMITER: &str = ":;:";
 
 /// A collection of fully-qualified Meteor tokens
 ///
+/// **DEPRECATED**: MeteorShower is preserved for backward compatibility.
+/// For new code, prefer `MeteorEngine` which provides stateful stream processing,
+/// unified storage format, and comprehensive data manipulation capabilities.
+///
 /// MeteorShower stores complete Meteor tokens (context:namespace:key=value)
 /// and provides methods for organizing, querying, and accessing them.
 /// MeteorShower maintains the full addressing structure of each Meteor.

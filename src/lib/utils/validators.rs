@@ -245,32 +245,28 @@ fn is_valid_token_in_meteor_context(s: &str) -> bool {
 
     // Check for context:namespace:key=value format
     if s.contains(':') {
-        // Count colons to validate structure
-        let colon_count = s.matches(':').count();
+        // Validate structure by parsing path specification
 
-        // Should be either 1 (namespace:key=value) or 2 (context:namespace:key=value)
-        // But we need to be careful about colons in values
-
-        // Find the last '=' to separate key-value from addressing
+        // Find the last '=' to separate path from value
         if let Some(eq_pos) = s.rfind('=') {
-            let addressing_part = &s[..eq_pos]; // context:namespace:key
+            let path_part = &s[..eq_pos]; // context:namespace:key
             let value_part = &s[eq_pos + 1..];  // value
 
-            // Count colons only in the addressing part
-            let addressing_colons = addressing_part.matches(':').count();
+            // Count colons only in the path specification
+            let path_colons = path_part.matches(':').count();
 
-            // Should be 1 or 2 colons in addressing
-            if addressing_colons == 0 || addressing_colons > 2 {
+            // Should be 1 or 2 colons in path: namespace:key or context:namespace:key
+            if path_colons == 0 || path_colons > 2 {
                 return false;
             }
 
             // Validate the key=value part by reconstructing it
-            let key_part = if addressing_colons == 1 {
+            let key_part = if path_colons == 1 {
                 // namespace:key format
-                addressing_part.split(':').last().unwrap_or("")
+                path_part.split(':').last().unwrap_or("")
             } else {
                 // context:namespace:key format
-                addressing_part.split(':').last().unwrap_or("")
+                path_part.split(':').last().unwrap_or("")
             };
 
             let reconstructed_token = format!("{}={}", key_part, value_part);

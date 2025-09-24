@@ -7,11 +7,9 @@ extern crate meteor;
 
 #[cfg(test)]
 mod tests {
-    use meteor::types::{transform_key, reverse_transform_key};
-
     // Create a bracket module alias for compatibility with existing tests
     mod bracket {
-        pub use meteor::types::{transform_key, reverse_transform_key, has_brackets, extract_base_name};
+        pub use meteor::types::{transform_key, has_brackets, extract_base_name};
     }
 
     #[test]

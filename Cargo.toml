@@ -17,6 +17,17 @@ path = "src/lib/lib.rs"
 name = "meteor"
 path = "src/bin/cli.rs"
 
+[[bin]]
+name = "meteor-config"
+path = "src/bin/config.rs"
+
+[features]
+default = []
+# Usage profile features (build-time configuration for security)
+enterprise = []      # Higher limits for enterprise deployments
+embedded = []        # Lower limits for embedded/constrained environments
+strict = []          # Strictest limits for high-security environments
+
 [dependencies]
 # Hub integration for shared dependencies - removed cli-ext for native RSB CLI, added test-ext for criterion
 hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext", "test-ext"] }

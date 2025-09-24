@@ -9,7 +9,7 @@ extern crate meteor;
 
 #[cfg(test)]
 mod tests {
-    use meteor::{parse_shower, BracketNotation, MeteorShower, StorageData};
+    use meteor::{BracketNotation, MeteorEngine, TokenStreamParser, MeteorStreamParser};
 
     /// UAT: Basic functionality demonstration
     #[test]
@@ -60,8 +60,8 @@ mod tests {
         println!("===============================");
         println!();
 
-        println!("📝 Input: app:ui:button=click; user:settings:theme=dark");
-        let shower = meteor::parse_shower("app:ui:button=click; user:settings:theme=dark").unwrap();
+        println!("📝 Input: app:ui:button=click :;: user:settings:theme=dark");
+        let shower = meteor::parse_shower("app:ui:button=click :;: user:settings:theme=dark").unwrap();
         println!("✅ Successfully parsed {} meteors!", shower.len());
         println!();
 
@@ -76,5 +76,120 @@ mod tests {
         println!();
 
         println!("🎉 MeteorShower demonstration complete!");
+    }
+
+    /// UAT: MeteorEngine stateful processing demonstration
+    #[test]
+    fn uat_meteor_engine_stateful_demo() {
+        println!("🚀 DEMO: MeteorEngine Stateful Processing");
+        println!("=========================================");
+        println!();
+
+        let mut engine = MeteorEngine::new();
+
+        println!("📝 Initial state:");
+        println!("   Context: {}", engine.current_context.to_string());
+        println!("   Namespace: {}", engine.current_namespace.to_string());
+        println!();
+
+        println!("📝 Processing token stream: 'host=localhost;port=8080;ns=db'");
+        TokenStreamParser::process(&mut engine, "host=localhost;port=8080;ns=db").unwrap();
+        println!("✅ Stream processed!");
+        println!("   Current namespace: {}", engine.current_namespace.to_string());
+        println!("   Values stored:");
+        println!("   - app.main.host = {:?}", engine.get("app.main.host"));
+        println!("   - app.main.port = {:?}", engine.get("app.main.port"));
+        println!();
+
+        println!("📝 Processing second stream: 'user=admin;pass=secret'");
+        TokenStreamParser::process(&mut engine, "user=admin;pass=secret").unwrap();
+        println!("✅ Stream processed!");
+        println!("   Context/namespace continuity: {}:{}",
+            engine.current_context.to_string(),
+            engine.current_namespace.to_string());
+        println!("   Values stored in db namespace:");
+        println!("   - app.db.user = {:?}", engine.get("app.db.user"));
+        println!("   - app.db.pass = {:?}", engine.get("app.db.pass"));
+        println!();
+
+        println!("📝 Processing control command: 'ctl:delete=app.db.pass'");
+        TokenStreamParser::process(&mut engine, "ctl:delete=app.db.pass").unwrap();
+        println!("✅ Control command executed!");
+        println!("   Password after deletion: {:?}", engine.get("app.db.pass"));
+        let history = engine.command_history();
+        println!("   Command history: {} commands", history.len());
+        if let Some(last) = history.last() {
+            println!("   Last command: {} {} (success: {})",
+                last.command_type, last.target, last.success);
+        }
+        println!();
+
+        println!("🎉 MeteorEngine stateful demonstration complete!");
+    }
+
+    /// UAT: Token vs Meteor stream processing comparison
+    #[test]
+    fn uat_stream_comparison_demo() {
+        println!("⚡ DEMO: TokenStream vs MeteorStream Processing");
+        println!("===============================================");
+        println!();
+
+        let mut engine = MeteorEngine::new();
+
+        println!("🔄 TokenStream Processing (with folding logic):");
+        println!("   Input: 'button=click;ns=ui;theme=dark;ctx=user;profile=admin'");
+        TokenStreamParser::process(&mut engine, "button=click;ns=ui;theme=dark;ctx=user;profile=admin").unwrap();
+
+        println!("   Results with cursor state changes:");
+        println!("   - app.main.button = {:?}", engine.get("app.main.button"));
+        println!("   - app.ui.theme = {:?}", engine.get("app.ui.theme"));
+        println!("   - user.ui.profile = {:?}", engine.get("user.ui.profile"));
+        println!("   Final cursor: {}:{}",
+            engine.current_context.to_string(),
+            engine.current_namespace.to_string());
+        println!();
+
+        println!("🎯 MeteorStream Processing (explicit addressing):");
+        println!("   Input: 'sys:config:debug=true :;: sys:config:version=1.0'");
+        MeteorStreamParser::process(&mut engine, "sys:config:debug=true :;: sys:config:version=1.0").unwrap();
+
+        println!("   Results with explicit addressing:");
+        println!("   - sys.config.debug = {:?}", engine.get("sys.config.debug"));
+        println!("   - sys.config.version = {:?}", engine.get("sys.config.version"));
+        println!("   Cursor unchanged: {}:{}",
+            engine.current_context.to_string(),
+            engine.current_namespace.to_string());
+        println!();
+
+        println!("🎉 Stream comparison demonstration complete!");
+    }
+
+    /// UAT: Bracket notation in real processing
+    #[test]
+    fn uat_bracket_notation_processing_demo() {
+        println!("🔢 DEMO: Bracket Notation in Stream Processing");
+        println!("==============================================");
+        println!();
+
+        let mut engine = MeteorEngine::new();
+
+        println!("📝 Processing array-like tokens:");
+        println!("   Input: 'items[0]=apple;items[1]=banana;items[2]=cherry'");
+        TokenStreamParser::process(&mut engine, "items[0]=apple;items[1]=banana;items[2]=cherry").unwrap();
+
+        println!("   Stored as flat keys:");
+        println!("   - app.main.items__i_0 = {:?}", engine.get("app.main.items__i_0"));
+        println!("   - app.main.items__i_1 = {:?}", engine.get("app.main.items__i_1"));
+        println!("   - app.main.items__i_2 = {:?}", engine.get("app.main.items__i_2"));
+        println!();
+
+        println!("🔄 Testing bracket notation conversion:");
+        let flat = "items__i_0";
+        let bracket = flat.to_bracket();
+        println!("   {} → {}", flat, bracket);
+        println!("   Original notation reconstructed!");
+        println!();
+
+        println!("🎉 Bracket notation processing demonstration complete!");
     }
 }

@@ -13,7 +13,7 @@ extern crate meteor;
 #[cfg(test)]
 mod tests {
     // Import the actual meteor module to run basic validation
-    use meteor::{parse_shower, TokenKey, BracketNotation, MeteorShower, StorageData};
+    use meteor::BracketNotation;
 
     /// Sanity check: meteor compiles and basic API works
     #[test]
@@ -39,8 +39,6 @@ mod tests {
     /// Sanity check: BracketNotation trait works
     #[test]
     fn sanity_bracket_notation_trait() {
-        use meteor::BracketNotation;
-
         let flat = "list__i_0";
         assert_eq!(flat.to_bracket(), "list[0]");
     }
@@ -116,17 +114,25 @@ mod tests {
     /// RSB STRINGS sanity: String processing
     #[test]
     fn sanity_rsb_strings_processing() {
-        // Test rsb::string module accessibility
+        // Test RSB string functions from rsb::string module
         use rsb::string::*;
 
-        // Test basic string operation (if available)
-        let test_str = "hello_world";
-        // Basic string processing validation
-        assert!(test_str.len() > 0);
-        assert!(test_str.contains("_"));
+        // Test string case conversion functions
+        let test_str = "HelloWorld";
+        let snake = to_snake_case(test_str);
+        assert_eq!(snake, "hello_world");
 
-        // String module is accessible
-        assert!(true, "RSB string module accessible");
+        let kebab = to_kebab_case(test_str);
+        assert_eq!(kebab, "hello-world");
+
+        // Test string utility functions
+        let prefix_test = "hello_world";
+        assert!(is_name(prefix_test)); // Should be valid identifier name
+
+        // Test string replacement
+        let replaced = str_replace("hello world", "world", "rust", false);
+        assert_eq!(replaced, "hello rust");
+
     }
 
     /// RSB GLOBAL comprehensive: Variable expansion and CLI integration
