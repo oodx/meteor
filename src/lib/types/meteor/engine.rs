@@ -341,12 +341,12 @@ fn parse_meteor_path(path: &str) -> Result<(String, String, String), String> {
 
     match parts.len() {
         1 => {
-            // Just key: "button" - assume app context, root namespace
-            Ok(("app".to_string(), "".to_string(), parts[0].to_string()))
+            // Just key: "button" - assume app context, main namespace
+            Ok(("app".to_string(), "main".to_string(), parts[0].to_string()))
         }
         2 => {
-            // Context and key: "app:button" - assume root namespace
-            Ok((parts[0].to_string(), "".to_string(), parts[1].to_string()))
+            // Context and key: "app:button" - assume main namespace
+            Ok((parts[0].to_string(), "main".to_string(), parts[1].to_string()))
         }
         3 => {
             // Full meteor format: "app:ui.widgets:button"
