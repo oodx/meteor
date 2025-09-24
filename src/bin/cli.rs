@@ -16,8 +16,14 @@ fn main() {
 
 /// Handle the parse command using RSB patterns
 fn parse_command(args: Args) -> i32 {
-    // Get input from first positional argument after command
-    let input = args.get_or(1, "");
+    // Get flags from global context (set by options!)
+    let verbose = get_var("opt_verbose") == "true" || get_var("opt_v") == "true";
+    let format = get_var("opt_format");
+    let format = if format.is_empty() { "text" } else { &format };
+
+    // Get remaining non-flag arguments
+    let remaining = args.remaining();
+    let input = remaining.get(0).unwrap_or(&String::new()).clone();
 
     if input.is_empty() {
         eprintln!("Error: No input provided");
@@ -25,11 +31,6 @@ fn parse_command(args: Args) -> i32 {
         eprintln!("Example: meteor parse \"app:ui:button=click\"");
         return 1;
     }
-
-    // Check for parsed options in global context
-    let verbose = has_var("opt_verbose") || has_var("opt_v");
-    let format = get_var("opt_format");
-    let format = if format.is_empty() { "text" } else { &format };
 
     if verbose {
         eprintln!("Parsing input: {}", input);
@@ -51,8 +52,12 @@ fn parse_command(args: Args) -> i32 {
 
 /// Handle the validate command using RSB patterns
 fn validate_command(args: Args) -> i32 {
-    // Get input from first positional argument after command
-    let input = args.get_or(1, "");
+    // Get flags from global context (set by options!)
+    let verbose = get_var("opt_verbose") == "true" || get_var("opt_v") == "true";
+
+    // Get remaining non-flag arguments
+    let remaining = args.remaining();
+    let input = remaining.get(0).unwrap_or(&String::new()).clone();
 
     if input.is_empty() {
         eprintln!("Error: No input provided");
@@ -60,9 +65,6 @@ fn validate_command(args: Args) -> i32 {
         eprintln!("Example: meteor validate \"app:ui:button=click\"");
         return 1;
     }
-
-    // Check for parsed options in global context
-    let verbose = has_var("opt_verbose") || has_var("opt_v");
 
     if verbose {
         eprintln!("Validating input: {}", input);
