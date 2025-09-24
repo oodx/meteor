@@ -3,7 +3,7 @@ use std::collections::HashMap;
 /// StorageData: Serialized/flattened interchange format for MeteorShower
 ///
 /// Provides flat storage representation for serialization and simple access.
-/// This replaces the storage functionality that was incorrectly in TokenBucket.
+/// This provides the primary storage functionality for MeteorShower.
 #[derive(Debug, Clone)]
 pub struct StorageData {
     /// Flat storage: context -> namespace -> key -> value

@@ -3,7 +3,7 @@
 //! Organized by type hierarchy:
 //! - Basic types (Context, Namespace, Token) form the foundation
 //! - Composite type (Meteor) combines all components
-//! - Storage types (TokenBucket) manage collections
+//! - Storage types (MeteorShower) manage collections
 //! - Support types (MeteorError) provide infrastructure
 
 mod context;
@@ -17,6 +17,6 @@ mod error;
 pub use context::Context;
 pub use namespace::Namespace;
 pub use key::{TokenKey, BracketNotation};
-pub use token::{Token, TokenBucket};
+pub use token::Token;
 pub use meteor::{Meteor, MeteorShower, StorageData};
 pub use error::MeteorError;

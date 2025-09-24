@@ -8,8 +8,7 @@ use std::collections::HashMap;
 ///
 /// MeteorShower stores complete Meteor tokens (context:namespace:key=value)
 /// and provides methods for organizing, querying, and accessing them.
-/// Unlike TokenBucket which stores flattened key-value pairs, MeteorShower
-/// maintains the full addressing structure of each Meteor.
+/// MeteorShower maintains the full addressing structure of each Meteor.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MeteorShower {
     meteors: Vec<Meteor>,

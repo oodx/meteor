@@ -9,7 +9,7 @@
 //! # Architecture
 //!
 //! Meteor organizes by ordinality and responsibility hierarchy:
-//! - `types/` - Primary data types (Context, Namespace, Key, TokenBucket)
+//! - `types/` - Primary data types (Context, Namespace, Key, Token, Meteor, MeteorShower)
 //! - `parser/` - Core parsing infrastructure (parse -> transform -> organize -> bracket)
 //! - `utils/` - Essential helper functions (access utilities)
 //! - `sup/` - Internal complexity isolation (support functions)
@@ -24,7 +24,7 @@ pub mod parser;
 pub mod utils;
 
 // Re-export main public types and functions
-pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, StorageData, TokenBucket, MeteorError, BracketNotation};
+pub use types::{Context, Namespace, TokenKey, Token, Meteor, MeteorShower, StorageData, MeteorError, BracketNotation};
 // TODO: Re-enable when parser module is rebuilt
 // pub use parser::parse::parse_token_stream;
 
@@ -48,10 +48,10 @@ impl Module for MeteorModule {
     }
 }
 
-/// Parse a token stream into a TokenBucket
+/// Parse a token stream into a MeteorShower
 ///
 /// This is the main entry point for Meteor. Takes a string containing
-/// token data and returns a structured TokenBucket with context isolation.
+/// token data and returns a structured MeteorShower with context isolation.
 ///
 /// # Format
 ///
@@ -69,8 +69,8 @@ impl Module for MeteorModule {
 /// assert_eq!(bucket.get("", "key"), Some("value"));
 /// assert_eq!(bucket.get("ui", "button"), Some("click"));
 /// ```
-pub fn parse(input: &str) -> Result<TokenBucket, MeteorError> {
-    // TODO: Implement using new TokenBucket::parse() when available
+pub fn parse(input: &str) -> Result<MeteorShower, MeteorError> {
+    // TODO: Implement using new MeteorShower::parse() when available
     Err(MeteorError::parse(0, "Parser module being rebuilt"))
 }
 

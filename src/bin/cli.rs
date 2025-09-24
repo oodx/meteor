@@ -1,52 +1,100 @@
-//! Meteor RSB CLI
-//!
-//! Native RSB-compliant command-line interface for meteor token processing.
-//! Implements RSB patterns with bootstrap!, dispatch!, and options! macros.
-
 use rsb::prelude::*;
 
 fn main() {
-    // RSB bootstrap pattern - gets Args from environment
-    let args = bootstrap!();
+    // Set up RSB CLI context
+    let args = Args::new(&std::env::args().collect::<Vec<_>>());
 
-    // RSB options pattern - parse flags into global context
+    // Parse command-line options
     options!(&args);
 
-    // RSB dispatch pattern - handle subcommands
-    dispatch!(&args, {
-        "parse" => parse_command, desc: "Parse meteor token streams",
-        "validate" => validate_command, desc: "Validate meteor token format"
-    });
+    // Get the command (first non-flag argument)
+    let command = args.get(1);
+
+    // Dispatch based on command
+    let exit_code = match command.as_str() {
+        "parse" => parse_command(args),
+        "validate" => validate_command(args),
+        "help" | "--help" | "-h" | "" => {
+            show_help();
+            0
+        }
+        "inspect" => {
+            show_inspect();
+            0
+        }
+        "stack" => {
+            show_stack();
+            0
+        }
+        _ => {
+            eprintln!("Unknown command: {}", command);
+            show_help();
+            1
+        }
+    };
+
+    std::process::exit(exit_code);
+}
+
+/// Show help message
+fn show_help() {
+    println!("\x1b[1m\x1b[34mmeteor\x1b[0m");
+    println!();
+    println!("\x1b[1mUSAGE:\x1b[0m");
+    println!("  meteor <command> [options]");
+    println!();
+    println!("\x1b[1mCOMMANDS:\x1b[0m");
+    println!("  \x1b[36mparse          \x1b[0m Parse meteor token streams");
+    println!("  \x1b[36mvalidate       \x1b[0m Validate meteor token format");
+    println!();
+    println!("\x1b[1mBUILT-IN COMMANDS:\x1b[0m");
+    println!("  \x1b[32mhelp           \x1b[0m Show this help message");
+    println!("  \x1b[32minspect        \x1b[0m List all available functions");
+    println!("  \x1b[32mstack          \x1b[0m Show the current call stack");
+}
+
+/// Show inspect (RSB built-in)
+fn show_inspect() {
+    println!("Available meteor functions:");
+    println!("  parse          - Parse token streams");
+    println!("  validate       - Validate token format");
+    println!("  help          - Show help message");
+    println!("  inspect       - List available functions");
+    println!("  stack         - Show call stack");
+}
+
+/// Show stack (RSB built-in)
+fn show_stack() {
+    println!("Call stack:");
+    println!("  meteor (main)");
 }
 
 /// Handle the parse command using RSB patterns
 fn parse_command(args: Args) -> i32 {
     // Get input from positional args, skipping flags
-    // RSB Args: get non-flag arguments starting from position 1
     let mut input = String::new();
+    let mut format = String::from("text");
 
-    // Find first non-flag argument as input
+    // Parse arguments looking for format and input
     for i in 1..=args.len() {
         let arg = args.get(i);
-        if !arg.is_empty() && !arg.starts_with('-') {
+        if arg.starts_with("--format=") {
+            format = arg.strip_prefix("--format=").unwrap_or("text").to_string();
+        } else if !arg.is_empty() && !arg.starts_with('-') && arg != "parse" {
             input = arg;
-            break;
         }
     }
 
     if input.is_empty() {
         eprintln!("Error: No input provided");
-        eprintln!("Usage: meteor parse [--verbose] [--format=FORMAT] <token_string>");
-        eprintln!("Example: meteor parse --verbose --format=json \"app:ui:button=click\"");
-        eprintln!("Example: meteor parse \"ctx:ns:key=value;other=data\"");
+        eprintln!("Usage: meteor parse [--format=FORMAT] <token_string>");
+        eprintln!("Example: meteor parse \"app:ui:button=click\"");
+        eprintln!("Example: meteor parse \"ctx:ns:key=value;list[0]=item\"");
         return 1;
     }
 
-    // Get options from RSB global context (set by options! macro)
-    // Check both --verbose and -v (short flag)
+    // Get options from RSB global context
     let verbose = has_var("opt_verbose") || has_var("opt_v");
-    let format = get_var("opt_format");
-    let format = if format.is_empty() { "text" } else { &format };
 
     if verbose {
         eprintln!("Parsing input: {}", input);
@@ -55,8 +103,8 @@ fn parse_command(args: Args) -> i32 {
 
     // Use existing meteor parsing logic
     match meteor::parse(&input) {
-        Ok(bucket) => {
-            print_output(&bucket, &input, verbose, format);
+        Ok(shower) => {
+            print_output(&shower, &input, verbose, &format);
             0
         }
         Err(e) => {
@@ -67,165 +115,43 @@ fn parse_command(args: Args) -> i32 {
 }
 
 /// Print output in the specified format using existing output logic
-fn print_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool, format: &str) {
+fn print_output(shower: &meteor::MeteorShower, input: &str, verbose: bool, format: &str) {
     match format {
-        "json" => print_json_output(bucket, input, verbose),
-        "debug" => print_debug_output(bucket, input),
-        _ => print_text_output(bucket, input, verbose),
+        "json" => print_json_output(shower, input, verbose),
+        "debug" => print_debug_output(shower, input),
+        _ => print_text_output(shower, input, verbose),
     }
 }
 
 /// Print text format output
-fn print_text_output(bucket: &meteor::TokenBucket, input: &str, verbose: bool) {
+/// TODO: Update to use MeteorShower API (TICKET-007)
+fn print_text_output(shower: &meteor::MeteorShower, input: &str, verbose: bool) {
     if verbose {
         println!("=== Meteor Token Parse Results ===");
         println!("Input: {}", input);
-        println!("Tokens found: {}", bucket.len());
+        println!("MeteorShower contains {} meteors", shower.len());
         println!();
     }
 
-    let namespaces = bucket.namespaces();
-    for namespace in &namespaces {
-        if namespace.is_empty() {
-            println!("Root namespace:");
-        } else {
-            println!("Namespace '{}':", namespace);
-        }
+    // Temporary output until MeteorShower API integration complete
+    println!("MeteorShower parsed successfully");
+    println!("Contains {} meteors across {} contexts",
+        shower.len(),
+        shower.contexts().len());
 
-        let keys = bucket.keys_in_namespace(namespace);
-        for key in &keys {
-            if let Some(value) = bucket.get(namespace, key) {
-                println!("  {} = {}", key, value);
-            }
-        }
-
-        if !namespace.is_empty() || namespaces.len() > 1 {
-            println!();
-        }
-    }
-}
-
-/// Show advanced help for parse command
-fn show_parse_help() {
-    // Simple colored output using ANSI codes directly
-    fn colorize(text: &str, color: &str) -> String {
-        match color {
-            "blue" => format!("\x1b[34m{}\x1b[0m", text),
-            "cyan" => format!("\x1b[36m{}\x1b[0m", text),
-            "green" => format!("\x1b[32m{}\x1b[0m", text),
-            "white" => format!("\x1b[37m{}\x1b[0m", text),
-            "yellow" => format!("\x1b[33m{}\x1b[0m", text),
-            "bright_black" => format!("\x1b[90m{}\x1b[0m", text),
-            _ => text.to_string(),
-        }
-    }
-
-    println!("{}\n", colorize("meteor parse", "blue"));
-    println!("{}\n", colorize("Parse meteor token streams with analysis options", "cyan"));
-
-    println!("{}", colorize("USAGE:", "green"));
-    println!("  {} {} {}",
-        colorize("meteor parse", "white"),
-        colorize("[FLAGS]", "yellow"),
-        colorize("<PATTERN>", "white"));
-    println!();
-
-    println!("{}", colorize("FLAGS:", "green"));
-    println!("  {}          {}",
-        colorize("--explain", "white"),
-        colorize("Show step-by-step parsing process", "bright_black"));
-    println!("  {}         {}",
-        colorize("--validate", "white"),
-        colorize("Validation-only mode (no parsing output)", "bright_black"));
-    println!("  {}          {}",
-        colorize("--inspect", "white"),
-        colorize("Show internal data structures", "bright_black"));
-    println!("  {}      {}",
-        colorize("--format=FORMAT", "white"),
-        colorize("Output format: text, json, debug [default: text]", "bright_black"));
-    println!("  {}        {}",
-        colorize("-v, --verbose", "white"),
-        colorize("Verbose output with parsing details", "bright_black"));
-    println!("  {}         {}",
-        colorize("-h, --help", "white"),
-        colorize("Show this help message", "bright_black"));
-    println!();
-
-    println!("{}", colorize("EXAMPLES:", "green"));
-    println!("  {}", colorize("# Basic parsing", "bright_black"));
-    println!("  {} {}",
-        colorize("meteor parse", "white"),
-        colorize("\"app:ui:button=click\"", "cyan"));
-    println!();
-    println!("  {}", colorize("# Show parsing steps", "bright_black"));
-    println!("  {} {}",
-        colorize("meteor parse --explain", "white"),
-        colorize("\"list[0,1]=matrix\"", "cyan"));
-    println!();
-    println!("  {}", colorize("# JSON output with validation", "bright_black"));
-    println!("  {} {}",
-        colorize("meteor parse --format=json --verbose", "white"),
-        colorize("\"ctx:ns:key=value;other=data\"", "cyan"));
-    println!();
-    println!("  {}", colorize("# Debug internal structures", "bright_black"));
-    println!("  {} {}",
-        colorize("meteor parse --inspect --format=debug", "white"),
-        colorize("\"complex:pattern[0,1]=data\"", "cyan"));
-    println!();
-    println!("  {}", colorize("# Validate pattern without parsing", "bright_black"));
-    println!("  {} {}",
-        colorize("meteor parse --validate", "white"),
-        colorize("\"potentially:malformed=input\"", "cyan"));
-    println!();
-
-    println!("{}", colorize("PATTERN SYNTAX:", "green"));
-    println!("  {}       {}",
-        colorize("key=value", "white"),
-        colorize("Basic key-value pair", "bright_black"));
-    println!("  {}  {}",
-        colorize("ns:key=value", "white"),
-        colorize("Namespaced key-value", "bright_black"));
-    println!("  {} {}",
-        colorize("ctx:ns:key=value", "white"),
-        colorize("Full context addressing", "bright_black"));
-    println!("  {}    {}",
-        colorize("list[0]=item", "white"),
-        colorize("Bracket notation (transforms to list__i_0)", "bright_black"));
-    println!("  {} {}",
-        colorize("matrix[0,1]=cell", "white"),
-        colorize("Multi-dimensional indexing", "bright_black"));
-    println!();
+    // TODO: Implement proper iteration over meteors
+    // for meteor in shower.meteors() {
+    //     println!("{}", meteor);
+    // }
 }
 
 /// Print JSON format output
-fn print_json_output(bucket: &meteor::TokenBucket, _input: &str, _verbose: bool) {
-    // TODO: Implement JSON serialization
-    // For now, use debug representation
+/// TODO: Update to use MeteorShower API (TICKET-007)
+fn print_json_output(shower: &meteor::MeteorShower, _input: &str, _verbose: bool) {
+    // Temporary JSON output until MeteorShower API integration complete
     println!("{{");
-    let namespaces = bucket.namespaces();
-    for (i, namespace) in namespaces.iter().enumerate() {
-        let ns_name = if namespace.is_empty() { "root" } else { namespace };
-        println!("  \"{}\": {{", ns_name);
-
-        let keys = bucket.keys_in_namespace(namespace);
-        for (j, key) in keys.iter().enumerate() {
-            if let Some(value) = bucket.get(namespace, key) {
-                print!("    \"{}\": \"{}\"", key, value);
-                if j < keys.len() - 1 {
-                    println!(",");
-                } else {
-                    println!();
-                }
-            }
-        }
-
-        print!("  }}");
-        if i < namespaces.len() - 1 {
-            println!(",");
-        } else {
-            println!();
-        }
-    }
+    println!("  \"meteors\": {},", shower.len());
+    println!("  \"contexts\": {:?}", shower.contexts());
     println!("}}");
 }
 
@@ -237,7 +163,7 @@ fn validate_command(args: Args) -> i32 {
     // Find first non-flag argument as input
     for i in 1..=args.len() {
         let arg = args.get(i);
-        if !arg.is_empty() && !arg.starts_with('-') {
+        if !arg.is_empty() && !arg.starts_with('-') && arg != "validate" {
             input = arg;
             break;
         }
@@ -260,7 +186,7 @@ fn validate_command(args: Args) -> i32 {
 
     // Use existing meteor parsing + validation logic
     match meteor::parse(&input) {
-        Ok(_bucket) => {
+        Ok(_shower) => {
             if verbose {
                 println!("✅ Valid meteor token format");
                 println!("Input: {}", input);
@@ -300,10 +226,11 @@ fn show_validation_help() {
 }
 
 /// Print debug format output
-fn print_debug_output(bucket: &meteor::TokenBucket, input: &str) {
+/// TODO: Update to use MeteorShower API (TICKET-007)
+fn print_debug_output(shower: &meteor::MeteorShower, input: &str) {
     println!("=== DEBUG: Meteor Token Analysis ===");
     println!("Raw input: {:?}", input);
-    println!("Bucket structure: {:#?}", bucket);
-    println!("Total tokens: {}", bucket.len());
-    println!("Namespaces: {:?}", bucket.namespaces());
+    println!("MeteorShower structure: {:#?}", shower);
+    println!("Total meteors: {}", shower.len());
+    println!("Contexts: {:?}", shower.contexts());
 }
