@@ -300,7 +300,13 @@ impl MeteorEngine {
     /// Check if path exists as a directory
     pub fn is_directory(&self, path: &str) -> bool {
         if let Ok((context, namespace, key)) = parse_meteor_path_for_directory(path) {
-            self.storage.is_directory(&context, &namespace, &key)
+            if key.is_empty() {
+                // Check if namespace exists in context (e.g., "app:settings" → check if "settings" namespace exists)
+                self.storage.namespace_exists(&context, &namespace)
+            } else {
+                // Check if path within namespace is a directory (e.g., "app:settings:ui" → check if "ui" is directory in "settings")
+                self.storage.is_directory(&context, &namespace, &key)
+            }
         } else {
             false
         }
@@ -353,18 +359,15 @@ fn parse_meteor_path(path: &str) -> Result<(String, String, String), String> {
 
     match parts.len() {
         1 => {
-            // Single identifier: "user" - treat as context-level directory
-            Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
+            // Single identifier: "button" - treat as key in default app context, main namespace
+            Ok(("app".to_string(), "main".to_string(), parts[0].to_string()))
         }
         2 => {
             if parts[1].is_empty() {
                 // Empty second part: "context:" - main namespace, empty key
                 Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
             } else {
-                // Two parts: could be "context:namespace" for directory or "context:key" for file
-                // For directory queries (is_directory, has_default), we need namespace interpretation
-                // For set operations, we need key interpretation in main namespace
-                // Default to key interpretation for backward compatibility
+                // Two parts: "context:key" - key in main namespace of specified context
                 Ok((parts[0].to_string(), "main".to_string(), parts[1].to_string()))
             }
         }
@@ -390,7 +393,7 @@ fn parse_meteor_path_for_directory(path: &str) -> Result<(String, String, String
 
     match parts.len() {
         1 => {
-            // Single identifier: "user" - treat as context-level directory
+            // Single identifier: "user" - treat as context-level directory in main namespace
             Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
         }
         2 => {

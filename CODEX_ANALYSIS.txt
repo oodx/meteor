@@ -55,8 +55,28 @@ TEST Tasks
 - TEST-02: Bring `bin/test.sh` and `tests/sanity/run.sh` in sync with reality—remove unused flag plumbing, prune or implement missing suites, and ensure each advertised alias maps to an actual `cargo test` target (`bin/test.sh`, `tests/sanity/run.sh`).
 - TEST-03: Expose the hybrid storage regression suite through the primary runner (e.g., add a `hybrid` target that runs `cargo test --test test_engine_hybrid`) so the failing directory behavior is visible in CI (`bin/test.sh`, `tests/test_engine_hybrid.rs`).
 
+Regression Review (Claude Patch)
+================================
+
+1. Single-segment paths now misroute to a synthetic context.
+   - Evidence: `parse_meteor_path` maps `"button"` → `(button, "main", "")` in the updated implementation (`src/lib/types/meteor/engine.rs:354-368`).
+   - Impact: Established shorthand like `engine.get("button")` or `engine.set("button", ...)` no longer hits `app:main:button`; it reads/writes an empty key under a new `button` context, breaking existing consumers.
+   - Suggested Fix: Preserve backward compatibility by keeping single-part paths anchored to the current context (default `app`) and main namespace. Introduce a dedicated API if context-switch shorthand is required.
+
+2. Empty-namespace lookups treated as file keys instead of directories.
+   - Evidence: `parse_meteor_path_for_directory` converts `"app::folder"` into `(app, "", "folder")` (`src/lib/types/meteor/engine.rs:396-404`), so subsequent directory checks look for a file named `folder` under empty namespace rather than the namespace root.
+   - Impact: `engine.is_directory("app::settings")` reports `false` even when `app:settings:*` exists, and `.index` defaults on the empty namespace become unreachable.
+   - Suggested Fix: When the second segment is empty, keep the namespace empty and the key empty; treat everything after the double colon as part of the namespace path.
+
+Regression Tasks
+----------------
+
+- REGRESSION-01: Restore single-identifier paths to resolve as `(current_context_or_app, "main", key)` so legacy shorthand continues to work (`src/lib/types/meteor/engine.rs`).
+- REGRESSION-02: Update `parse_meteor_path_for_directory` to preserve empty namespaces and split keys correctly for double-colon inputs, then extend tests covering `engine.is_directory("app::foo")` and `.has_default("app::")` (`src/lib/types/meteor/engine.rs`, `tests/test_engine_hybrid.rs`).
+
 Testing Reference
 -----------------
 
 - `cargo test test_meteor_engine_hybrid_storage_methods` currently fails at `tests/test_engine_hybrid.rs:18` because `engine.is_directory("user:settings")` is routed to the wrong namespace.
 - `cargo test --test sanity` fails to compile due to missing `parse_meteor_path_for_directory` helper, underscoring that the advertised sanity suite is neither build- nor run-ready.
+- After Claude's patch, `cargo test test_meteor_engine_hybrid_storage_methods` passes, but the regressions listed above surface through existing shorthand callers.

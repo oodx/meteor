@@ -355,6 +355,12 @@ impl StorageData {
             .map_or(false, |ctx| ctx.is_directory(namespace, path))
     }
 
+    /// Check if namespace exists in context
+    pub fn namespace_exists(&self, context: &str, namespace: &str) -> bool {
+        self.contexts.get(context)
+            .map_or(false, |ctx| ctx.flat_data.keys().any(|key| key.starts_with(&format!("{}:", namespace))))
+    }
+
     /// Check if directory has default value
     pub fn has_default(&self, context: &str, namespace: &str, path: &str) -> bool {
         self.contexts.get(context)
