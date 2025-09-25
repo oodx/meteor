@@ -1,0 +1,69 @@
+# CODEX ARCHITECTURE REVIEW REQUEST
+
+## Issue Summary
+The MeteorEngine API is not properly integrated with the hybrid storage architecture. While the hybrid storage system has been implemented in StorageData, the MeteorEngine methods are not working correctly with the new architecture.
+
+## Current Problem
+Test failure shows that `engine.is_directory("user:settings")` returns false when it should return true, indicating that the hybrid storage tree indexing is not functioning correctly.
+
+## Key Files to Examine
+
+### Primary Issue Files:
+1. **src/lib/types/meteor/storage_data.rs** - Hybrid storage implementation
+   - Lines 1-400: ContextStorage with flat_data + tree_index
+   - TreeNode enum (File/Directory filesystem semantics)
+   - Methods: is_file(), is_directory(), has_default(), get_default()
+
+2. **src/lib/types/meteor/engine.rs** - MeteorEngine API
+   - Lines 290-326: Hybrid storage methods that call into StorageData
+   - Uses parse_meteor_path() to extract context:namespace:key
+   - Delegates to storage.is_file(), storage.is_directory(), etc.
+
+### Test File:
+3. **tests/test_engine_hybrid.rs** - Failing test
+   - Shows expected behavior vs actual behavior
+   - Test failing on line 18: assert!(engine.is_directory("user:settings"))
+
+### Related Files:
+4. **src/lib/types/meteor/mod.rs** - Type exports
+5. **src/lib/lib.rs** - Public API exports
+
+## Architecture Context
+
+### Hybrid Storage Model:
+- **Flat Storage**: HashMap<String, String> with canonical keys "namespace:path.to.key"
+- **Tree Index**: HashMap<String, TreeNode> for hierarchical navigation
+- **TreeNode**: File(canonical_key_reference) vs Directory(HashMap<String, TreeNode>)
+
+### Expected Flow:
+1. engine.set("user:settings:theme", "dark")
+   → storage.set("user", "settings", "theme", "dark")
+   → Updates flat_data["settings:theme"] = "dark"
+   → Updates tree_index to show "settings" as Directory, "theme" as File
+
+2. engine.is_directory("user:settings")
+   → parse_meteor_path("user:settings") → ("user", "", "settings")
+   → storage.is_directory("user", "", "settings")
+   → Should return true because "settings" contains files
+
+## Question for Codex
+Please analyze the hybrid storage implementation and identify why the tree indexing is not working correctly. The issue seems to be either:
+
+1. The tree index is not being built properly during set() operations
+2. The is_directory()/is_file() query methods are not navigating the tree correctly
+3. The path parsing or canonical key format is inconsistent between set and query operations
+
+## Background Context
+- Project uses hybrid storage to provide O(1) direct access + O(log n) hierarchical queries
+- Context isolation: app, user, system contexts are completely separate
+- Canonical key format: "namespace:path.to.key" for flat storage
+- Tree index provides filesystem-like navigation (directories contain files)
+- MeteorEngine is the primary stateful API (MeteorShower is legacy/reference only)
+
+## Recent Changes
+- TICKET-015: Implemented complete hybrid storage architecture
+- Updated all proc documentation to reflect new system
+- 99.1% test success rate overall, but hybrid storage methods failing
+- Documentation claims production-ready, but API not working correctly
+
+Please provide a detailed analysis of the hybrid storage tree indexing issue and recommendations for fixing the MeteorEngine integration.

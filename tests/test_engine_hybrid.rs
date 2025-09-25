@@ -54,3 +54,30 @@ fn test_meteor_engine_context_operations() {
     assert!(namespaces.contains(&"ui".to_string()));
     assert!(namespaces.contains(&"db".to_string()));
 }
+
+#[test]
+fn test_meteor_engine_path_parser_regression() {
+    let mut engine = MeteorEngine::new();
+
+    // Test ENGINE-02: Regression coverage for parser semantics
+
+    // 1. is_directory("context:namespace") should work
+    engine.set("user:settings:theme", "dark").unwrap();
+    engine.set("user:settings:lang", "en").unwrap();
+    assert!(engine.is_directory("user:settings"), "user:settings should be recognized as directory");
+
+    // 2. has_default("context") should work with context-level defaults
+    engine.set("user:index", "default_user").unwrap();
+    assert!(engine.has_default("user"), "user should have default value");
+    assert_eq!(engine.get_default("user"), Some("default_user"));
+
+    // 3. Three-part paths should still work normally
+    engine.set("app:ui:button", "click").unwrap();
+    assert!(engine.is_file("app:ui:button"), "app:ui:button should be file");
+    assert!(!engine.is_directory("app:ui:button"), "app:ui:button should not be directory");
+
+    // 4. Namespace-level defaults should work
+    engine.set("app:ui:index", "default_ui").unwrap();
+    assert!(engine.has_default("app:ui"), "app:ui should have default value");
+    assert_eq!(engine.get_default("app:ui"), Some("default_ui"));
+}

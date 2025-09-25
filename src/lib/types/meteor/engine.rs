@@ -299,7 +299,7 @@ impl MeteorEngine {
 
     /// Check if path exists as a directory
     pub fn is_directory(&self, path: &str) -> bool {
-        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+        if let Ok((context, namespace, key)) = parse_meteor_path_for_directory(path) {
             self.storage.is_directory(&context, &namespace, &key)
         } else {
             false
@@ -308,7 +308,7 @@ impl MeteorEngine {
 
     /// Check if directory has default value (.index pattern)
     pub fn has_default(&self, path: &str) -> bool {
-        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+        if let Ok((context, namespace, key)) = parse_meteor_path_for_directory(path) {
             self.storage.has_default(&context, &namespace, &key)
         } else {
             false
@@ -317,7 +317,7 @@ impl MeteorEngine {
 
     /// Get default value for directory
     pub fn get_default(&self, path: &str) -> Option<&str> {
-        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+        if let Ok((context, namespace, key)) = parse_meteor_path_for_directory(path) {
             self.storage.get_default(&context, &namespace, &key)
         } else {
             None
@@ -353,19 +353,61 @@ fn parse_meteor_path(path: &str) -> Result<(String, String, String), String> {
 
     match parts.len() {
         1 => {
-            // Just key: "button" - assume app context, main namespace
-            Ok(("app".to_string(), "main".to_string(), parts[0].to_string()))
+            // Single identifier: "user" - treat as context-level directory
+            Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
         }
         2 => {
-            // Context and key: "app:button" - assume main namespace
-            Ok((parts[0].to_string(), "main".to_string(), parts[1].to_string()))
+            if parts[1].is_empty() {
+                // Empty second part: "context:" - main namespace, empty key
+                Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
+            } else {
+                // Two parts: could be "context:namespace" for directory or "context:key" for file
+                // For directory queries (is_directory, has_default), we need namespace interpretation
+                // For set operations, we need key interpretation in main namespace
+                // Default to key interpretation for backward compatibility
+                Ok((parts[0].to_string(), "main".to_string(), parts[1].to_string()))
+            }
         }
         3 => {
             // Full meteor format: "app:ui.widgets:button"
             Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
         }
         _ => {
-            Err(format!("Invalid meteor path format: '{}' - expected CONTEXT:NAMESPACE:KEY", path))
+            Err(format!("Invalid meteor path format: '{}' - expected CONTEXT[:NAMESPACE[:KEY]]", path))
+        }
+    }
+}
+
+/// Parse meteor path for directory operations: context:namespace:key
+/// For directory queries, interpret "context:name" as "context has namespace 'name'"
+/// Returns (context, namespace, key) tuple
+fn parse_meteor_path_for_directory(path: &str) -> Result<(String, String, String), String> {
+    if path.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+
+    let parts: Vec<&str> = path.split(':').collect();
+
+    match parts.len() {
+        1 => {
+            // Single identifier: "user" - treat as context-level directory
+            Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
+        }
+        2 => {
+            if parts[1].is_empty() {
+                // Empty second part: "context:" - main namespace root
+                Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
+            } else {
+                // Two parts: "context:namespace" - namespace directory in context
+                Ok((parts[0].to_string(), parts[1].to_string(), "".to_string()))
+            }
+        }
+        3 => {
+            // Full meteor format: "app:namespace:key"
+            Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
+        }
+        _ => {
+            Err(format!("Invalid meteor path format: '{}' - expected CONTEXT[:NAMESPACE[:KEY]]", path))
         }
     }
 }
