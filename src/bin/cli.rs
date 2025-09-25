@@ -127,8 +127,7 @@ fn resolve_format(raw: &str) -> &'static str {
 }
 
 fn collect_input(args: &Args) -> String {
-    args
-        .remaining()
+    args.remaining()
         .into_iter()
         .filter(|arg| !arg.starts_with("--") && !arg.starts_with('-'))
         .collect::<Vec<_>>()

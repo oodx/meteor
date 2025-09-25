@@ -21,6 +21,10 @@ path = "src/bin/cli.rs"
 name = "meteor-config"
 path = "src/bin/config.rs"
 
+[[bin]]
+name = "meteor-repl"
+path = "src/bin/repl.rs"
+
 [features]
 default = []
 # Usage profile features (build-time configuration for security)

@@ -38,6 +38,145 @@ pub use types::{
 pub use utils::{is_valid_meteor_format, is_valid_meteor_shower_format, is_valid_token_format};
 pub use validation::{is_valid_meteor, is_valid_meteor_shower, is_valid_token};
 
+// ================================
+// Convenience Macros
+// ================================
+
+/// Build a canonical meteor path (`context:namespace:key`).
+#[macro_export]
+macro_rules! meteor {
+    ($context:literal : $namespace:literal : $key:literal) => {
+        $crate::meteor!($context, $namespace, $key)
+    };
+    ($context:ident : $namespace:ident : $key:ident) => {
+        $crate::meteor!(
+            stringify!($context),
+            stringify!($namespace),
+            stringify!($key)
+        )
+    };
+    ($context:expr, $namespace:expr, $key:expr) => {
+        ::std::format!("{}:{}:{}", $context, $namespace, $key)
+    };
+    ($path:expr) => {
+        ::std::string::ToString::to_string(&$path)
+    };
+}
+
+/// Return the `(context, namespace, key)` triple for a meteor address.
+#[macro_export]
+macro_rules! meteor_parts {
+    ($context:literal : $namespace:literal : $key:literal) => {
+        ($context, $namespace, $key)
+    };
+    ($context:ident : $namespace:ident : $key:ident) => {
+        (
+            stringify!($context),
+            stringify!($namespace),
+            stringify!($key),
+        )
+    };
+    ($context:expr, $namespace:expr, $key:expr) => {
+        ($context, $namespace, $key)
+    };
+}
+
+/// Call `MeteorEngine::set` with a canonical path built from segments.
+#[macro_export]
+macro_rules! meteor_set {
+    ($engine:expr, $context:literal : $namespace:literal : $key:literal => $value:expr) => {{
+        let __path = $crate::meteor!($context, $namespace, $key);
+        $engine.set(&__path, $value)
+    }};
+    ($engine:expr, $context:ident : $namespace:ident : $key:ident => $value:expr) => {{
+        let __path = $crate::meteor!(
+            stringify!($context),
+            stringify!($namespace),
+            stringify!($key)
+        );
+        $engine.set(&__path, $value)
+    }};
+    ($engine:expr, $context:expr, $namespace:expr, $key:expr => $value:expr) => {{
+        let __path = $crate::meteor!($context, $namespace, $key);
+        $engine.set(&__path, $value)
+    }};
+    ($engine:expr, $path:expr => $value:expr) => {{
+        let __path = $crate::meteor!($path);
+        $engine.set(&__path, $value)
+    }};
+}
+
+/// Retrieve a value using a canonical meteor path.
+#[macro_export]
+macro_rules! meteor_get {
+    ($engine:expr, $context:literal : $namespace:literal : $key:literal) => {{
+        let __path = $crate::meteor!($context, $namespace, $key);
+        $engine.get(&__path)
+    }};
+    ($engine:expr, $context:ident : $namespace:ident : $key:ident) => {{
+        let __path = $crate::meteor!(
+            stringify!($context),
+            stringify!($namespace),
+            stringify!($key)
+        );
+        $engine.get(&__path)
+    }};
+    ($engine:expr, $context:expr, $namespace:expr, $key:expr) => {{
+        let __path = $crate::meteor!($context, $namespace, $key);
+        $engine.get(&__path)
+    }};
+    ($engine:expr, $path:expr) => {{
+        let __path = $crate::meteor!($path);
+        $engine.get(&__path)
+    }};
+}
+
+/// Delete a value using a canonical meteor path.
+#[macro_export]
+macro_rules! meteor_delete {
+    ($engine:expr, $context:literal : $namespace:literal : $key:literal) => {{
+        let __path = $crate::meteor!($context, $namespace, $key);
+        $engine.delete(&__path)
+    }};
+    ($engine:expr, $context:ident : $namespace:ident : $key:ident) => {{
+        let __path = $crate::meteor!(
+            stringify!($context),
+            stringify!($namespace),
+            stringify!($key)
+        );
+        $engine.delete(&__path)
+    }};
+    ($engine:expr, $context:expr, $namespace:expr, $key:expr) => {{
+        let __path = $crate::meteor!($context, $namespace, $key);
+        $engine.delete(&__path)
+    }};
+    ($engine:expr, $path:expr) => {{
+        let __path = $crate::meteor!($path);
+        $engine.delete(&__path)
+    }};
+}
+
+/// Store a default (`*.index`) value for a context/namespace pair.
+#[macro_export]
+macro_rules! meteor_default {
+    ($engine:expr, $context:literal : $namespace:literal => $value:expr) => {{
+        let __path = ::std::format!("{}:{}:index", $context, $namespace);
+        $engine.set(&__path, $value)
+    }};
+    ($engine:expr, $context:ident : $namespace:ident => $value:expr) => {{
+        let __path = ::std::format!("{}:{}:index", stringify!($context), stringify!($namespace));
+        $engine.set(&__path, $value)
+    }};
+    ($engine:expr, $context:expr, $namespace:expr => $value:expr) => {{
+        let __path = ::std::format!("{}:{}:index", $context, $namespace);
+        $engine.set(&__path, $value)
+    }};
+    ($engine:expr, $context:expr => $value:expr) => {{
+        let __path = ::std::format!("{}:{}:index", $context, "main");
+        $engine.set(&__path, $value)
+    }};
+}
+
 // Module trait for RSB-compliant module organization
 pub trait Module {
     /// Return the module's name for identification
