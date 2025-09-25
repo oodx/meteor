@@ -107,4 +107,38 @@ cargo run -- --help
 
 # Configuration inspection
 cargo run --bin meteor-config
+`
+
+### CLI Usage
+
+```bash
+# Parse into the engine
+cargo run --bin meteor -- parse "app:ui:button=click :;: user:settings:theme=dark"
+
+# Alternate output formats
+cargo run --bin meteor -- parse --format=json "app:ui:button=click"
+cargo run --bin meteor -- parse --format=debug --verbose "app:ui:button=click"
+
+# Validate without storing
+cargo run --bin meteor -- validate "app:ui:button=click :;: user:settings:theme=dark"
+
+# Parse token streams
+cargo run --bin meteor -- token "profile=name;role=admin"
+
+# Inspect registered handlers (RSB built-in)
+cargo run --bin meteor -- inspect
+```
+
+### REPL Usage
+
+```bash
+cargo run --bin meteor-repl
+
+# Sample session
+meteor> parse app:ui:button=click
+meteor> get app:ui:button
+meteor> mem set  hello world
+meteor> mem edit 
+meteor> dump
+meteor> exit
 ```

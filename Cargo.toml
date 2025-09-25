@@ -1,6 +1,6 @@
 [package]
 name = "meteor"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Shooting star token data transport library with context-aware namespacing"
 repository = "https://github.com/oodx/meteor"
