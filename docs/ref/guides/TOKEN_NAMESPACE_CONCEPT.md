@@ -310,7 +310,9 @@ Future extensions may include:
 
 #### MeteorShower Storage (Primary)
 - Cross-context indexed storage with object-oriented meteor access
-- Internal flat `HashMap<String, HashMap<String, String>>` for fast key-value lookup
+- Hybrid storage: flat `HashMap<String, String>` + hierarchical `TreeNode` index
+- Flat storage for O(1) key-value access with canonical keys (`namespace:key`)
+- Tree index for O(log n) directory operations and path traversal
 - Bracket notation transformed to dunder at parse time
 - Consumer folding reconstructs semantic structures
 
