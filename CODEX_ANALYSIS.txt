@@ -54,6 +54,7 @@ TEST Tasks
 - TEST-01: Rework the integration test layout so tests are defined at crate root (no `#[cfg(test)]` gating) and update expectations to the colon-based API (`tests/sanity.rs`, `tests/uat.rs`, and derivative modules).
 - TEST-02: Bring `bin/test.sh` and `tests/sanity/run.sh` in sync with reality—remove unused flag plumbing, prune or implement missing suites, and ensure each advertised alias maps to an actual `cargo test` target (`bin/test.sh`, `tests/sanity/run.sh`).
 - TEST-03: Expose the hybrid storage regression suite through the primary runner (e.g., add a `hybrid` target that runs `cargo test --test test_engine_hybrid`) so the failing directory behavior is visible in CI (`bin/test.sh`, `tests/test_engine_hybrid.rs`).
+- TEST-04: Foundation suite remains red—`cargo test --test foundation` fails on `parser_validation_integration_tests::test_quoted_values_in_streams` (`tests/foundation.rs:420`). Do not advertise a `foundation` target until the underlying parser defect is fixed or quarantined.
 
 Regression Review (Claude Patch)
 ================================
@@ -68,11 +69,16 @@ Regression Review (Claude Patch)
    - Impact: `engine.is_directory("app::settings")` reports `false` even when `app:settings:*` exists, and `.index` defaults on the empty namespace become unreachable.
    - Suggested Fix: When the second segment is empty, keep the namespace empty and the key empty; treat everything after the double colon as part of the namespace path.
 
+3. Compiled binaries accidentally committed to the repository.
+   - Evidence: `debug_path_parsing` and `test_regression` are 6MB ELF executables in the project root (e.g., `debug_path_parsing` reports "ELF 64-bit LSB pie executable" via `file`).
+   - Impact: These artifacts bloat the repository, violate the cargo workflow, and will churn on every rebuild. They should be removed and ignored.
+
 Regression Tasks
 ----------------
 
 - REGRESSION-01: Restore single-identifier paths to resolve as `(current_context_or_app, "main", key)` so legacy shorthand continues to work (`src/lib/types/meteor/engine.rs`).
 - REGRESSION-02: Update `parse_meteor_path_for_directory` to preserve empty namespaces and split keys correctly for double-colon inputs, then extend tests covering `engine.is_directory("app::foo")` and `.has_default("app::")` (`src/lib/types/meteor/engine.rs`, `tests/test_engine_hybrid.rs`).
+- REGRESSION-03: Delete the committed binaries (`debug_path_parsing`, `test_regression`), add them to `.gitignore`, and regenerate the branch without compiled artifacts.
 
 Testing Reference
 -----------------
@@ -80,3 +86,4 @@ Testing Reference
 - `cargo test test_meteor_engine_hybrid_storage_methods` currently fails at `tests/test_engine_hybrid.rs:18` because `engine.is_directory("user:settings")` is routed to the wrong namespace.
 - `cargo test --test sanity` fails to compile due to missing `parse_meteor_path_for_directory` helper, underscoring that the advertised sanity suite is neither build- nor run-ready.
 - After Claude's patch, `cargo test test_meteor_engine_hybrid_storage_methods` passes, but the regressions listed above surface through existing shorthand callers.
+- `cargo test --test foundation` is still red (1 failing test), so the newly advertised `test.sh foundation` target is not operational.
