@@ -35,15 +35,15 @@ struct ContextStorage {
 ### MeteorEngine Capabilities
 ```rust
 // Direct access (O(1))
-engine.get("user.settings.theme")          // → "dark"
+engine.get("user:settings.theme")          // → "dark"
 
 // Hierarchical queries (O(log n))
-engine.find("user.settings.*")             // → all settings keys
+engine.find("user:settings.*")             // → all settings keys
 
 // Filesystem operations
-engine.is_directory("user.settings")       // → true
-engine.is_file("user.settings.theme")      // → true
-engine.has_default("user")                 // → true if user.index exists
+engine.is_directory("user:settings")       // → true
+engine.is_file("user:settings.theme")      // → true
+engine.has_default("user:ui")              // → true if user:ui.index exists
 ```
 
 ### TreeNode Filesystem Semantics
@@ -115,7 +115,7 @@ engine.find("user:settings.*");            // → ["theme", "lang"]
 
 // Context switching
 engine.switch_context("user");
-engine.set("profile.name", "jose");        // Now in user context
+engine.set("user:profile.name", "jose");   // Explicit context and namespace
 ```
 
 ## 📊 Documentation Status

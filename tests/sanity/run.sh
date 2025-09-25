@@ -13,12 +13,20 @@ run_all_sanity() {
     echo "============================="
     echo
 
-    # Core meteor tests
-    cargo test --test sanity_meteor
-    cargo test --test sanity_legacy
-    cargo test --test sanity_types
-    cargo test --test sanity_utils
-    cargo test --test sanity_sup
+    # Main sanity test file (flattened tests)
+    cargo test --test sanity
+
+    echo
+    echo "🔍 Running detailed sanity tests..."
+    echo "=================================="
+    echo
+
+    # Core meteor tests (using actual file names)
+    cargo test --test sanity/meteor
+    cargo test --test sanity/meteor_legacy
+    cargo test --test sanity/types
+    cargo test --test sanity/utils
+    cargo test --test sanity/sup
 
     echo
     echo "🔍 Running hub integration tests..."
@@ -26,24 +34,21 @@ run_all_sanity() {
     echo
 
     # Hub integration tests
-    cargo test --test sanity_hub_integration
-    cargo test --test sanity_hub_lite_performance
+    cargo test --test sanity/hub_integration
+    cargo test --test sanity/hub_lite_performance
+    cargo test --test sanity/hub_deps_baseline
 
     echo
-    echo "🔍 Running RSB preparatory sanity tests..."
-    echo "=========================================="
+    echo "🔍 Running RSB baseline tests..."
+    echo "==============================="
     echo
 
-    # RSB feature tests (preparatory)
-    cargo test --test sanity_rsb_global
-    cargo test --test sanity_rsb_options
-    cargo test --test sanity_rsb_fs
-    cargo test --test sanity_rsb_strings
-    cargo test --test sanity_rsb_host
-    cargo test --test sanity_rsb_params
-    cargo test --test sanity_rsb_dev
-    cargo test --test sanity_rsb_colors
-    cargo test --test sanity_rsb_integration
+    # RSB feature tests (actual existing files)
+    cargo test --test sanity/rsb_baseline
+    cargo test --test sanity/rsb_sanity_cli
+    cargo test --test sanity/rsb_sanity_global
+    cargo test --test sanity/rsb_sanity_options
+    cargo test --test sanity/rsb_sanity_visuals
 
     echo
     echo "✅ All sanity tests completed!"
@@ -59,77 +64,70 @@ run_module_sanity() {
 
     case "$module" in
         meteor)
-            cargo test --test sanity_meteor
+            cargo test --test sanity/meteor
             ;;
         meteor_legacy)
-            cargo test --test sanity_legacy
+            cargo test --test sanity/meteor_legacy
             ;;
         types)
-            cargo test --test sanity_types
+            cargo test --test sanity/types
             ;;
         utils)
-            cargo test --test sanity_utils
+            cargo test --test sanity/utils
             ;;
         sup)
-            cargo test --test sanity_sup
+            cargo test --test sanity/sup
             ;;
         hub_integration)
-            cargo test --test sanity_hub_integration
+            cargo test --test sanity/hub_integration
             ;;
         hub_lite_performance)
-            cargo test --test sanity_hub_lite_performance
+            cargo test --test sanity/hub_lite_performance
+            ;;
+        hub_deps_baseline)
+            cargo test --test sanity/hub_deps_baseline
             ;;
         hub)
-            echo "🔍 Running all hub integration tests..."
-            cargo test --test sanity_hub_integration
-            cargo test --test sanity_hub_lite_performance
+            echo "🔍 Running all hub tests..."
+            cargo test --test sanity/hub_integration
+            cargo test --test sanity/hub_lite_performance
+            cargo test --test sanity/hub_deps_baseline
             ;;
-        rsb_global)
-            cargo test --test sanity_rsb_global
+        rsb_baseline)
+            cargo test --test sanity/rsb_baseline
             ;;
-        rsb_options)
-            cargo test --test sanity_rsb_options
+        rsb_sanity_cli)
+            cargo test --test sanity/rsb_sanity_cli
             ;;
-        rsb_fs)
-            cargo test --test sanity_rsb_fs
+        rsb_sanity_global)
+            cargo test --test sanity/rsb_sanity_global
             ;;
-        rsb_strings)
-            cargo test --test sanity_rsb_strings
+        rsb_sanity_options)
+            cargo test --test sanity/rsb_sanity_options
             ;;
-        rsb_host)
-            cargo test --test sanity_rsb_host
-            ;;
-        rsb_params)
-            cargo test --test sanity_rsb_params
-            ;;
-        rsb_dev)
-            cargo test --test sanity_rsb_dev
-            ;;
-        rsb_colors)
-            cargo test --test sanity_rsb_colors
-            ;;
-        rsb_integration)
-            cargo test --test sanity_rsb_integration
+        rsb_sanity_visuals)
+            cargo test --test sanity/rsb_sanity_visuals
             ;;
         rsb)
-            echo "🔍 Running all RSB preparatory sanity tests..."
-            cargo test --test sanity_rsb_global
-            cargo test --test sanity_rsb_options
-            cargo test --test sanity_rsb_fs
-            cargo test --test sanity_rsb_strings
-            cargo test --test sanity_rsb_host
-            cargo test --test sanity_rsb_params
-            cargo test --test sanity_rsb_dev
-            cargo test --test sanity_rsb_colors
-            cargo test --test sanity_rsb_integration
+            echo "🔍 Running all RSB tests..."
+            cargo test --test sanity/rsb_baseline
+            cargo test --test sanity/rsb_sanity_cli
+            cargo test --test sanity/rsb_sanity_global
+            cargo test --test sanity/rsb_sanity_options
+            cargo test --test sanity/rsb_sanity_visuals
+            ;;
+        main)
+            echo "🔍 Running main sanity test file..."
+            cargo test --test sanity
             ;;
         *)
             echo "❌ Unknown module: $module"
             echo "Available modules:"
             echo "  Core: meteor, meteor_legacy, types, utils, sup"
-            echo "  Hub:  hub_integration, hub_lite_performance"
-            echo "  RSB:  rsb_global, rsb_options, rsb_fs, rsb_strings, rsb_host, rsb_params, rsb_dev, rsb_colors, rsb_integration"
+            echo "  Hub:  hub_integration, hub_lite_performance, hub_deps_baseline"
+            echo "  RSB:  rsb_baseline, rsb_sanity_cli, rsb_sanity_global, rsb_sanity_options, rsb_sanity_visuals"
             echo "  Groups: hub (all hub tests), rsb (all RSB tests)"
+            echo "  Special: main (main sanity.rs flattened test file)"
             exit 1
             ;;
     esac
