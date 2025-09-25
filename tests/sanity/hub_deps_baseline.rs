@@ -10,7 +10,7 @@ mod tests {
         // Test that hub::test_ext provides criterion for benchmarking
         // This should work since we have test-ext feature enabled
 
-        use hub::criterion::{Criterion, black_box};
+        use hub::criterion::{black_box, Criterion};
 
         // Test basic criterion functionality
         let mut criterion = Criterion::default();
@@ -62,7 +62,10 @@ mod tests {
             42
         });
 
-        assert_eq!(result, 42, "Basic async execution should work with tokio-lite");
+        assert_eq!(
+            result, 42,
+            "Basic async execution should work with tokio-lite"
+        );
     }
 
     #[test]
@@ -78,8 +81,14 @@ mod tests {
         });
         let elapsed = start.elapsed();
 
-        assert!(elapsed >= std::time::Duration::from_millis(8), "Tokio time features should work");
-        assert!(elapsed < std::time::Duration::from_millis(100), "Sleep should be reasonably accurate");
+        assert!(
+            elapsed >= std::time::Duration::from_millis(8),
+            "Tokio time features should work"
+        );
+        assert!(
+            elapsed < std::time::Duration::from_millis(100),
+            "Sleep should be reasonably accurate"
+        );
     }
 
     #[test]
@@ -140,12 +149,19 @@ mod tests {
             "tokio basic runtime",
             "tokio time features",
             "anyhow error handling",
-            "thiserror derive macros"
+            "thiserror derive macros",
         ];
 
-        assert_eq!(lite_features.len(), 6, "We expect 6 core lite variant features to work");
+        assert_eq!(
+            lite_features.len(),
+            6,
+            "We expect 6 core lite variant features to work"
+        );
 
         // This test documents our expectations for lite vs full variants
-        assert!(true, "Lite variants provide sufficient functionality for meteor CLI");
+        assert!(
+            true,
+            "Lite variants provide sufficient functionality for meteor CLI"
+        );
     }
 }

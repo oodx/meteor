@@ -20,7 +20,10 @@ mod tests {
         let elapsed = start.elapsed();
 
         // With lite variants, basic operations should be very fast
-        assert!(elapsed.as_millis() < 100, "Lite variants should provide fast execution");
+        assert!(
+            elapsed.as_millis() < 100,
+            "Lite variants should provide fast execution"
+        );
     }
 
     #[test]

@@ -86,7 +86,9 @@ mod tests {
         assert!(is_valid_meteor("app:ui:button=click"));
         assert!(is_valid_meteor("button=click")); // defaults to app context
         assert!(is_valid_meteor("app:ui:button=click; theme=dark"));
-        assert!(is_valid_meteor("user:settings:profile=admin; role=moderator"));
+        assert!(is_valid_meteor(
+            "user:settings:profile=admin; role=moderator"
+        ));
     }
 
     #[test]
@@ -99,8 +101,12 @@ mod tests {
     #[test]
     fn test_valid_meteor_showers() {
         assert!(is_valid_meteor_shower("app:ui:button=click"));
-        assert!(is_valid_meteor_shower("app:ui:button=click :;: user:settings:theme=dark"));
-        assert!(is_valid_meteor_shower("button=click :;: theme=dark :;: size=large"));
+        assert!(is_valid_meteor_shower(
+            "app:ui:button=click :;: user:settings:theme=dark"
+        ));
+        assert!(is_valid_meteor_shower(
+            "button=click :;: theme=dark :;: size=large"
+        ));
     }
 
     #[test]
@@ -120,6 +126,8 @@ mod tests {
         assert!(!is_valid_meteor_shower("app:ui:button=click;;; theme=dark"));
 
         // Properly separated meteors with single semicolons are OK
-        assert!(is_valid_meteor_shower("app:ui:button=click; theme=dark :;: user:settings:profile=admin; role=moderator"));
+        assert!(is_valid_meteor_shower(
+            "app:ui:button=click; theme=dark :;: user:settings:profile=admin; role=moderator"
+        ));
     }
 }

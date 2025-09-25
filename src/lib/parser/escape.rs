@@ -36,7 +36,12 @@ pub fn parse_escaped_value(input: &str) -> Result<String, String> {
                     for _ in 0..4 {
                         match chars.next() {
                             Some(c) if c.is_ascii_hexdigit() => hex.push(c),
-                            _ => return Err(format!("Invalid unicode escape sequence at \\u{}", hex)),
+                            _ => {
+                                return Err(format!(
+                                    "Invalid unicode escape sequence at \\u{}",
+                                    hex
+                                ))
+                            }
                         }
                     }
                     let code = u32::from_str_radix(&hex, 16)
@@ -147,16 +152,28 @@ mod tests {
 
     #[test]
     fn test_basic_escapes() {
-        assert_eq!(parse_escaped_value(r#"Hello \"world\""#).unwrap(), "Hello \"world\"");
-        assert_eq!(parse_escaped_value(r#"Line 1\nLine 2"#).unwrap(), "Line 1\nLine 2");
+        assert_eq!(
+            parse_escaped_value(r#"Hello \"world\""#).unwrap(),
+            "Hello \"world\""
+        );
+        assert_eq!(
+            parse_escaped_value(r#"Line 1\nLine 2"#).unwrap(),
+            "Line 1\nLine 2"
+        );
         assert_eq!(parse_escaped_value(r#"Tab\there"#).unwrap(), "Tab\there");
-        assert_eq!(parse_escaped_value(r#"Back\\slash"#).unwrap(), "Back\\slash");
+        assert_eq!(
+            parse_escaped_value(r#"Back\\slash"#).unwrap(),
+            "Back\\slash"
+        );
     }
 
     #[test]
     fn test_unicode_escapes() {
         assert_eq!(parse_escaped_value(r#"\u0041"#).unwrap(), "A");
-        assert_eq!(parse_escaped_value(r#"Hello \u4e16\u754c"#).unwrap(), "Hello 世界");
+        assert_eq!(
+            parse_escaped_value(r#"Hello \u4e16\u754c"#).unwrap(),
+            "Hello 世界"
+        );
     }
 
     #[test]
@@ -178,7 +195,10 @@ mod tests {
     fn test_strip_quotes() {
         assert_eq!(strip_quotes(r#""quoted""#).unwrap(), "quoted");
         assert_eq!(strip_quotes(r#"unquoted"#).unwrap(), "unquoted");
-        assert_eq!(strip_quotes(r#""with \"escapes\"""#).unwrap(), "with \"escapes\"");
+        assert_eq!(
+            strip_quotes(r#""with \"escapes\"""#).unwrap(),
+            "with \"escapes\""
+        );
     }
 
     #[test]

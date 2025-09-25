@@ -6,4 +6,6 @@
 pub mod access;
 pub mod validators;
 
-pub use validators::{is_valid_token_format, is_valid_meteor_format, is_valid_meteor_shower_format};
+pub use validators::{
+    is_valid_meteor_format, is_valid_meteor_shower_format, is_valid_token_format,
+};

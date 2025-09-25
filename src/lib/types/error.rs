@@ -8,16 +8,10 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq)]
 pub enum MeteorError {
     /// Parse error with position and description
-    ParseError {
-        position: usize,
-        message: String,
-    },
+    ParseError { position: usize, message: String },
 
     /// Invalid token format
-    InvalidToken {
-        token: String,
-        reason: String,
-    },
+    InvalidToken { token: String, reason: String },
 
     /// Context violation (attempting cross-context access)
     ContextViolation {
@@ -34,10 +28,7 @@ pub enum MeteorError {
     },
 
     /// Invalid bracket notation
-    InvalidBracketNotation {
-        key: String,
-        reason: String,
-    },
+    InvalidBracketNotation { key: String, reason: String },
 
     /// Invalid character in key or value
     InvalidCharacter {
@@ -47,9 +38,7 @@ pub enum MeteorError {
     },
 
     /// Empty input or component
-    EmptyInput {
-        component: String,
-    },
+    EmptyInput { component: String },
 
     /// Generic error for other cases
     Other(String),
@@ -133,14 +122,22 @@ impl fmt::Display for MeteorError {
             MeteorError::InvalidToken { token, reason } => {
                 write!(f, "Invalid token '{}': {}", token, reason)
             }
-            MeteorError::ContextViolation { from_context, to_context, message } => {
+            MeteorError::ContextViolation {
+                from_context,
+                to_context,
+                message,
+            } => {
                 write!(
                     f,
                     "Context violation from '{}' to '{}': {}",
                     from_context, to_context, message
                 )
             }
-            MeteorError::NamespaceTooDeep { namespace, depth, max_depth } => {
+            MeteorError::NamespaceTooDeep {
+                namespace,
+                depth,
+                max_depth,
+            } => {
                 write!(
                     f,
                     "Namespace '{}' too deep ({} levels, max {})",
@@ -150,7 +147,11 @@ impl fmt::Display for MeteorError {
             MeteorError::InvalidBracketNotation { key, reason } => {
                 write!(f, "Invalid bracket notation in '{}': {}", key, reason)
             }
-            MeteorError::InvalidCharacter { found, position, context } => {
+            MeteorError::InvalidCharacter {
+                found,
+                position,
+                context,
+            } => {
                 write!(
                     f,
                     "Invalid character '{}' at position {} in {}",
@@ -174,7 +175,10 @@ mod tests {
     #[test]
     fn test_error_display() {
         let err = MeteorError::parse(10, "unexpected character");
-        assert_eq!(err.to_string(), "Parse error at position 10: unexpected character");
+        assert_eq!(
+            err.to_string(),
+            "Parse error at position 10: unexpected character"
+        );
 
         let err = MeteorError::namespace_too_deep("ui.widgets.buttons.primary.icon", 5);
         assert!(err.to_string().contains("too deep"));

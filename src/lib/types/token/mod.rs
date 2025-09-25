@@ -1,7 +1,7 @@
 //! Token subsystem - Token storage
 
-mod token;
 mod bucket;
+mod token;
 
-pub use token::Token;
 pub use bucket::TokenBucket;
+pub use token::Token;

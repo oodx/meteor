@@ -1,6 +1,6 @@
 //! Token type - individual key identifiers with value
 
-use crate::types::{TokenKey, Namespace};
+use crate::types::{Namespace, TokenKey};
 use std::fmt;
 use std::str::FromStr;
 
@@ -28,7 +28,11 @@ impl Token {
     }
 
     /// Create a new token with namespace, key and value
-    pub fn new_with_namespace(namespace: Namespace, key: impl Into<String>, value: impl Into<String>) -> Self {
+    pub fn new_with_namespace(
+        namespace: Namespace,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
         Token {
             namespace: Some(namespace),
             key: TokenKey::new(key.into()),
@@ -134,7 +138,13 @@ impl Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.namespace {
-            Some(namespace) => write!(f, "{}:{}={}", namespace.to_string(), self.transformed_key(), self.value),
+            Some(namespace) => write!(
+                f,
+                "{}:{}={}",
+                namespace.to_string(),
+                self.transformed_key(),
+                self.value
+            ),
             None => write!(f, "{}={}", self.transformed_key(), self.value),
         }
     }

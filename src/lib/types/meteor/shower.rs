@@ -78,11 +78,7 @@ impl MeteorShower {
     pub fn by_context(&self, context: &str) -> Vec<&Meteor> {
         self.context_index
             .get(context)
-            .map(|indices| {
-                indices.iter()
-                    .map(|&i| &self.meteors[i])
-                    .collect()
-            })
+            .map(|indices| indices.iter().map(|&i| &self.meteors[i]).collect())
             .unwrap_or_default()
     }
 
@@ -91,11 +87,7 @@ impl MeteorShower {
         self.namespace_index
             .get(context)
             .and_then(|namespaces| namespaces.get(namespace))
-            .map(|indices| {
-                indices.iter()
-                    .map(|&i| &self.meteors[i])
-                    .collect()
-            })
+            .map(|indices| indices.iter().map(|&i| &self.meteors[i]).collect())
             .unwrap_or_default()
     }
 
@@ -207,7 +199,7 @@ mod tests {
         let meteor = Meteor::new(
             Context::app(),
             Namespace::from_string("ui.widgets"),
-            Token::new("button", "submit")
+            Token::new("button", "submit"),
         );
 
         shower.add(meteor);
@@ -222,7 +214,7 @@ mod tests {
         let meteor = Meteor::new(
             Context::user(),
             Namespace::from_string("settings"),
-            Token::new("theme", "dark")
+            Token::new("theme", "dark"),
         );
 
         shower.add(meteor);
@@ -234,7 +226,8 @@ mod tests {
 
     #[test]
     fn test_meteor_shower_parse() {
-        let shower = MeteorShower::parse("app:ui:button=click :;: user:settings:theme=dark").unwrap();
+        let shower =
+            MeteorShower::parse("app:ui:button=click :;: user:settings:theme=dark").unwrap();
 
         assert_eq!(shower.len(), 2);
         assert_eq!(shower.contexts().len(), 2);

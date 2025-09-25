@@ -250,7 +250,7 @@ fn is_valid_token_in_meteor_context(s: &str) -> bool {
         // Find the last '=' to separate path from value
         if let Some(eq_pos) = s.rfind('=') {
             let path_part = &s[..eq_pos]; // context:namespace:key
-            let value_part = &s[eq_pos + 1..];  // value
+            let value_part = &s[eq_pos + 1..]; // value
 
             // Count colons only in the path specification
             let path_colons = path_part.matches(':').count();
@@ -314,7 +314,9 @@ mod tests {
         assert!(is_valid_meteor_format("app:ui:button=click"));
         assert!(is_valid_meteor_format("ui:button=click"));
         assert!(is_valid_meteor_format("app:ui:button=click; theme=dark"));
-        assert!(is_valid_meteor_format("button=click; theme=dark; size=large"));
+        assert!(is_valid_meteor_format(
+            "button=click; theme=dark; size=large"
+        ));
     }
 
     #[test]
@@ -337,14 +339,20 @@ mod tests {
     fn test_valid_meteor_shower_formats() {
         assert!(is_valid_meteor_shower_format("button=click"));
         assert!(is_valid_meteor_shower_format("app:ui:button=click"));
-        assert!(is_valid_meteor_shower_format("app:ui:button=click :;: user:settings:theme=dark"));
-        assert!(is_valid_meteor_shower_format("button=click; theme=dark :;: user:profile=admin"));
+        assert!(is_valid_meteor_shower_format(
+            "app:ui:button=click :;: user:settings:theme=dark"
+        ));
+        assert!(is_valid_meteor_shower_format(
+            "button=click; theme=dark :;: user:profile=admin"
+        ));
     }
 
     #[test]
     fn test_invalid_meteor_shower_formats() {
         assert!(!is_valid_meteor_shower_format(""));
-        assert!(!is_valid_meteor_shower_format("app:ui:button=click;; theme=dark"));
+        assert!(!is_valid_meteor_shower_format(
+            "app:ui:button=click;; theme=dark"
+        ));
         assert!(!is_valid_meteor_shower_format("invalid"));
         assert!(!is_valid_meteor_shower_format("app:ui:button"));
     }
@@ -363,7 +371,9 @@ mod tests {
 
         // Invalid formats
         assert!(!is_valid_token_in_meteor_context("app:ui:button"));
-        assert!(!is_valid_token_in_meteor_context("app:ui:button:extra=value"));
+        assert!(!is_valid_token_in_meteor_context(
+            "app:ui:button:extra=value"
+        ));
         assert!(!is_valid_token_in_meteor_context(""));
     }
 
@@ -371,11 +381,15 @@ mod tests {
     fn test_consecutive_semicolon_detection() {
         assert!(!is_valid_meteor_format("key=value;; key2=value2"));
         assert!(!is_valid_meteor_format("key=value;;; key2=value2"));
-        assert!(!is_valid_meteor_shower_format("app:ui:button=click;; theme=dark"));
+        assert!(!is_valid_meteor_shower_format(
+            "app:ui:button=click;; theme=dark"
+        ));
 
         // Single semicolons should be OK
         assert!(is_valid_meteor_format("key=value; key2=value2"));
-        assert!(is_valid_meteor_shower_format("app:ui:button=click; theme=dark"));
+        assert!(is_valid_meteor_shower_format(
+            "app:ui:button=click; theme=dark"
+        ));
     }
 
     #[test]
@@ -386,22 +400,30 @@ mod tests {
 
         // Quoted values in meteor context
         assert!(is_valid_meteor_format("key=\"value;;; with semicolons\""));
-        assert!(is_valid_meteor_format("app:ui:message=\"Hello; World\"; theme=dark"));
-        assert!(is_valid_meteor_format("key1=\"val;ue\"; key2=\"another;;value\""));
+        assert!(is_valid_meteor_format(
+            "app:ui:message=\"Hello; World\"; theme=dark"
+        ));
+        assert!(is_valid_meteor_format(
+            "key1=\"val;ue\"; key2=\"another;;value\""
+        ));
 
         // Quoted values in meteor shower
-        assert!(is_valid_meteor_shower_format("app:ui:message=\"Hello;; World\" :;: user:data=\"test;;; value\""));
+        assert!(is_valid_meteor_shower_format(
+            "app:ui:message=\"Hello;; World\" :;: user:data=\"test;;; value\""
+        ));
     }
 
     #[test]
     fn test_smart_semicolon_splitting() {
-        let result = smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
+        let result =
+            smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0], "key=value");
         assert_eq!(result[1], " message=\"hello; world\"");
         assert_eq!(result[2], " theme=dark");
 
-        let result = smart_split_semicolons("message=\"value;;; with lots; of semicolons\"").unwrap();
+        let result =
+            smart_split_semicolons("message=\"value;;; with lots; of semicolons\"").unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], "message=\"value;;; with lots; of semicolons\"");
 
@@ -413,14 +435,24 @@ mod tests {
     #[test]
     fn test_consecutive_semicolons_outside_quotes() {
         // Consecutive semicolons outside quotes should be invalid
-        assert!(has_consecutive_semicolons_outside_quotes("key=value;; theme=dark"));
-        assert!(has_consecutive_semicolons_outside_quotes("key=value;;; theme=dark"));
+        assert!(has_consecutive_semicolons_outside_quotes(
+            "key=value;; theme=dark"
+        ));
+        assert!(has_consecutive_semicolons_outside_quotes(
+            "key=value;;; theme=dark"
+        ));
 
         // Consecutive semicolons inside quotes should be OK
-        assert!(!has_consecutive_semicolons_outside_quotes("key=\"value;;; inside quotes\""));
-        assert!(!has_consecutive_semicolons_outside_quotes("message=\"hello;; world\"; theme=dark"));
+        assert!(!has_consecutive_semicolons_outside_quotes(
+            "key=\"value;;; inside quotes\""
+        ));
+        assert!(!has_consecutive_semicolons_outside_quotes(
+            "message=\"hello;; world\"; theme=dark"
+        ));
 
         // Mixed case: semicolons inside quotes OK, but consecutive outside should fail
-        assert!(has_consecutive_semicolons_outside_quotes("message=\"hello; world\";; theme=dark"));
+        assert!(has_consecutive_semicolons_outside_quotes(
+            "message=\"hello; world\";; theme=dark"
+        ));
     }
 }

@@ -1,6 +1,9 @@
 //! Foundation tests for core Meteor types using correct APIs
 
-use meteor::{TokenKey, Token, Context, Namespace, Meteor, MeteorShower, MeteorEngine, TokenStreamParser, MeteorStreamParser};
+use meteor::{
+    Context, Meteor, MeteorEngine, MeteorShower, MeteorStreamParser, Namespace, Token, TokenKey,
+    TokenStreamParser,
+};
 
 #[cfg(test)]
 mod token_key_tests {
@@ -78,7 +81,7 @@ mod meteor_tests {
         let meteor = Meteor::new(
             Context::new("app"),
             Namespace::from_string("ui"),
-            Token::new("button", "click")
+            Token::new("button", "click"),
         );
 
         assert_eq!(meteor.context().name(), "app");
@@ -90,7 +93,7 @@ mod meteor_tests {
     fn test_meteor_with_default_context() {
         let meteor = Meteor::with_default_context(
             Namespace::from_string("config"),
-            Token::new("setting", "value")
+            Token::new("setting", "value"),
         );
 
         assert_eq!(meteor.context().name(), "app");
@@ -102,7 +105,7 @@ mod meteor_tests {
         let meteor = Meteor::new(
             Context::new("app"),
             Namespace::from_string("data"),
-            Token::new("list[0]", "first")
+            Token::new("list[0]", "first"),
         );
 
         assert_eq!(meteor.token().key_notation(), "list[0]");
@@ -128,7 +131,7 @@ mod meteor_shower_tests {
         let meteor = Meteor::new(
             Context::new("app"),
             Namespace::from_string("ui"),
-            Token::new("button", "click")
+            Token::new("button", "click"),
         );
 
         shower.add(meteor);
@@ -143,13 +146,13 @@ mod meteor_shower_tests {
         shower.add(Meteor::new(
             Context::new("app"),
             Namespace::from_string("ui"),
-            Token::new("theme", "dark")
+            Token::new("theme", "dark"),
         ));
 
         shower.add(Meteor::new(
             Context::new("sys"),
             Namespace::from_string("config"),
-            Token::new("debug", "true")
+            Token::new("debug", "true"),
         ));
 
         assert_eq!(shower.len(), 2);
@@ -162,7 +165,7 @@ mod meteor_shower_tests {
         shower.add(Meteor::new(
             Context::new("test"),
             Namespace::from_string("data"),
-            Token::new("key", "value")
+            Token::new("key", "value"),
         ));
 
         let cloned = shower.clone();
@@ -269,8 +272,8 @@ mod token_stream_parser_integration_tests {
         TokenStreamParser::process(&mut engine, "button=click;ns=ui;theme=dark").unwrap();
 
         // Verify folding logic applied
-        assert_eq!(engine.get("app:main:button"), Some("click"));  // Before ns=ui
-        assert_eq!(engine.get("app:ui:theme"), Some("dark"));      // After ns=ui
+        assert_eq!(engine.get("app:main:button"), Some("click")); // Before ns=ui
+        assert_eq!(engine.get("app:ui:theme"), Some("dark")); // After ns=ui
 
         // Verify cursor state changed
         assert_eq!(engine.current_context.to_string(), "app");
@@ -282,11 +285,12 @@ mod token_stream_parser_integration_tests {
         let mut engine = MeteorEngine::new();
 
         // Process stream with context switching
-        TokenStreamParser::process(&mut engine, "app_setting=value;ctx=user;profile=admin").unwrap();
+        TokenStreamParser::process(&mut engine, "app_setting=value;ctx=user;profile=admin")
+            .unwrap();
 
         // Verify context switching applied
-        assert_eq!(engine.get("app:main:app_setting"), Some("value"));  // Before ctx=user
-        assert_eq!(engine.get("user:main:profile"), Some("admin"));     // After ctx=user
+        assert_eq!(engine.get("app:main:app_setting"), Some("value")); // Before ctx=user
+        assert_eq!(engine.get("user:main:profile"), Some("admin")); // After ctx=user
 
         // Verify cursor state changed
         assert_eq!(engine.current_context.to_string(), "user");
@@ -304,8 +308,8 @@ mod token_stream_parser_integration_tests {
         TokenStreamParser::process(&mut engine, "continued=value").unwrap();
 
         // Verify stream continuity
-        assert_eq!(engine.get("app:main:initial"), Some("value"));   // First stream
-        assert_eq!(engine.get("app:ui:continued"), Some("value"));   // Continues from ui namespace
+        assert_eq!(engine.get("app:main:initial"), Some("value")); // First stream
+        assert_eq!(engine.get("app:ui:continued"), Some("value")); // Continues from ui namespace
 
         // Final cursor state should be ui
         assert_eq!(engine.current_namespace.to_string(), "ui");
@@ -323,10 +327,12 @@ mod token_stream_parser_integration_tests {
 
         // Verify control command executed
         let history = engine.command_history();
-        assert!(history.iter().any(|cmd| cmd.command_type == "reset" && cmd.target == "cursor"));
+        assert!(history
+            .iter()
+            .any(|cmd| cmd.command_type == "reset" && cmd.target == "cursor"));
 
         // Verify regular data still processed
-        assert_eq!(engine.get("app:main:newdata"), Some("value"));  // After reset, back to main
+        assert_eq!(engine.get("app:main:newdata"), Some("value")); // After reset, back to main
     }
 }
 
@@ -354,7 +360,11 @@ mod meteor_stream_parser_integration_tests {
         let mut engine = MeteorEngine::new();
 
         // Process multiple meteors with delimiter
-        MeteorStreamParser::process(&mut engine, "app:ui:button=click :;: user:main:profile=admin").unwrap();
+        MeteorStreamParser::process(
+            &mut engine,
+            "app:ui:button=click :;: user:main:profile=admin",
+        )
+        .unwrap();
 
         // Verify both meteors processed
         assert_eq!(engine.get("app:ui:button"), Some("click"));
@@ -373,7 +383,8 @@ mod meteor_stream_parser_integration_tests {
         engine.set("app.ui.button", "click").unwrap();
 
         // Process meteor stream with control command
-        MeteorStreamParser::process(&mut engine, "ctl:reset=cursor :;: user:settings:theme=dark").unwrap();
+        MeteorStreamParser::process(&mut engine, "ctl:reset=cursor :;: user:settings:theme=dark")
+            .unwrap();
 
         // Verify control command executed
         let history = engine.command_history();
@@ -440,10 +451,15 @@ mod end_to_end_workflow_tests {
         // 2. Process user data in different context
         // After step 1, cursor should be at app:db
         // ctx=user should switch to user:db, then name=Alice stores as user:db:name
-        TokenStreamParser::process(&mut engine, "ctx=user;name=Alice;email=alice@test.com").unwrap();
+        TokenStreamParser::process(&mut engine, "ctx=user;name=Alice;email=alice@test.com")
+            .unwrap();
 
         // 3. Add some explicit meteors
-        MeteorStreamParser::process(&mut engine, "sys:config:debug=true :;: sys:config:version=1.0").unwrap();
+        MeteorStreamParser::process(
+            &mut engine,
+            "sys:config:debug=true :;: sys:config:version=1.0",
+        )
+        .unwrap();
 
         // 4. Clean up sensitive data (command recorded but deletion not yet implemented)
         TokenStreamParser::process(&mut engine, "ctl:delete=app.db.pass").unwrap();
@@ -453,16 +469,18 @@ mod end_to_end_workflow_tests {
         assert_eq!(engine.get("app:main:port"), Some("8080"));
         assert_eq!(engine.get("app:db:user"), Some("admin"));
         // TODO: Implement actual deletion in StorageData - currently delete is not implemented
-        assert_eq!(engine.get("app:db:pass"), Some("secret"));  // Still there (delete not implemented)
-        assert_eq!(engine.get("user:db:name"), Some("Alice"));  // Alice stored in user:db context
+        assert_eq!(engine.get("app:db:pass"), Some("secret")); // Still there (delete not implemented)
+        assert_eq!(engine.get("user:db:name"), Some("Alice")); // Alice stored in user:db context
         assert_eq!(engine.get("sys:config:debug"), Some("true"));
 
         // Verify command history
         let history = engine.command_history();
-        assert!(history.iter().any(|cmd| cmd.command_type == "delete" && cmd.target == "app.db.pass"));
+        assert!(history
+            .iter()
+            .any(|cmd| cmd.command_type == "delete" && cmd.target == "app.db.pass"));
 
         // Verify final cursor state
         assert_eq!(engine.current_context.to_string(), "user");
-        assert_eq!(engine.current_namespace.to_string(), "db");  // Should be db from step 2
+        assert_eq!(engine.current_namespace.to_string(), "db"); // Should be db from step 2
     }
 }

@@ -89,10 +89,16 @@ impl MeteorStreamParser {
                     let (context, namespace, key) = (key_parts[0], key_parts[1], key_parts[2]);
                     engine.set(&format!("{}:{}:{}", context, namespace, key), value)?;
                 } else {
-                    return Err(format!("Invalid meteor format: '{}' - expected context:namespace:key=value", trimmed));
+                    return Err(format!(
+                        "Invalid meteor format: '{}' - expected context:namespace:key=value",
+                        trimmed
+                    ));
                 }
             } else {
-                return Err(format!("Invalid meteor format: '{}' - missing value assignment", trimmed));
+                return Err(format!(
+                    "Invalid meteor format: '{}' - missing value assignment",
+                    trimmed
+                ));
             }
         }
 
@@ -250,7 +256,11 @@ mod tests {
         let mut engine = MeteorEngine::new();
 
         // Process explicit meteors
-        MeteorStreamParser::process(&mut engine, "app:ui:button=click :;: user:main:profile=admin").unwrap();
+        MeteorStreamParser::process(
+            &mut engine,
+            "app:ui:button=click :;: user:main:profile=admin",
+        )
+        .unwrap();
 
         // Check values were stored
         assert_eq!(engine.get("app:ui:button"), Some("click"));
@@ -271,7 +281,9 @@ mod tests {
 
         // Check command was executed
         let history = engine.command_history();
-        assert!(history.iter().any(|cmd| cmd.command_type == "reset" && cmd.target == "cursor"));
+        assert!(history
+            .iter()
+            .any(|cmd| cmd.command_type == "reset" && cmd.target == "cursor"));
 
         // Check data was stored
         assert_eq!(engine.get("app:ui:theme"), Some("dark"));
@@ -280,7 +292,9 @@ mod tests {
     #[test]
     fn test_validation() {
         assert!(MeteorStreamParser::validate("app:ui:key=value").is_ok());
-        assert!(MeteorStreamParser::validate("app:ui:key=value :;: user:main:profile=admin").is_ok());
+        assert!(
+            MeteorStreamParser::validate("app:ui:key=value :;: user:main:profile=admin").is_ok()
+        );
         assert!(MeteorStreamParser::validate("invalid format").is_err());
 
         // Meteor format requires explicit addressing - simple key=value should be invalid
@@ -291,13 +305,18 @@ mod tests {
             // If the current validator accepts simple tokens, skip this test
             // TODO: Create stricter meteor-specific validation
         } else {
-            assert!(simple_token_result.is_err(), "Simple key=value should be invalid for meteor format");
+            assert!(
+                simple_token_result.is_err(),
+                "Simple key=value should be invalid for meteor format"
+            );
         }
     }
 
     #[test]
     fn test_smart_split() {
-        let parts = MeteorStreamParser::smart_split("app:ui:button=click :;: user:main:profile=\"admin :;: test\"");
+        let parts = MeteorStreamParser::smart_split(
+            "app:ui:button=click :;: user:main:profile=\"admin :;: test\"",
+        );
         assert_eq!(parts.len(), 2);
         assert_eq!(parts[0], "app:ui:button=click");
         assert_eq!(parts[1], "user:main:profile=\"admin :;: test\"");

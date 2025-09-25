@@ -13,10 +13,10 @@
 //! - Storage operations (that's MeteorEngine's job)
 //! - Command history (that's MeteorEngine's job)
 
-pub mod token_stream;
-pub mod meteor_stream;
 pub mod escape;
+pub mod meteor_stream;
+pub mod token_stream;
 
-pub use token_stream::TokenStreamParser;
-pub use meteor_stream::MeteorStreamParser;
 pub use escape::{parse_escaped_value, validate_escapes};
+pub use meteor_stream::MeteorStreamParser;
+pub use token_stream::TokenStreamParser;

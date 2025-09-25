@@ -42,7 +42,7 @@ fn main() {
         "enterprise" => println!("cargo:rustc-cfg=meteor_enterprise"),
         "embedded" => println!("cargo:rustc-cfg=meteor_embedded"),
         "strict" => println!("cargo:rustc-cfg=meteor_strict"),
-        _ => {}, // Default profile doesn't need a cfg attribute
+        _ => {} // Default profile doesn't need a cfg attribute
     }
 
     // Extract security settings
@@ -64,7 +64,6 @@ fn extract_active_profile(config: &str) -> String {
     }
     "default".to_string()
 }
-
 
 fn extract_security_settings(config: &str) -> Vec<(String, String)> {
     let mut in_section = false;

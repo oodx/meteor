@@ -6,7 +6,7 @@
 //! - Control commands (ctl:delete=path, ctl:reset=cursor)
 //! - Delegation to MeteorEngine for state changes
 
-use crate::types::{Token, MeteorEngine, Context, Namespace};
+use crate::types::{Context, MeteorEngine, Namespace, Token};
 use crate::utils::validators::is_valid_token_format;
 use std::str::FromStr;
 
@@ -62,7 +62,8 @@ impl TokenStreamParser {
                 }
                 _ => {
                     // Regular token - store using current cursor state
-                    let path = format!("{}:{}:{}",
+                    let path = format!(
+                        "{}:{}:{}",
                         engine.current_context.to_string(),
                         engine.current_namespace.to_string(),
                         token.key().transformed()
@@ -180,7 +181,11 @@ mod tests {
         let mut engine = MeteorEngine::new();
 
         // Switch context and add data
-        TokenStreamParser::process(&mut engine, "ctx=user; profile=admin; ns=settings; theme=dark").unwrap();
+        TokenStreamParser::process(
+            &mut engine,
+            "ctx=user; profile=admin; ns=settings; theme=dark",
+        )
+        .unwrap();
 
         assert_eq!(engine.get("user:main:profile"), Some("admin"));
         assert_eq!(engine.get("user:settings:theme"), Some("dark"));
@@ -197,7 +202,9 @@ mod tests {
 
         // Check command was executed (though delete might not work due to StorageData limitations)
         let history = engine.command_history();
-        assert!(history.iter().any(|cmd| cmd.command_type == "delete" && cmd.target == "app.ui.button"));
+        assert!(history
+            .iter()
+            .any(|cmd| cmd.command_type == "delete" && cmd.target == "app.ui.button"));
     }
 
     #[test]

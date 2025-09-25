@@ -79,7 +79,8 @@ impl ContextStorage {
         let canonical_key = format!("{}:{}", namespace, key);
 
         // Store in flat data
-        self.flat_data.insert(canonical_key.clone(), value.to_string());
+        self.flat_data
+            .insert(canonical_key.clone(), value.to_string());
 
         // Update tree index
         self.update_tree_index(namespace, key, &canonical_key);
@@ -99,7 +100,8 @@ impl ContextStorage {
     /// Check if path exists as a directory
     pub fn is_directory(&self, namespace: &str, path: &str) -> bool {
         if let Some(ns_tree) = self.tree_index.get(namespace) {
-            self.traverse_path(ns_tree, path).map_or(false, |node| node.is_directory())
+            self.traverse_path(ns_tree, path)
+                .map_or(false, |node| node.is_directory())
         } else {
             false
         }
@@ -107,13 +109,21 @@ impl ContextStorage {
 
     /// Check if directory has a default value (.index pattern)
     pub fn has_default(&self, namespace: &str, path: &str) -> bool {
-        let index_key = if path.is_empty() { "index".to_string() } else { format!("{}.index", path) };
+        let index_key = if path.is_empty() {
+            "index".to_string()
+        } else {
+            format!("{}.index", path)
+        };
         self.is_file(namespace, &index_key)
     }
 
     /// Get default value for a directory path
     pub fn get_default(&self, namespace: &str, path: &str) -> Option<&str> {
-        let index_key = if path.is_empty() { "index".to_string() } else { format!("{}.index", path) };
+        let index_key = if path.is_empty() {
+            "index".to_string()
+        } else {
+            format!("{}.index", path)
+        };
         self.get(namespace, &index_key)
     }
 
@@ -174,7 +184,8 @@ impl ContextStorage {
     fn update_tree_index(&mut self, namespace: &str, key: &str, canonical_key: &str) {
         // Ensure namespace exists in tree
         if !self.tree_index.contains_key(namespace) {
-            self.tree_index.insert(namespace.to_string(), TreeNode::new_directory());
+            self.tree_index
+                .insert(namespace.to_string(), TreeNode::new_directory());
         }
 
         let path_parts: Vec<&str> = key.split('.').collect();
@@ -230,7 +241,10 @@ impl ContextStorage {
         // Insert file at final location
         if let Some(children) = current.children_mut() {
             if let Some(file_name) = path.last() {
-                children.insert(file_name.to_string(), TreeNode::new_file(canonical_key.to_string()));
+                children.insert(
+                    file_name.to_string(),
+                    TreeNode::new_file(canonical_key.to_string()),
+                );
             }
         }
     }
@@ -345,25 +359,31 @@ impl StorageData {
 
     /// Check if path exists as a file
     pub fn is_file(&self, context: &str, namespace: &str, key: &str) -> bool {
-        self.contexts.get(context)
+        self.contexts
+            .get(context)
             .map_or(false, |ctx| ctx.is_file(namespace, key))
     }
 
     /// Check if path exists as a directory
     pub fn is_directory(&self, context: &str, namespace: &str, path: &str) -> bool {
-        self.contexts.get(context)
+        self.contexts
+            .get(context)
             .map_or(false, |ctx| ctx.is_directory(namespace, path))
     }
 
     /// Check if namespace exists in context
     pub fn namespace_exists(&self, context: &str, namespace: &str) -> bool {
-        self.contexts.get(context)
-            .map_or(false, |ctx| ctx.flat_data.keys().any(|key| key.starts_with(&format!("{}:", namespace))))
+        self.contexts.get(context).map_or(false, |ctx| {
+            ctx.flat_data
+                .keys()
+                .any(|key| key.starts_with(&format!("{}:", namespace)))
+        })
     }
 
     /// Check if directory has default value
     pub fn has_default(&self, context: &str, namespace: &str, path: &str) -> bool {
-        self.contexts.get(context)
+        self.contexts
+            .get(context)
             .map_or(false, |ctx| ctx.has_default(namespace, path))
     }
 
@@ -374,19 +394,22 @@ impl StorageData {
 
     /// Find keys matching pattern in namespace
     pub fn find_keys(&self, context: &str, namespace: &str, pattern: &str) -> Vec<String> {
-        self.contexts.get(context)
+        self.contexts
+            .get(context)
             .map_or(Vec::new(), |ctx| ctx.find_keys(namespace, pattern))
     }
 
     /// Delete a specific key
     pub fn delete_key(&mut self, context: &str, namespace: &str, key: &str) -> bool {
-        self.contexts.get_mut(context)
+        self.contexts
+            .get_mut(context)
             .map_or(false, |ctx| ctx.delete_key(namespace, key))
     }
 
     /// Delete entire namespace
     pub fn delete_namespace(&mut self, context: &str, namespace: &str) -> bool {
-        self.contexts.get_mut(context)
+        self.contexts
+            .get_mut(context)
             .map_or(false, |ctx| ctx.delete_namespace(namespace))
     }
 
@@ -404,7 +427,8 @@ impl StorageData {
 
     /// Get all namespaces in a context
     pub fn namespaces_in_context(&self, context: &str) -> Vec<String> {
-        self.contexts.get(context)
+        self.contexts
+            .get(context)
             .map_or(Vec::new(), |ctx| ctx.namespaces())
     }
 
@@ -432,16 +456,20 @@ impl StorageData {
     }
 
     /// Get all key-value pairs for a context and namespace
-    pub fn get_all_keys_in_namespace(&self, context: &str, namespace: &str) -> Vec<(String, String)> {
-        self.contexts.get(context)
-            .map_or(Vec::new(), |ctx| {
-                let keys = ctx.find_keys(namespace, "*");
-                keys.into_iter()
-                    .filter_map(|key| {
-                        ctx.get(namespace, &key).map(|value| (key, value.to_string()))
-                    })
-                    .collect()
-            })
+    pub fn get_all_keys_in_namespace(
+        &self,
+        context: &str,
+        namespace: &str,
+    ) -> Vec<(String, String)> {
+        self.contexts.get(context).map_or(Vec::new(), |ctx| {
+            let keys = ctx.find_keys(namespace, "*");
+            keys.into_iter()
+                .filter_map(|key| {
+                    ctx.get(namespace, &key)
+                        .map(|value| (key, value.to_string()))
+                })
+                .collect()
+        })
     }
 }
 

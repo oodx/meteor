@@ -17,8 +17,8 @@ use crate::types::{Context, Namespace, StorageData};
 #[derive(Debug, Clone)]
 pub struct ControlCommand {
     pub timestamp: u64,
-    pub command_type: String,   // "delete", "reset", etc.
-    pub target: String,         // "app.ui.button", "cursor", etc.
+    pub command_type: String, // "delete", "reset", etc.
+    pub target: String,       // "app.ui.button", "cursor", etc.
     pub success: bool,
     pub error_message: Option<String>,
 }
@@ -61,8 +61,8 @@ pub struct MeteorEngine {
     storage: StorageData,
 
     /// Stream processing cursor state (persistent across operations)
-    pub current_context: Context,      // Default: "app"
-    pub current_namespace: Namespace,  // Default: "main"
+    pub current_context: Context, // Default: "app"
+    pub current_namespace: Namespace, // Default: "main"
 
     /// Command execution history (audit trail)
     command_history: Vec<ControlCommand>,
@@ -73,7 +73,7 @@ impl MeteorEngine {
     pub fn new() -> Self {
         Self {
             storage: StorageData::new(),
-            current_context: Context::default(),  // "app"
+            current_context: Context::default(), // "app"
             current_namespace: Namespace::from_string("main"),
             command_history: Vec::new(),
         }
@@ -175,7 +175,7 @@ impl MeteorEngine {
                 };
                 Ok(result)
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -219,14 +219,21 @@ impl MeteorEngine {
 
         let result = match command {
             "delete" => self.delete(target).map(|_| ()),
-            "reset" => {
-                match target {
-                    "cursor" => { self.reset_cursor(); Ok(()) }
-                    "storage" => { self.clear_storage(); Ok(()) }
-                    "all" => { self.reset_all(); Ok(()) }
-                    _ => Err(format!("Unknown reset target: {}", target)),
+            "reset" => match target {
+                "cursor" => {
+                    self.reset_cursor();
+                    Ok(())
                 }
-            }
+                "storage" => {
+                    self.clear_storage();
+                    Ok(())
+                }
+                "all" => {
+                    self.reset_all();
+                    Ok(())
+                }
+                _ => Err(format!("Unknown reset target: {}", target)),
+            },
             _ => Err(format!("Unknown control command: {}", command)),
         };
 
@@ -257,7 +264,10 @@ impl MeteorEngine {
 
     /// Get failed commands
     pub fn failed_commands(&self) -> Vec<&ControlCommand> {
-        self.command_history.iter().filter(|cmd| !cmd.success).collect()
+        self.command_history
+            .iter()
+            .filter(|cmd| !cmd.success)
+            .collect()
     }
 
     /// Clear command history
@@ -368,16 +378,25 @@ fn parse_meteor_path(path: &str) -> Result<(String, String, String), String> {
                 Ok((parts[0].to_string(), "main".to_string(), "".to_string()))
             } else {
                 // Two parts: "context:key" - key in main namespace of specified context
-                Ok((parts[0].to_string(), "main".to_string(), parts[1].to_string()))
+                Ok((
+                    parts[0].to_string(),
+                    "main".to_string(),
+                    parts[1].to_string(),
+                ))
             }
         }
         3 => {
             // Full meteor format: "app:ui.widgets:button"
-            Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
+            Ok((
+                parts[0].to_string(),
+                parts[1].to_string(),
+                parts[2].to_string(),
+            ))
         }
-        _ => {
-            Err(format!("Invalid meteor path format: '{}' - expected CONTEXT[:NAMESPACE[:KEY]]", path))
-        }
+        _ => Err(format!(
+            "Invalid meteor path format: '{}' - expected CONTEXT[:NAMESPACE[:KEY]]",
+            path
+        )),
     }
 }
 
@@ -407,11 +426,16 @@ fn parse_meteor_path_for_directory(path: &str) -> Result<(String, String, String
         }
         3 => {
             // Full meteor format: "app:namespace:key"
-            Ok((parts[0].to_string(), parts[1].to_string(), parts[2].to_string()))
+            Ok((
+                parts[0].to_string(),
+                parts[1].to_string(),
+                parts[2].to_string(),
+            ))
         }
-        _ => {
-            Err(format!("Invalid meteor path format: '{}' - expected CONTEXT[:NAMESPACE[:KEY]]", path))
-        }
+        _ => Err(format!(
+            "Invalid meteor path format: '{}' - expected CONTEXT[:NAMESPACE[:KEY]]",
+            path
+        )),
     }
 }
 
@@ -457,7 +481,6 @@ mod tests {
         engine.store_token_at("user", "settings", "theme", "dark");
         assert_eq!(engine.get("user:settings:theme"), Some("dark"));
     }
-
 
     #[test]
     fn test_control_commands() {
@@ -512,7 +535,9 @@ mod tests {
         // Execute various control commands
         let _ = engine.execute_control_command("delete", "app:ui:button"); // May succeed or fail due to StorageData limitations
         engine.execute_control_command("reset", "cursor").unwrap();
-        engine.execute_control_command("invalid", "command").unwrap_err();
+        engine
+            .execute_control_command("invalid", "command")
+            .unwrap_err();
 
         // Check audit trail
         let history = engine.command_history();
@@ -564,7 +589,9 @@ mod tests {
 
         // Test various path formats
         engine.set("app:ui.forms.login:username", "alice").unwrap();
-        engine.set("system:logs.error.network:timeout", "30s").unwrap();
+        engine
+            .set("system:logs.error.network:timeout", "30s")
+            .unwrap();
 
         // Verify complex paths work
         assert_eq!(engine.get("app:ui.forms.login:username"), Some("alice"));
@@ -582,9 +609,13 @@ mod tests {
 
         // Execute mix of successful and failed commands
         engine.execute_control_command("reset", "cursor").unwrap();
-        engine.execute_control_command("invalid", "command").unwrap_err();
+        engine
+            .execute_control_command("invalid", "command")
+            .unwrap_err();
         engine.execute_control_command("reset", "storage").unwrap();
-        engine.execute_control_command("unknown", "target").unwrap_err();
+        engine
+            .execute_control_command("unknown", "target")
+            .unwrap_err();
 
         // Test history filtering
         let all_commands = engine.command_history();

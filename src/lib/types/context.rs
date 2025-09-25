@@ -20,9 +20,7 @@ pub struct Context {
 impl Context {
     /// Create a new context with the given name
     pub fn new(name: impl Into<String>) -> Self {
-        Context {
-            name: name.into(),
-        }
+        Context { name: name.into() }
     }
 
     /// Create an app context (default)

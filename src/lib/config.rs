@@ -11,65 +11,65 @@
 /// Maximum meteors per MeteorShower collection
 pub const MAX_METEORS_PER_SHOWER: usize = {
     if cfg!(meteor_enterprise) {
-        10000   // Enterprise: large collections
+        10000 // Enterprise: large collections
     } else if cfg!(meteor_embedded) {
-        100     // Embedded: memory limited
+        100 // Embedded: memory limited
     } else if cfg!(meteor_strict) {
-        50      // Strict: minimal collections
+        50 // Strict: minimal collections
     } else {
-        1000    // Default: balanced
+        1000 // Default: balanced
     }
 };
 
 /// Maximum command history entries in MeteorEngine
 pub const MAX_COMMAND_HISTORY: usize = {
     if cfg!(meteor_enterprise) {
-        10000   // Enterprise: extensive audit trail
+        10000 // Enterprise: extensive audit trail
     } else if cfg!(meteor_embedded) {
-        100     // Embedded: minimal history
+        100 // Embedded: minimal history
     } else if cfg!(meteor_strict) {
-        500     // Strict: moderate history
+        500 // Strict: moderate history
     } else {
-        1000    // Default: balanced
+        1000 // Default: balanced
     }
 };
 
 /// Maximum contexts in StorageData
 pub const MAX_CONTEXTS: usize = {
     if cfg!(meteor_enterprise) {
-        1000    // Enterprise: many contexts
+        1000 // Enterprise: many contexts
     } else if cfg!(meteor_embedded) {
-        10      // Embedded: few contexts
+        10 // Embedded: few contexts
     } else if cfg!(meteor_strict) {
-        5       // Strict: minimal contexts
+        5 // Strict: minimal contexts
     } else {
-        100     // Default: balanced
+        100 // Default: balanced
     }
 };
 
 /// Maximum key length for tokens
 pub const MAX_TOKEN_KEY_LENGTH: usize = {
     if cfg!(meteor_enterprise) {
-        256     // Enterprise: long descriptive keys
+        256 // Enterprise: long descriptive keys
     } else if cfg!(meteor_embedded) {
-        32      // Embedded: short keys
+        32 // Embedded: short keys
     } else if cfg!(meteor_strict) {
-        16      // Strict: minimal keys
+        16 // Strict: minimal keys
     } else {
-        128     // Default: balanced
+        128 // Default: balanced
     }
 };
 
 /// Maximum value length for tokens
 pub const MAX_TOKEN_VALUE_LENGTH: usize = {
     if cfg!(meteor_enterprise) {
-        8192    // Enterprise: large data values
+        8192 // Enterprise: large data values
     } else if cfg!(meteor_embedded) {
-        256     // Embedded: small values
+        256 // Embedded: small values
     } else if cfg!(meteor_strict) {
-        128     // Strict: minimal values
+        128 // Strict: minimal values
     } else {
-        2048    // Default: balanced
+        2048 // Default: balanced
     }
 };
 
@@ -116,7 +116,8 @@ pub fn enable_command_audit_trail() -> bool {
 
 /// Display current configuration limits
 pub fn config_summary() -> String {
-    format!("Meteor Configuration Profile: {} (from meteor.toml)\n\
+    format!(
+        "Meteor Configuration Profile: {} (from meteor.toml)\n\
              - Max namespace part length: {}\n\
              - Namespace warning depth: {}\n\
              - Namespace error depth: {}\n\

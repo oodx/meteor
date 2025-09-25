@@ -3,9 +3,9 @@
 //! TokenBucket stores parsed token data with context isolation and
 //! namespace organization. Each context gets its own isolated storage.
 
+use crate::types::{Context, Namespace, Token};
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::types::{Context, Namespace, Token};
 
 /// Container for parsed token data with context isolation
 ///
@@ -89,9 +89,7 @@ impl TokenBucket {
         }
 
         // Load data for new context (or empty if new)
-        self.data = self.contexts
-            .remove(context.name())
-            .unwrap_or_default();
+        self.data = self.contexts.remove(context.name()).unwrap_or_default();
 
         self.context = context;
     }
@@ -109,9 +107,8 @@ impl TokenBucket {
     /// Iterate over all tokens in current context
     pub fn iter(&self) -> impl Iterator<Item = (String, String, &str)> + '_ {
         self.data.iter().flat_map(|(ns, keys)| {
-            keys.iter().map(move |(k, v)| {
-                (ns.clone(), k.clone(), v.as_str())
-            })
+            keys.iter()
+                .map(move |(k, v)| (ns.clone(), k.clone(), v.as_str()))
         })
     }
 
@@ -232,7 +229,7 @@ mod tests {
     fn test_namespace_folding() {
         let tokens = vec![
             Token::new("item", "val1"),
-            Token::new("ns", "ui"),      // switches namespace to "ui"
+            Token::new("ns", "ui"),        // switches namespace to "ui"
             Token::new("button", "click"), // goes to "ui" namespace
             Token::new("theme", "dark"),   // also goes to "ui" namespace
         ];
@@ -255,7 +252,7 @@ mod tests {
     fn test_context_switching() {
         let tokens = vec![
             Token::new("item", "val1"),
-            Token::new("ctx", "user"),     // switches context to "user"
+            Token::new("ctx", "user"),      // switches context to "user"
             Token::new("profile", "admin"), // goes to user context
         ];
 

@@ -9,7 +9,7 @@ extern crate meteor;
 mod tests {
     // Create a bracket module alias for compatibility with existing tests
     mod bracket {
-        pub use meteor::types::{transform_key, has_brackets, extract_base_name};
+        pub use meteor::types::{extract_base_name, has_brackets, transform_key};
     }
 
     #[test]
@@ -21,12 +21,18 @@ mod tests {
     #[test]
     fn sanity_sup_bracket_transform_multiple() {
         assert_eq!(bracket::transform_key("grid[2,3]").unwrap(), "grid__i_2_3");
-        assert_eq!(bracket::transform_key("matrix[x,y,z]").unwrap(), "matrix__i_x_y_z");
+        assert_eq!(
+            bracket::transform_key("matrix[x,y,z]").unwrap(),
+            "matrix__i_x_y_z"
+        );
     }
 
     #[test]
     fn sanity_sup_bracket_transform_empty() {
-        assert_eq!(bracket::transform_key("queue[]").unwrap(), "queue__i_APPEND");
+        assert_eq!(
+            bracket::transform_key("queue[]").unwrap(),
+            "queue__i_APPEND"
+        );
         assert_eq!(bracket::transform_key("list[]").unwrap(), "list__i_APPEND");
     }
 
@@ -61,13 +67,19 @@ mod tests {
     fn sanity_sup_bracket_extract_base_name() {
         assert_eq!(bracket::extract_base_name("list[0]").unwrap(), "list");
         assert_eq!(bracket::extract_base_name("grid[x,y]").unwrap(), "grid");
-        assert_eq!(bracket::extract_base_name("normal_key").unwrap(), "normal_key");
+        assert_eq!(
+            bracket::extract_base_name("normal_key").unwrap(),
+            "normal_key"
+        );
     }
 
     #[test]
     fn sanity_sup_bracket_whitespace_handling() {
         assert_eq!(bracket::transform_key("list[ 0 ]").unwrap(), "list__i_0");
-        assert_eq!(bracket::transform_key("grid[ x , y ]").unwrap(), "grid__i_x_y");
+        assert_eq!(
+            bracket::transform_key("grid[ x , y ]").unwrap(),
+            "grid__i_x_y"
+        );
     }
 
     #[test]
@@ -79,17 +91,29 @@ mod tests {
 
         // Invalid characters in indices would be caught by transform_key
         // These tests verify the overall transformation pipeline
-        assert_eq!(bracket::transform_key("list[test-key]").unwrap(), "list__i_test-key");
-        assert_eq!(bracket::transform_key("list[_underscore]").unwrap(), "list__i__underscore");
+        assert_eq!(
+            bracket::transform_key("list[test-key]").unwrap(),
+            "list__i_test-key"
+        );
+        assert_eq!(
+            bracket::transform_key("list[_underscore]").unwrap(),
+            "list__i__underscore"
+        );
     }
 
     #[test]
     fn sanity_sup_bracket_complex_cases() {
         // Multiple comma-separated indices
-        assert_eq!(bracket::transform_key("multi[a,b,c,d]").unwrap(), "multi__i_a_b_c_d");
+        assert_eq!(
+            bracket::transform_key("multi[a,b,c,d]").unwrap(),
+            "multi__i_a_b_c_d"
+        );
 
         // Mix of numeric and string indices
-        assert_eq!(bracket::transform_key("mixed[0,name,42]").unwrap(), "mixed__i_0_name_42");
+        assert_eq!(
+            bracket::transform_key("mixed[0,name,42]").unwrap(),
+            "mixed__i_0_name_42"
+        );
 
         // Single character indices
         assert_eq!(bracket::transform_key("coords[x]").unwrap(), "coords__i_x");

@@ -21,8 +21,7 @@ impl TokenKey {
     pub fn new(key: impl Into<String>) -> Self {
         let base = key.into();
         // Apply bracket transformation via key/bracket.rs
-        let transformed = super::bracket::transform_key(&base)
-            .unwrap_or_else(|_| base.clone()); // Fallback to original on error
+        let transformed = super::bracket::transform_key(&base).unwrap_or_else(|_| base.clone()); // Fallback to original on error
         TokenKey { base, transformed }
     }
 

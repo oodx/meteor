@@ -41,7 +41,9 @@ mod tests {
 
         // Test compilation - if this test passes, GLOBAL functions are available
         test_global_compilation();
-        println!("✅ GLOBAL functions (set_var, get_var, has_var, expand_vars) available via prelude");
+        println!(
+            "✅ GLOBAL functions (set_var, get_var, has_var, expand_vars) available via prelude"
+        );
         assert!(true, "GLOBAL functions available");
     }
 
@@ -104,7 +106,8 @@ mod tests {
         let global_works = std::panic::catch_unwind(|| {
             let _ = set_var::<&str, &str>;
             let _ = get_var;
-        }).is_ok();
+        })
+        .is_ok();
 
         if global_works {
             println!("✅ GLOBAL   - Functions available!");
@@ -115,7 +118,8 @@ mod tests {
         // Test if CLI Args type works
         let cli_works = std::panic::catch_unwind(|| {
             let _ = std::marker::PhantomData::<Args>;
-        }).is_ok();
+        })
+        .is_ok();
 
         if cli_works {
             println!("✅ CLI      - Types available!");
@@ -142,7 +146,9 @@ mod tests {
         println!("  • stdopts - for standard CLI option mapping ✅");
 
         println!("\nRequired Cargo.toml update:");
-        println!("  rsb = {{ features = [\"global\", \"cli\", \"stdopts\", \"strings\", \"visuals\"] }}");
+        println!(
+            "  rsb = {{ features = [\"global\", \"cli\", \"stdopts\", \"strings\", \"visuals\"] }}"
+        );
 
         println!("\nNext steps:");
         println!("1. Update Cargo.toml with missing features");

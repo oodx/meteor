@@ -88,7 +88,11 @@ impl Meteor {
             0 => {
                 // No context or namespace, just token(s) - use default namespace
                 let tokens = Self::parse_tokens(s)?;
-                Ok(Meteor::new_with_tokens(Context::default(), Namespace::default(), tokens))
+                Ok(Meteor::new_with_tokens(
+                    Context::default(),
+                    Namespace::default(),
+                    tokens,
+                ))
             }
             1 => {
                 // Format: namespace:token(s)
@@ -99,7 +103,11 @@ impl Meteor {
                     // Assume first part is namespace (no context specified)
                     let namespace = Namespace::from_string(parts[0]);
                     let tokens = Self::parse_tokens(parts[1])?;
-                    Ok(Meteor::new_with_tokens(Context::default(), namespace, tokens))
+                    Ok(Meteor::new_with_tokens(
+                        Context::default(),
+                        namespace,
+                        tokens,
+                    ))
                 } else {
                     return Err(format!("Invalid meteor format: {}", s));
                 }
@@ -114,15 +122,16 @@ impl Meteor {
 
                 Ok(Meteor::new_with_tokens(context, namespace, tokens))
             }
-            _ => {
-                Err(format!("Too many colons in meteor format: {}", s))
-            }
+            _ => Err(format!("Too many colons in meteor format: {}", s)),
         }
     }
 
     /// Parse semicolon-separated tokens
     fn parse_tokens(tokens_str: &str) -> Result<Vec<Token>, String> {
-        let token_parts = tokens_str.split(';').map(|s| s.trim()).filter(|s| !s.is_empty());
+        let token_parts = tokens_str
+            .split(';')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty());
         let mut tokens = Vec::new();
 
         for token_str in token_parts {
@@ -136,17 +145,20 @@ impl Meteor {
 
         Ok(tokens)
     }
-
 }
 
 impl fmt::Display for Meteor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let tokens_str = self.tokens.iter()
+        let tokens_str = self
+            .tokens
+            .iter()
             .map(|token| format!("{}={}", token.key().to_string(), token.value()))
             .collect::<Vec<_>>()
             .join(";");
 
-        write!(f, "{}:{}:{}",
+        write!(
+            f,
+            "{}:{}:{}",
             self.context.to_string(),
             self.namespace.to_string(),
             tokens_str
@@ -216,7 +228,7 @@ mod tests {
         let meteor = Meteor::new(
             Context::user(),
             Namespace::from_string("settings"),
-            Token::new("theme", "dark")
+            Token::new("theme", "dark"),
         );
         assert_eq!(meteor.to_string(), "user:settings:theme=dark");
     }

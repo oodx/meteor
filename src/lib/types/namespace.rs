@@ -4,7 +4,9 @@ use std::fmt;
 use std::str::FromStr;
 
 // Re-export config constants for backward compatibility
-pub use crate::types::meteor::config::{MAX_NAMESPACE_PART_LENGTH, NAMESPACE_WARNING_DEPTH, NAMESPACE_ERROR_DEPTH};
+pub use crate::types::meteor::config::{
+    MAX_NAMESPACE_PART_LENGTH, NAMESPACE_ERROR_DEPTH, NAMESPACE_WARNING_DEPTH,
+};
 
 /// Hierarchical namespace for organizing tokens within a context
 ///
@@ -51,7 +53,10 @@ impl Namespace {
             }
 
             if part.len() > MAX_NAMESPACE_PART_LENGTH {
-                return Err(format!("Namespace part '{}' too long (max {} chars)", part, MAX_NAMESPACE_PART_LENGTH));
+                return Err(format!(
+                    "Namespace part '{}' too long (max {} chars)",
+                    part, MAX_NAMESPACE_PART_LENGTH
+                ));
             }
 
             // Check for valid identifier characters
@@ -67,7 +72,11 @@ impl Namespace {
 
         // Check depth limits (error at NAMESPACE_ERROR_DEPTH levels)
         if parts.len() >= NAMESPACE_ERROR_DEPTH {
-            return Err(format!("Namespace too deep: {} levels (max {})", parts.len(), NAMESPACE_ERROR_DEPTH - 1));
+            return Err(format!(
+                "Namespace too deep: {} levels (max {})",
+                parts.len(),
+                NAMESPACE_ERROR_DEPTH - 1
+            ));
         }
 
         Ok(Namespace { parts })
@@ -103,7 +112,10 @@ impl Namespace {
         if self.parts.len() >= other.parts.len() {
             return false;
         }
-        self.parts.iter().zip(other.parts.iter()).all(|(a, b)| a == b)
+        self.parts
+            .iter()
+            .zip(other.parts.iter())
+            .all(|(a, b)| a == b)
     }
 }
 
@@ -152,11 +164,12 @@ fn is_valid_namespace_part(part: &str) -> bool {
 
 /// Check if a namespace part is reserved
 fn is_reserved_namespace(part: &str) -> bool {
-    matches!(part,
+    matches!(
+        part,
         "global" | "root" | "default" |           // System namespaces (main allowed)
         "ctl" | "control" |                       // Control commands
         "ctx" | "context" |                       // Context switching
-        "ns" | "namespace"                        // Namespace switching (sys/system/test/debug/dev allowed)
+        "ns" | "namespace" // Namespace switching (sys/system/test/debug/dev allowed)
     )
 }
 
@@ -255,5 +268,3 @@ mod tests {
         assert!(Namespace::from_str("ui..widgets").is_err());
     }
 }
-
-

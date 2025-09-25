@@ -53,10 +53,12 @@ pub fn transform_key(key: &str) -> Result<String, MeteorError> {
 /// Returns (base_name, Vec<index_strings>)
 fn parse_bracket_notation(key: &str) -> Result<(String, Vec<String>), MeteorError> {
     // Find bracket positions
-    let open_pos = key.find('[')
+    let open_pos = key
+        .find('[')
         .ok_or_else(|| MeteorError::invalid_bracket(key, "missing opening bracket"))?;
 
-    let close_pos = key.rfind(']')
+    let close_pos = key
+        .rfind(']')
         .ok_or_else(|| MeteorError::invalid_bracket(key, "missing closing bracket"))?;
 
     if close_pos <= open_pos {
@@ -69,7 +71,10 @@ fn parse_bracket_notation(key: &str) -> Result<(String, Vec<String>), MeteorErro
 
     // Check for nested brackets (not supported in basic implementation)
     if bracket_content.contains('[') || bracket_content.contains(']') {
-        return Err(MeteorError::invalid_bracket(key, "nested brackets not supported"));
+        return Err(MeteorError::invalid_bracket(
+            key,
+            "nested brackets not supported",
+        ));
     }
 
     // Parse indices
@@ -135,7 +140,8 @@ pub fn extract_base_name(key: &str) -> Result<String, MeteorError> {
         return Ok(key.to_string());
     }
 
-    let open_pos = key.find('[')
+    let open_pos = key
+        .find('[')
         .ok_or_else(|| MeteorError::invalid_bracket(key, "missing opening bracket"))?;
 
     Ok(key[..open_pos].to_string())
@@ -274,7 +280,10 @@ mod reverse_tests {
     #[test]
     fn test_reverse_transform_multi_dimensional() {
         assert_eq!(reverse_transform_key("grid__i_2_3").unwrap(), "grid[2,3]");
-        assert_eq!(reverse_transform_key("matrix__i_x_y_z").unwrap(), "matrix[x,y,z]");
+        assert_eq!(
+            reverse_transform_key("matrix__i_x_y_z").unwrap(),
+            "matrix[x,y,z]"
+        );
     }
 
     #[test]
@@ -285,8 +294,14 @@ mod reverse_tests {
 
     #[test]
     fn test_reverse_transform_named() {
-        assert_eq!(reverse_transform_key("person__name").unwrap(), "person[name]");
-        assert_eq!(reverse_transform_key("config__database").unwrap(), "config[database]");
+        assert_eq!(
+            reverse_transform_key("person__name").unwrap(),
+            "person[name]"
+        );
+        assert_eq!(
+            reverse_transform_key("config__database").unwrap(),
+            "config[database]"
+        );
     }
 
     #[test]
