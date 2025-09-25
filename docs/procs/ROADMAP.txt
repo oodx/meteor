@@ -21,11 +21,11 @@
   - Context, Namespace, TokenKey with bracket notation
   - Token with key-value pairs
   - Meteor with multi-token support
-  - MeteorShower with cross-context indexing
-  - StorageData for interchange format
+  - MeteorEngine with StorageData hybrid indexing (cursor + command history)
+  - MeteorShower retained for compatibility but no longer primary
 
 **CRITICAL ISSUES**:
-❌ Architectural Inversion: TokenBucket exists but should be deleted
+❌ TokenBucket still present in codebase (needs full removal or clear legacy path)
 ❌ Compilation Error: Duplicate parser module definition
 ❌ Broken Tests: Using old APIs and non-existent types
 ❌ Documentation Debt: Previous docs contained hallucinations
@@ -41,8 +41,8 @@
 4. Create minimal working test foundation
 
 **PHASE 2: COMPLETE ARCHITECTURE** (6-8 hours)
-1. Implement proper MeteorShower-primary architecture
-2. Create comprehensive test suite for all types
+1. Finalise MeteorEngine-first architecture (MeteorShower deprecated, TokenBucket removed)
+2. Create comprehensive test suite for engine + parsers
 3. Validate RSB CLI with corrected architecture
 4. Ensure all 23 RSB tests continue passing
 
@@ -67,8 +67,8 @@
 - All tests using correct APIs and types
 
 **M3: Architecture Complete** (Target: 3-5 days)
-- MeteorShower as proven primary storage
-- TokenBucket completely removed from codebase
+- MeteorEngine as proven primary storage
+- TokenBucket completely removed from codebase (or isolated legacy shim)
 - Full TOKEN_NAMESPACE_CONCEPT compliance
 
 **M4: Production Ready** (Target: 1 week)
@@ -84,8 +84,8 @@
 **Minimal Viable Product**:
 - cargo build && cargo test passes
 - ./target/debug/meteor help works
-- MeteorShower can parse "app:ui:button=click"
-- No TokenBucket references anywhere in codebase
+- MeteorEngine can ingest "app:ui:button=click"
+- No TokenBucket references anywhere in active code paths
 
 **Production Ready**:
 - Comprehensive test coverage for all types

@@ -291,6 +291,9 @@
 ### 🚨 **NEXT PHASE**:
 **Parser Integration Complete** → Ready for CLI Enhancement or Production Use
 
+### ⚠️ **Active Regressions**
+- **REGR-03**: `types::namespace::tests::test_namespace_depth` and `test_depth_thresholds` failing under default profile. Tests expect enterprise depth thresholds (warn at 6, error at 8) but build config delivers default profile (warn at 5, error at 6). Needs either profile alignment or test parametrisation.
+
 ### 🚀 NEXT OPTIONS
 
 **Option A: Fix Critical Regression (TICKET-012)**

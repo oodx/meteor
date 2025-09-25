@@ -180,7 +180,7 @@ cargo run --bin meteor -- parse "app:ui:button=click"     # Working meteor forma
 - **Ready For**: CLI Enhancement (TICKET-012) or Production Deployment
 
 ### HANDOFF-2025-09-24-FOUNDATION-REPAIR
-- ✅ **TokenBucket Removal**: Clean architectural correction
+- ⚠️ **TokenBucket Removal Pending**: Legacy type still present; track under current roadmap
 - ✅ **Foundation Tests**: 14 tests written against real APIs
 - ✅ **RSB CLI Learning**: Proper patterns from documentation
 - ✅ **Clean Architecture**: No broken references or compilation errors
@@ -199,11 +199,11 @@ cargo run --bin meteor -- parse "app:ui:button=click"     # Working meteor forma
 - ✅ Proper argument order: args first, flags last
 - ✅ Built-in commands (help, inspect, stack) working
 
-### 🚀 **Infrastructure Success:**
+### 🚀 **Infrastructure Status:**
 - ✅ Clean compilation - no errors or warnings (except stubbed parse function)
 - ✅ 49 tests passing - no broken or failing tests
-- ✅ Foundation tests validate all core type functionality
-- ✅ TokenBucket architectural debt completely resolved
+- ✅ Foundation tests validate core type functionality
+- ⚠️ TokenBucket architectural debt still outstanding (pending removal)
 
 ### 📊 **Quality Metrics:**
 - ✅ 49/49 tests passing (100% pass rate)
