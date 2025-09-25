@@ -164,14 +164,14 @@ impl MeteorEngine {
                 let result = if key.is_empty() {
                     if namespace.is_empty() {
                         // Delete entire context
-                        self.delete_context(&context)
+                        self.storage.delete_context(&context)
                     } else {
                         // Delete entire namespace
-                        self.delete_namespace(&context, &namespace)
+                        self.storage.delete_namespace(&context, &namespace)
                     }
                 } else {
                     // Delete specific key
-                    self.delete_key(&context, &namespace, &key)
+                    self.storage.delete_key(&context, &namespace, &key)
                 };
                 Ok(result)
             }
@@ -179,32 +179,33 @@ impl MeteorEngine {
         }
     }
 
-    /// Find paths matching pattern (basic implementation)
+    /// Find paths matching pattern (enhanced with hybrid storage)
     pub fn find(&self, pattern: &str) -> Vec<String> {
         let mut results = Vec::new();
 
-        for context in self.storage.contexts() {
-            for namespace in self.storage.namespaces_in_context(&context) {
-                // For now, simple pattern matching
-                // Could be expanded to support wildcards like "app.*.button"
-                if pattern.contains('*') {
-                    // TODO: Implement wildcard matching
-                    continue;
-                }
-
-                // Exact path matching
-                let path = if namespace.is_empty() {
-                    format!("{}.{}", context, pattern.split('.').last().unwrap_or(""))
-                } else {
-                    format!("{}.{}", context, namespace)
-                };
-
-                if self.exists(&path) {
-                    results.push(path);
+        // Parse pattern to determine context, namespace, and key pattern
+        if let Ok((context, namespace, key_pattern)) = parse_meteor_path(pattern) {
+            // Use the new find_keys method from hybrid storage
+            let keys = self.storage.find_keys(&context, &namespace, &key_pattern);
+            for key in keys {
+                results.push(format!("{}:{}:{}", context, namespace, key));
+            }
+        } else {
+            // Fallback to simple pattern matching across all contexts/namespaces
+            for context in self.storage.contexts() {
+                for namespace in self.storage.namespaces_in_context(&context) {
+                    let keys = self.storage.find_keys(&context, &namespace, "*");
+                    for key in keys {
+                        let full_path = format!("{}:{}:{}", context, namespace, key);
+                        if full_path.contains(pattern) {
+                            results.push(full_path);
+                        }
+                    }
                 }
             }
         }
 
+        results.sort();
         results
     }
 
@@ -284,32 +285,43 @@ impl MeteorEngine {
     }
 
     // ================================
-    // Internal Deletion Operations
+    // Hybrid Storage Methods
     // ================================
 
-    /// Delete specific key
-    fn delete_key(&mut self, context: &str, namespace: &str, key: &str) -> bool {
-        // StorageData doesn't have delete_key method yet, so we'll implement it here
-        // TODO: Add delete methods to StorageData
-        if self.storage.get(context, namespace, key).is_some() {
-            // For now, we can't actually delete from StorageData
-            // This would need to be implemented in StorageData
-            false
+    /// Check if path exists as a file
+    pub fn is_file(&self, path: &str) -> bool {
+        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+            self.storage.is_file(&context, &namespace, &key)
         } else {
             false
         }
     }
 
-    /// Delete entire namespace
-    fn delete_namespace(&mut self, context: &str, namespace: &str) -> bool {
-        // TODO: Implement namespace deletion in StorageData
-        self.storage.namespaces_in_context(context).contains(&namespace.to_string())
+    /// Check if path exists as a directory
+    pub fn is_directory(&self, path: &str) -> bool {
+        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+            self.storage.is_directory(&context, &namespace, &key)
+        } else {
+            false
+        }
     }
 
-    /// Delete entire context
-    fn delete_context(&mut self, context: &str) -> bool {
-        // TODO: Implement context deletion in StorageData
-        self.storage.contexts().contains(&context.to_string())
+    /// Check if directory has default value (.index pattern)
+    pub fn has_default(&self, path: &str) -> bool {
+        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+            self.storage.has_default(&context, &namespace, &key)
+        } else {
+            false
+        }
+    }
+
+    /// Get default value for directory
+    pub fn get_default(&self, path: &str) -> Option<&str> {
+        if let Ok((context, namespace, key)) = parse_meteor_path(path) {
+            self.storage.get_default(&context, &namespace, &key)
+        } else {
+            None
+        }
     }
 }
 

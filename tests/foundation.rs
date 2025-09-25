@@ -179,20 +179,20 @@ mod meteor_engine_integration_tests {
     fn test_meteor_engine_basic_operations() {
         let mut engine = MeteorEngine::new();
 
-        // Test basic dot-notation API
-        engine.set("app.ui.button", "click").unwrap();
-        engine.set("app.ui.theme", "dark").unwrap();
-        engine.set("user.profile.name", "Alice").unwrap();
+        // Test basic colon-notation API
+        engine.set("app:ui:button", "click").unwrap();
+        engine.set("app:ui:theme", "dark").unwrap();
+        engine.set("user:profile:name", "Alice").unwrap();
 
         // Test retrieval
-        assert_eq!(engine.get("app.ui.button"), Some("click"));
-        assert_eq!(engine.get("app.ui.theme"), Some("dark"));
-        assert_eq!(engine.get("user.profile.name"), Some("Alice"));
+        assert_eq!(engine.get("app:ui:button"), Some("click"));
+        assert_eq!(engine.get("app:ui:theme"), Some("dark"));
+        assert_eq!(engine.get("user:profile:name"), Some("Alice"));
         assert_eq!(engine.get("nonexistent"), None);
 
         // Test existence checks
-        assert!(engine.exists("app.ui.button"));
-        assert!(!engine.exists("missing.key"));
+        assert!(engine.exists("app:ui:button"));
+        assert!(!engine.exists("missing:key"));
     }
 
     #[test]
@@ -253,8 +253,8 @@ mod token_stream_parser_integration_tests {
         TokenStreamParser::process(&mut engine, "button=click;theme=dark").unwrap();
 
         // Verify data stored with cursor context/namespace
-        assert_eq!(engine.get("app.main.button"), Some("click"));
-        assert_eq!(engine.get("app.main.theme"), Some("dark"));
+        assert_eq!(engine.get("app:main:button"), Some("click"));
+        assert_eq!(engine.get("app:main:theme"), Some("dark"));
 
         // Verify cursor state unchanged (no control tokens)
         assert_eq!(engine.current_context.to_string(), "app");
@@ -269,8 +269,8 @@ mod token_stream_parser_integration_tests {
         TokenStreamParser::process(&mut engine, "button=click;ns=ui;theme=dark").unwrap();
 
         // Verify folding logic applied
-        assert_eq!(engine.get("app.main.button"), Some("click"));  // Before ns=ui
-        assert_eq!(engine.get("app.ui.theme"), Some("dark"));      // After ns=ui
+        assert_eq!(engine.get("app:main:button"), Some("click"));  // Before ns=ui
+        assert_eq!(engine.get("app:ui:theme"), Some("dark"));      // After ns=ui
 
         // Verify cursor state changed
         assert_eq!(engine.current_context.to_string(), "app");
@@ -285,8 +285,8 @@ mod token_stream_parser_integration_tests {
         TokenStreamParser::process(&mut engine, "app_setting=value;ctx=user;profile=admin").unwrap();
 
         // Verify context switching applied
-        assert_eq!(engine.get("app.main.app_setting"), Some("value"));  // Before ctx=user
-        assert_eq!(engine.get("user.main.profile"), Some("admin"));     // After ctx=user
+        assert_eq!(engine.get("app:main:app_setting"), Some("value"));  // Before ctx=user
+        assert_eq!(engine.get("user:main:profile"), Some("admin"));     // After ctx=user
 
         // Verify cursor state changed
         assert_eq!(engine.current_context.to_string(), "user");
@@ -304,8 +304,8 @@ mod token_stream_parser_integration_tests {
         TokenStreamParser::process(&mut engine, "continued=value").unwrap();
 
         // Verify stream continuity
-        assert_eq!(engine.get("app.main.initial"), Some("value"));   // First stream
-        assert_eq!(engine.get("app.ui.continued"), Some("value"));   // Continues from ui namespace
+        assert_eq!(engine.get("app:main:initial"), Some("value"));   // First stream
+        assert_eq!(engine.get("app:ui:continued"), Some("value"));   // Continues from ui namespace
 
         // Final cursor state should be ui
         assert_eq!(engine.current_namespace.to_string(), "ui");
@@ -326,7 +326,7 @@ mod token_stream_parser_integration_tests {
         assert!(history.iter().any(|cmd| cmd.command_type == "reset" && cmd.target == "cursor"));
 
         // Verify regular data still processed
-        assert_eq!(engine.get("app.main.newdata"), Some("value"));  // After reset, back to main
+        assert_eq!(engine.get("app:main:newdata"), Some("value"));  // After reset, back to main
     }
 }
 
@@ -342,7 +342,7 @@ mod meteor_stream_parser_integration_tests {
         MeteorStreamParser::process(&mut engine, "app:ui:button=click").unwrap();
 
         // Verify explicit addressing worked
-        assert_eq!(engine.get("app.ui.button"), Some("click"));
+        assert_eq!(engine.get("app:ui:button"), Some("click"));
 
         // Verify cursor state unchanged (explicit addressing doesn't affect cursor)
         assert_eq!(engine.current_context.to_string(), "app");
@@ -357,8 +357,8 @@ mod meteor_stream_parser_integration_tests {
         MeteorStreamParser::process(&mut engine, "app:ui:button=click :;: user:main:profile=admin").unwrap();
 
         // Verify both meteors processed
-        assert_eq!(engine.get("app.ui.button"), Some("click"));
-        assert_eq!(engine.get("user.main.profile"), Some("admin"));
+        assert_eq!(engine.get("app:ui:button"), Some("click"));
+        assert_eq!(engine.get("user:main:profile"), Some("admin"));
 
         // Cursor should be unchanged
         assert_eq!(engine.current_context.to_string(), "app");
@@ -380,7 +380,7 @@ mod meteor_stream_parser_integration_tests {
         assert!(history.iter().any(|cmd| cmd.command_type == "reset"));
 
         // Verify meteor processed
-        assert_eq!(engine.get("user.settings.theme"), Some("dark"));
+        assert_eq!(engine.get("user:settings:theme"), Some("dark"));
     }
 }
 
@@ -397,7 +397,7 @@ mod parser_validation_integration_tests {
         assert!(result.is_err());
 
         // Engine should remain unchanged
-        assert_eq!(engine.get("app.main.invalid"), None);
+        assert_eq!(engine.get("app:main:invalid"), None);
     }
 
     #[test]
@@ -409,7 +409,7 @@ mod parser_validation_integration_tests {
         assert!(result.is_err());
 
         // Engine should remain unchanged
-        assert_eq!(engine.get("app.main.invalid"), None);
+        assert_eq!(engine.get("app:main:invalid"), None);
     }
 
     #[test]
@@ -421,7 +421,7 @@ mod parser_validation_integration_tests {
 
         // Verify quoted value preserved correctly (quotes currently preserved in storage)
         // TODO: Integrate escape sequence parsing to strip quotes
-        assert_eq!(engine.get("app.main.message"), Some("\"Hello; World\""));
+        assert_eq!(engine.get("app:main:message"), Some("\"Hello; World\""));
     }
 }
 
@@ -449,13 +449,13 @@ mod end_to_end_workflow_tests {
         TokenStreamParser::process(&mut engine, "ctl:delete=app.db.pass").unwrap();
 
         // Verify final state
-        assert_eq!(engine.get("app.main.host"), Some("localhost"));
-        assert_eq!(engine.get("app.main.port"), Some("8080"));
-        assert_eq!(engine.get("app.db.user"), Some("admin"));
+        assert_eq!(engine.get("app:main:host"), Some("localhost"));
+        assert_eq!(engine.get("app:main:port"), Some("8080"));
+        assert_eq!(engine.get("app:db:user"), Some("admin"));
         // TODO: Implement actual deletion in StorageData - currently delete is not implemented
-        assert_eq!(engine.get("app.db.pass"), Some("secret"));  // Still there (delete not implemented)
-        assert_eq!(engine.get("user.db.name"), Some("Alice"));  // Alice stored in user:db context
-        assert_eq!(engine.get("sys.config.debug"), Some("true"));
+        assert_eq!(engine.get("app:db:pass"), Some("secret"));  // Still there (delete not implemented)
+        assert_eq!(engine.get("user:db:name"), Some("Alice"));  // Alice stored in user:db context
+        assert_eq!(engine.get("sys:config:debug"), Some("true"));
 
         // Verify command history
         let history = engine.command_history();

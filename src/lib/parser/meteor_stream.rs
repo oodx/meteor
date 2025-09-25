@@ -78,17 +78,21 @@ impl MeteorStreamParser {
                 continue;
             }
 
-            // Parse as a complete meteor with explicit addressing
-            let meteor = crate::types::Meteor::first(trimmed)
-                .map_err(|e| format!("Failed to parse meteor '{}': {}", trimmed, e))?;
+            // Parse as explicit meteor format: context:namespace:key=value
+            if let Some((key_value, _)) = trimmed.split_once('=') {
+                // Extract key=value part
+                let value = &trimmed[key_value.len() + 1..];
 
-            // Store all tokens from the meteor using explicit addressing
-            for token in meteor.tokens() {
-                let full_path = format!("{}:{}:{}",
-                    meteor.context().name(),
-                    meteor.namespace().to_string(),
-                    token.key().transformed());
-                engine.set(&full_path, token.value())?;
+                // Parse the key part as context:namespace:key
+                let key_parts: Vec<&str> = key_value.split(':').collect();
+                if key_parts.len() == 3 {
+                    let (context, namespace, key) = (key_parts[0], key_parts[1], key_parts[2]);
+                    engine.set(&format!("{}:{}:{}", context, namespace, key), value)?;
+                } else {
+                    return Err(format!("Invalid meteor format: '{}' - expected context:namespace:key=value", trimmed));
+                }
+            } else {
+                return Err(format!("Invalid meteor format: '{}' - missing value assignment", trimmed));
             }
         }
 

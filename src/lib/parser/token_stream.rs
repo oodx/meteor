@@ -62,7 +62,7 @@ impl TokenStreamParser {
                 }
                 _ => {
                     // Regular token - store using current cursor state
-                    let path = format!("{}.{}.{}",
+                    let path = format!("{}:{}:{}",
                         engine.current_context.to_string(),
                         engine.current_namespace.to_string(),
                         token.key().transformed()
@@ -168,8 +168,8 @@ mod tests {
         TokenStreamParser::process(&mut engine, "button=click; ns=ui; theme=dark").unwrap();
 
         // Check that values were stored correctly
-        assert_eq!(engine.get("app.main.button"), Some("click"));
-        assert_eq!(engine.get("app.ui.theme"), Some("dark"));
+        assert_eq!(engine.get("app:main:button"), Some("click"));
+        assert_eq!(engine.get("app:ui:theme"), Some("dark"));
 
         // Check cursor state changed
         assert_eq!(engine.current_namespace.to_string(), "ui");
@@ -182,8 +182,8 @@ mod tests {
         // Switch context and add data
         TokenStreamParser::process(&mut engine, "ctx=user; profile=admin; ns=settings; theme=dark").unwrap();
 
-        assert_eq!(engine.get("user.main.profile"), Some("admin"));
-        assert_eq!(engine.get("user.settings.theme"), Some("dark"));
+        assert_eq!(engine.get("user:main:profile"), Some("admin"));
+        assert_eq!(engine.get("user:settings:theme"), Some("dark"));
         assert_eq!(engine.current_context.to_string(), "user");
     }
 

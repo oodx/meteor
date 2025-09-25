@@ -214,19 +214,15 @@ fn print_text_engine_output(engine: &meteor::MeteorEngine, input: &str, verbose:
     for context in &contexts {
         let namespaces = storage.namespaces_in_context(context);
         for namespace in &namespaces {
-            // Access the HashMap directly to get keys
-            if let Some(context_data) = storage.contexts.get(context) {
-                if let Some(namespace_data) = context_data.get(namespace) {
-                    for (key, value) in namespace_data {
-                        meteor_count += 1;
-                        println!("Meteor {}:", meteor_count);
-                        println!("  Context: {}", context);
-                        println!("  Namespace: {}", if namespace.is_empty() { "(root)" } else { namespace });
-                        println!("  Key: {}", key);
-                        println!("  Value: {}", value);
-                        println!();
-                    }
-                }
+            let key_value_pairs = storage.get_all_keys_in_namespace(context, namespace);
+            for (key, value) in key_value_pairs {
+                meteor_count += 1;
+                println!("Meteor {}:", meteor_count);
+                println!("  Context: {}", context);
+                println!("  Namespace: {}", if namespace.is_empty() { "(root)" } else { namespace });
+                println!("  Key: {}", key);
+                println!("  Value: {}", value);
+                println!();
             }
         }
     }
@@ -251,19 +247,16 @@ fn print_json_engine_output(engine: &meteor::MeteorEngine, _input: &str, _verbos
     for context in &contexts {
         let namespaces = storage.namespaces_in_context(context);
         for namespace in &namespaces {
-            if let Some(context_data) = storage.contexts.get(context) {
-                if let Some(namespace_data) = context_data.get(namespace) {
-                    for (key, value) in namespace_data {
-                        if !first { println!(","); }
-                        first = false;
-                        println!("    {{");
-                        println!("      \"context\": \"{}\",", context);
-                        println!("      \"namespace\": \"{}\",", namespace);
-                        println!("      \"key\": \"{}\",", key);
-                        println!("      \"value\": \"{}\"", value);
-                        print!("    }}");
-                    }
-                }
+            let key_value_pairs = storage.get_all_keys_in_namespace(context, namespace);
+            for (key, value) in key_value_pairs {
+                if !first { println!(","); }
+                first = false;
+                println!("    {{");
+                println!("      \"context\": \"{}\",", context);
+                println!("      \"namespace\": \"{}\",", namespace);
+                println!("      \"key\": \"{}\",", key);
+                println!("      \"value\": \"{}\"", value);
+                print!("    }}");
             }
         }
     }
