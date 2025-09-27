@@ -1,56 +1,103 @@
 # Meteor Engine / CLI / REPL Roadmap
 
-This task board aligns the enhancement work in `ENGINE_ENHANCEMENT.md` and `DOC_VIRTUALIZATION_MODEL.md` with concrete tickets. Use `ENG-*` for engine features, `CLI-*` for CLI tooling, `REPL-*` for REPL changes, `TEST-*` for coverage, and `REGR-*` for regressions to watch.
+This roadmap links the architectural goals in `ENGINE_ENHANCEMENT.md` and `DOC_VIRTUALIZATION_MODEL.md` to concrete, estimable work. Every ticket carries a short goal statement, story-point estimate, dependencies, and acceptance criteria so we can sequence upgrades without destabilising the CLI/REPL stream.
 
-## Phase 0 – Foundations & Internal Workspace
-- [ENG-01] Introduce `EngineWorkspace` struct for ordering tables, query caches, and scratch buffers.
-- [ENG-02] Add mutation hooks (set/delete/reset) that invalidate workspace caches.
-- [ENG-03] Expose read-only debug view of workspace state (behind `cfg(debug_assertions)` or feature flag).
-- [REGR-03] Align namespace depth tests with active profile (choose profile override or parameterise thresholds).
+Legend: `ENG-*` Engine, `CLI-*` CLI tooling, `REPL-*` REPL, `TEST-*` coverage, `REGR-*` regression watch.
 
-## Phase 1 – Engine Iterators & Cursor Guards
-- [ENG-10] Implement `MeteorEngine::iter_entries()` and `contexts_iter`/`namespaces_iter` wrappers.
-- [ENG-11] Provide `namespace_view(context, namespace)` returning ordered slices + metadata.
-- [ENG-12] Add `CursorGuard` / `with_cursor` helper and `engine.cursor()` accessor struct.
+## Phase 0 – Foundations & Internal Workspace (8 SP)
 
-## Phase 2 – Meteor Aggregation & Virtualization Hooks
-- [ENG-20] Implement `MeteorEngine::meteors()` and `meteor_for()` grouping APIs.
-- [ENG-21] Honour ordering metadata when emitting section/part/snippet collections.
-- [ENG-22] Create export helper: `engine.export_namespace(path, context, namespace, options)`.
-- [ENG-23] Create import helper: `engine.import_namespace(path, context, namespace, options)` with metadata capture.
-- [ENG-24] Add scratch facade (`engine.scratch_slot(name)`) backed by workspace, not canonical storage.
-- [ENG-40] Enforce Meteor invariant (single context/namespace) and update `Meteor` constructors.
-- [ENG-41] Adjust parsers to emit meteors grouped by `(context, namespace)` and handle mixed-address policies.
-- [CLI-05] CLI output pipelines use `engine.meteors()` (text/json/validate).`
-- [REPL-05] REPL `meteor`, `list`, `history` commands consume new meteor view APIs.
-- [ENG-42] Reuse shared semicolon smart-split inside `Meteor::parse_tokens` and cover quoted literal regression.
-- [QA-10] Eliminate outstanding compiler/test warnings (storage_data utilities, deprecated `black_box`, unused imports).
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| ENG-01 | 3 | Planned | Introduce `EngineWorkspace` (ordering tables, query caches, scratch buffers) anchored in `StorageData` invariants. |
+| ENG-02 | 2 | Planned | Add mutation hooks (`set/delete/reset`) that invalidate workspace caches atomically. |
+| ENG-03 | 1 | Planned | Expose debug-only workspace inspection (`cfg(debug_assertions)` or feature flag). |
+| REGR-03 | 2 | Planned | Align namespace depth tests/profile overrides with enforceable configuration. |
 
-## Phase 3 – Parsing & Query Improvements
-- [ENG-30] Move path parsing into `meteor::path` with structured error types.
-- [ENG-31] Replace substring fallback in `find` with glob/prefix-aware search (uses workspace cache).
-- [ENG-32] Centralize token/meteor smart-split logic for shared use by both parsers and engine helpers.
-- [ENG-33] Introduce `EngineSetOptions` / validation hook consumed by CLI & REPL when strict mode is requested.
+**Acceptance Focus**: workspace sits behind engine API, mutation hooks ensure cache coherency, namespace depth regression guard passes under every profile.
 
-## Phase 4 – CLI Enhancements
-- [CLI-01] Factor common formatting into `src/bin/common/format.rs` powered by new engine views.
-- [CLI-02] Update `parse` command to use `engine.meteors()` for text/json output.
-- [CLI-03] Extend `validate` command with `--explain` leveraging structured parser errors.
-- [CLI-04] Add `export` / `import` subcommands that call engine helpers.
+## Phase 1 – Engine Iterators & Cursor Guards (7 SP)
 
-## Phase 5 – REPL Enhancements
-- [REPL-01] Switch `list`, `contexts`, `namespaces`, `mem` commands to new iterators/guards.
-- [REPL-02] Add `history`, `cursor`, and `meteor <ctx> <ns>` commands.
-- [REPL-03] Wire `load/export/import` commands to engine namespace helpers (with dry-run option).
-- [REPL-04] Surface scratch workspace status for debugging.
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| ENG-10 | 2 | Planned | Implement `iter_entries`, `contexts_iter`, `namespaces_iter` to replace direct `StorageData` probing. |
+| ENG-11 | 2 | Planned | Return ordered namespace views (`namespace_view`) with metadata (counts, ordering hints). |
+| ENG-12 | 3 | Planned | Add `CursorGuard` / `with_cursor` and public `engine.cursor()` accessor struct for safe cursor lifetimes. |
 
-## Phase 6 – Testing & Regression Coverage
-- [TEST-01] Add CLI smoke tests for new commands and strict validation paths.
-- [TEST-02] Add REPL integration tests (scripted input) covering cursor guard and workspace scratch.
-- [TEST-03] Add unit tests for export/import round-trip with Markdown + shell fixtures.
-- [REGR-01] Ensure legacy `find` substring behavior stays covered during migration (temporary dual-mode tests).
+**Dependencies**: Phase 0 workspace infrastructure.
 
-## Phase 7 – Documentation & Follow-up
-- [ENG-90] Update `docs/ref/architecture/METEORSHOWER_ENGINE.md` with workspace and iterator additions.
-- [ENG-91] Document export/import workflow in `docs/ref/guides/TOKEN_NAMESPACE_CONCEPT.md` and link to virtualization model.
-- [ENG-92] Decide whether advanced orchestration (watchers/services) should live in a separate wrapper repo; draft proposal if needed.
+**Acceptance Focus**: Iterators cover hybrid storage modes, cursor guard restores prior state in error paths, CLI smoke tests switch to new helpers.
+
+## Phase 2 – Meteor Aggregation & Virtualization Hooks (18 SP)
+
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| ENG-20 | 3 | Planned | Expose `MeteorEngine::meteors()` / `meteor_for()` grouped by `(context, namespace)`.
+| ENG-21 | 2 | Planned | Honour ordering metadata when emitting sections/parts/snippets.
+| ENG-22 | 2 | Planned | Implement `export_namespace` helper with configurable formats.
+| ENG-23 | 2 | Planned | Implement `import_namespace` with metadata capture & validation.
+| ENG-24 | 2 | Planned | Provide workspace-backed scratch slots (`scratch_slot`).
+| ENG-40 | 3 | Planned | Enforce Meteor invariant (single context/namespace per meteor) and update constructors.
+| ENG-41 | 2 | Planned | Align parsers with grouped meteors + mixed-address policy toggles.
+| CLI-05 | 1 | Planned | Routing layer: CLI parse output uses engine meteor views (text/json).
+| REPL-05 | 1 | Planned | REPL `meteor`, `list`, `history` commands pivot to new meteor APIs.
+| ENG-42 | 1 | Planned | Reuse central semicolon smart-split; regression test quoted literals.
+| QA-10 | 1 | Planned | Keep compiler/test warnings at zero after refactor.
+
+**Dependencies**: Phase 1 iterators/guards.
+
+**Acceptance Focus**: Aggregation APIs feed CLI/REPL, export/import round-trip tested, Meteor invariant documented and enforced without regressing existing parsers.
+
+## Phase 3 – Parsing & Query Improvements (10 SP)
+
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| ENG-30 | 3 | Planned | Move path parsing into `meteor::path` with structured error types consumed by CLI/REPL.
+| ENG-31 | 2 | Planned | Replace substring search with glob/prefix-aware `find` leveraging workspace cache.
+| ENG-32 | 2 | Planned | Centralize smart-split logic for tokens/meteors to avoid divergence.
+| ENG-33 | 3 | Planned | Introduce `EngineSetOptions`/validation hooks for strict-mode setters (CLI/REPL opt-in).
+
+**Dependencies**: Phase 2 aggregation (makes error surfaces richer).
+
+## Phase 4 – CLI Enhancements (6 SP)
+
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| CLI-01 | 2 | Planned | Shared formatter module (`src/bin/common/format.rs`) driven by meteor views.
+| CLI-02 | 1 | Planned | `parse` command uses new engine iterators (text/json parity).
+| CLI-03 | 2 | Planned | `validate` gains `--explain` using structured parser errors.
+| CLI-04 | 1 | Planned | Add `export`/`import` CLI commands wrapping engine helpers.
+
+## Phase 5 – REPL Enhancements (7 SP)
+
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| REPL-01 | 2 | Planned | Switch `list`, `contexts`, `namespaces`, `mem` to iterators/guards.
+| REPL-02 | 2 | Planned | Add `history`, `cursor`, `meteor <ctx> <ns>` commands using engine views.
+| REPL-03 | 2 | Planned | Wire `load/export/import` with dry-run via export/import helpers.
+| REPL-04 | 1 | Planned | Surface scratch workspace diagnostics (debug builds).
+
+## Phase 6 – Testing & Regression Coverage (6 SP)
+
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| TEST-01 | 2 | Planned | CLI smoke tests covering new commands + strict validation flow.
+| TEST-02 | 2 | Planned | REPL scripted integration tests (cursor guard, workspace scratch).
+| TEST-03 | 1 | Planned | Export/import round-trip unit tests (Markdown + shell fixtures).
+| REGR-01 | 1 | Planned | Dual-mode tests to ensure legacy `find` substring behaviour until cutover complete.
+
+## Phase 7 – Documentation & Follow-up (4 SP)
+
+| Ticket | SP | Status | Goal |
+|--------|----|--------|------|
+| ENG-90 | 1 | Planned | Update `docs/ref/architecture/METEORSHOWER_ENGINE.md` with workspace, iterators, aggregation APIs.
+| ENG-91 | 1 | Planned | Document export/import workflow in `TOKEN_NAMESPACE_CONCEPT.md` and link virtualization model.
+| ENG-92 | 2 | Planned | Draft recommendation on externalising the engine into a separate repo/wrapper once APIs settle.
+
+---
+
+### Aggregate View
+- **Total Scope**: ~68 SP (excluding regression guards counted with phases).
+- **Critical Path**: Phases 0 → 2 unblock CLI ticket stream (013B–013E) and ProntoDB stream adapter work.
+- **Sync Points**: After Phase 2, re-evaluate whether orchestration warrants a dedicated engine crate (ENG-92).
+
+Track status updates in `docs/procs/TASKS.txt` (integration readiness) and cross-link PDB stream work via `PDB-PLAN-01` once the contract is published.
