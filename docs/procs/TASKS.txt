@@ -308,7 +308,7 @@
 **Priority**: P1 - USER EXPERIENCE
 **Type**: CLI Enhancement
 **Effort**: 5.5-8.5 hours total (broken into sub-tickets)
-**Status**: 🔄 **IN PROGRESS** (013A complete, 013B-E pending)
+**Status**: ✅ **COMPLETED** (013A-D complete, 013E deferred)
 
 **Description**: Expand CLI capabilities for scripting, automation, and data manipulation
 
@@ -332,38 +332,52 @@
 
 **Resolution**: See commit 0563567 and TICKET-013-BREAKDOWN.md for details
 
-#### TICKET-013B: CLI Data Manipulation Commands - P2 PENDING
+#### TICKET-013B: CLI Data Manipulation Commands ✅ COMPLETED (2025-09-27)
 **Effort**: 1-2 hours
-**Status**: 🔄 **READY TO START**
+**Status**: ✅ **COMPLETED** (commit fc48dae)
 
-**Planned Commands**:
-- `meteor set <path> <value>` → Set key-value pair
-- `meteor delete <path>` → Delete key by path
+**Implemented Commands**:
+- ✅ `meteor set <path> <value>` → Set key-value pair
+- ✅ `meteor delete <path>` → Delete key by path
+- ✅ `--dry-run` flag → Preview changes without executing
 
-#### TICKET-013C: CLI History/Audit Commands - P2 PENDING
+**Resolution**: See commit fc48dae
+
+#### TICKET-013C: CLI History/Audit Commands ✅ COMPLETED (2025-09-27)
 **Effort**: 1 hour
-**Status**: 🔄 **READY TO START**
+**Status**: ✅ **COMPLETED** (commit c2712f4)
 
-**Planned Commands**:
-- `meteor history` → Show command audit trail
-- `meteor history --json` → Machine-readable format
+**Implemented Commands**:
+- ✅ `meteor history` → Show command audit trail
+- ✅ `--format=json|text` → Output formatting
+- ✅ `--limit=N` → Show last N commands
 
-#### TICKET-013D: CLI Reset Commands - P2 PENDING
+**Resolution**: See commit c2712f4
+
+#### TICKET-013D: CLI Reset Commands ✅ COMPLETED (2025-09-27)
 **Effort**: 0.5 hours
-**Status**: 🔄 **READY TO START**
+**Status**: ✅ **COMPLETED** (commit 588b54d)
 
-**Planned Commands**:
-- `meteor reset cursor` → Reset cursor to app:main
-- `meteor reset [context]` → Clear context data
+**Implemented Commands**:
+- ✅ `meteor reset cursor` → Reset cursor to app:main
+- ✅ `meteor reset storage` → Clear all stored data
+- ✅ `meteor reset all` → Reset cursor and storage
+- ✅ `meteor reset <context>` → Delete specific context
 
-#### TICKET-013E: Stream Processing Mode - P1 EVALUATE
-**Effort**: 2-3 hours OR 0 (use REPL)
-**Status**: ⚠️ **NEEDS DECISION**
+**Resolution**: See commit 588b54d
 
-**Planned Command**:
-- `meteor process-stream` → Continuous processing mode
+#### TICKET-013E: Stream Processing Mode - DEFERRED
+**Effort**: 0 hours (use REPL)
+**Status**: 🔵 **DEFERRED - Use REPL Instead**
 
-**Note**: REPL already provides interactive continuous processing. Evaluate if CLI mode is needed or if documentation should point to `meteor-repl` for interactive use.
+**Decision**:
+The meteor-repl binary already provides interactive, stateful stream processing with:
+- State persistence across commands
+- Interactive command history
+- Full data manipulation capabilities (set, get, delete, reset)
+- Stream parsing (parse, validate, token)
+
+**Recommendation**: Users should use `meteor-repl` for interactive/continuous processing workflows. The CLI commands (013A-D) are designed for one-shot scripting and automation.
 
 ### TICKET-014: Escape Sequence Support - P2 MEDIUM
 **Priority**: P2 - ROBUSTNESS
