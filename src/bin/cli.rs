@@ -12,7 +12,8 @@ fn main() {
         "contexts" => contexts_command, desc: "List all contexts",
         "namespaces" => namespaces_command, desc: "List namespaces in context",
         "set" => set_command, desc: "Set key-value pair",
-        "delete" => delete_command, desc: "Delete key by path"
+        "delete" => delete_command, desc: "Delete key by path",
+        "history" => history_command, desc: "Show command audit trail"
     });
 }
 
@@ -706,4 +707,70 @@ fn delete_command(args: Args) -> i32 {
             1
         }
     }
+}
+
+fn history_command(_args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let limit_str = get_var("opt_limit");
+    let limit: Option<usize> = if limit_str.is_empty() {
+        None
+    } else {
+        limit_str.parse().ok()
+    };
+
+    let engine = meteor::MeteorEngine::new();
+    let history = engine.command_history();
+
+    let commands_to_show: &[_] = if let Some(n) = limit {
+        if n < history.len() {
+            &history[history.len() - n..]
+        } else {
+            history
+        }
+    } else {
+        history
+    };
+
+    if commands_to_show.is_empty() {
+        match format {
+            "json" => println!("[]"),
+            _ => println!("No command history"),
+        }
+        return 0;
+    }
+
+    match format {
+        "json" => {
+            println!("[");
+            for (index, cmd) in commands_to_show.iter().enumerate() {
+                println!("  {{");
+                println!("    \"timestamp\": {},", cmd.timestamp);
+                println!("    \"command_type\": \"{}\",", cmd.command_type);
+                println!("    \"target\": \"{}\",", cmd.target);
+                println!("    \"success\": {}", cmd.success);
+                if let Some(ref err) = cmd.error_message {
+                    println!("    ,\"error\": \"{}\"", err);
+                }
+                if index + 1 < commands_to_show.len() {
+                    println!("  }},");
+                } else {
+                    println!("  }}");
+                }
+            }
+            println!("]");
+        }
+        _ => {
+            for cmd in commands_to_show {
+                let status = if cmd.success { "✓" } else { "✗" };
+                print!("{} [{}] {} {}", status, cmd.timestamp, cmd.command_type, cmd.target);
+                if let Some(ref err) = cmd.error_message {
+                    print!(" - Error: {}", err);
+                }
+                println!();
+            }
+        }
+    }
+
+    0
 }

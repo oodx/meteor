@@ -98,7 +98,7 @@ src/lib/
 │   ├── key.rs         # TokenKey with bracket transform
 │   ├── token/         # Token types
 │   │   ├── token.rs      # Key-value pairs
-│   │   └── bucket.rs     # TokenBucket (legacy, preserved)
+│   │   # TokenBucket type removed
 │   ├── meteor/        # Meteor types + configuration
 │   │   ├── meteor.rs     # Complete addressing
 │   │   ├── shower.rs     # MeteorShower collection
