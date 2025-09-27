@@ -10,7 +10,9 @@ fn main() {
         "get" => get_command, desc: "Get value by path",
         "list" => list_command, desc: "List keys and values",
         "contexts" => contexts_command, desc: "List all contexts",
-        "namespaces" => namespaces_command, desc: "List namespaces in context"
+        "namespaces" => namespaces_command, desc: "List namespaces in context",
+        "set" => set_command, desc: "Set key-value pair",
+        "delete" => delete_command, desc: "Delete key by path"
     });
 }
 
@@ -556,4 +558,152 @@ fn list_command(args: Args) -> i32 {
         }
     }
     0
+}
+
+fn set_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let dry_run = get_var("opt_dry-run") == "true" || get_var("opt_n") == "true";
+    let input = collect_input(&args);
+
+    let parts: Vec<&str> = input.splitn(2, ' ').collect();
+    if parts.len() < 2 {
+        eprintln!("Error: Missing path or value");
+        eprintln!("Usage: meteor set [--dry-run] [--format=FORMAT] <context:namespace:key> <value>");
+        eprintln!("Example: meteor set app:ui:button click");
+        eprintln!("Example: meteor set --dry-run app:ui:button click");
+        return 1;
+    }
+
+    let path = parts[0];
+    let value = parts[1];
+
+    if dry_run {
+        match format {
+            "json" => {
+                println!("{{");
+                println!("  \"dry_run\": true,");
+                println!("  \"action\": \"set\",");
+                println!("  \"path\": \"{}\",", path);
+                println!("  \"value\": \"{}\"", value);
+                println!("}}");
+            }
+            _ => {
+                println!("[DRY RUN] Would set: {} = {}", path, value);
+            }
+        }
+        return 0;
+    }
+
+    let mut engine = meteor::MeteorEngine::new();
+    match engine.set(path, value) {
+        Ok(()) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": true,");
+                    println!("  \"path\": \"{}\",", path);
+                    println!("  \"value\": \"{}\"", value);
+                    println!("}}");
+                }
+                _ => {
+                    println!("Set: {} = {}", path, value);
+                }
+            }
+            0
+        }
+        Err(err) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": false,");
+                    println!("  \"error\": \"{}\"", err);
+                    println!("}}");
+                }
+                _ => {
+                    eprintln!("Set error: {}", err);
+                }
+            }
+            1
+        }
+    }
+}
+
+fn delete_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let dry_run = get_var("opt_dry-run") == "true" || get_var("opt_n") == "true";
+    let input = collect_input(&args);
+
+    if input.is_empty() {
+        eprintln!("Error: No path provided");
+        eprintln!("Usage: meteor delete [--dry-run] [--format=FORMAT] <context:namespace:key>");
+        eprintln!("Example: meteor delete app:ui:button");
+        eprintln!("Example: meteor delete --dry-run app:ui:button");
+        return 1;
+    }
+
+    if dry_run {
+        match format {
+            "json" => {
+                println!("{{");
+                println!("  \"dry_run\": true,");
+                println!("  \"action\": \"delete\",");
+                println!("  \"path\": \"{}\"", input);
+                println!("}}");
+            }
+            _ => {
+                println!("[DRY RUN] Would delete: {}", input);
+            }
+        }
+        return 0;
+    }
+
+    let mut engine = meteor::MeteorEngine::new();
+    match engine.delete(&input) {
+        Ok(true) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": true,");
+                    println!("  \"deleted\": true,");
+                    println!("  \"path\": \"{}\"", input);
+                    println!("}}");
+                }
+                _ => {
+                    println!("Deleted: {}", input);
+                }
+            }
+            0
+        }
+        Ok(false) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": true,");
+                    println!("  \"deleted\": false,");
+                    println!("  \"path\": \"{}\"", input);
+                    println!("}}");
+                }
+                _ => {
+                    println!("Not found: {}", input);
+                }
+            }
+            1
+        }
+        Err(err) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": false,");
+                    println!("  \"error\": \"{}\"", err);
+                    println!("}}");
+                }
+                _ => {
+                    eprintln!("Delete error: {}", err);
+                }
+            }
+            1
+        }
+    }
 }
