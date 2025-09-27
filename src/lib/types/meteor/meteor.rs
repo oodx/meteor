@@ -21,29 +21,19 @@ pub struct Meteor {
 impl Meteor {
     /// Create a new Meteor with all components
     pub fn new(context: Context, namespace: Namespace, token: Token) -> Self {
-        Meteor {
-            context,
-            namespace,
-            tokens: vec![token],
-        }
+        Self::from_parts(context, namespace, vec![token])
+            .expect("token namespace must match meteor namespace")
     }
 
     /// Create a new Meteor with multiple tokens
     pub fn new_with_tokens(context: Context, namespace: Namespace, tokens: Vec<Token>) -> Self {
-        Meteor {
-            context,
-            namespace,
-            tokens,
-        }
+        Self::from_parts(context, namespace, tokens).expect("tokens must share meteor namespace")
     }
 
     /// Create with default context (app)
     pub fn with_default_context(namespace: Namespace, token: Token) -> Self {
-        Meteor {
-            context: Context::default(),
-            namespace,
-            tokens: vec![token],
-        }
+        Self::from_parts(Context::default(), namespace, vec![token])
+            .expect("token namespace must match meteor namespace")
     }
 
     /// Get the context
@@ -88,11 +78,7 @@ impl Meteor {
             0 => {
                 // No context or namespace, just token(s) - use default namespace
                 let tokens = Self::parse_tokens(s)?;
-                Ok(Meteor::new_with_tokens(
-                    Context::default(),
-                    Namespace::default(),
-                    tokens,
-                ))
+                Self::from_parts(Context::default(), Namespace::default(), tokens)
             }
             1 => {
                 // Format: namespace:token(s)
@@ -103,11 +89,7 @@ impl Meteor {
                     // Assume first part is namespace (no context specified)
                     let namespace = Namespace::from_string(parts[0]);
                     let tokens = Self::parse_tokens(parts[1])?;
-                    Ok(Meteor::new_with_tokens(
-                        Context::default(),
-                        namespace,
-                        tokens,
-                    ))
+                    Self::from_parts(Context::default(), namespace, tokens)
                 } else {
                     return Err(format!("Invalid meteor format: {}", s));
                 }
@@ -120,7 +102,7 @@ impl Meteor {
                 let namespace = Namespace::from_string(parts[1]);
                 let tokens = Self::parse_tokens(parts[2])?;
 
-                Ok(Meteor::new_with_tokens(context, namespace, tokens))
+                Self::from_parts(context, namespace, tokens)
             }
             _ => Err(format!("Too many colons in meteor format: {}", s)),
         }
@@ -128,14 +110,16 @@ impl Meteor {
 
     /// Parse semicolon-separated tokens
     fn parse_tokens(tokens_str: &str) -> Result<Vec<Token>, String> {
-        let token_parts = tokens_str
-            .split(';')
-            .map(|s| s.trim())
-            .filter(|s| !s.is_empty());
+        let parts = crate::utils::validators::smart_split_semicolons(tokens_str)
+            .ok_or_else(|| "Unbalanced quotes in token string".to_string())?;
         let mut tokens = Vec::new();
 
-        for token_str in token_parts {
-            let token = Token::first(token_str)?;
+        for token_str in parts {
+            let trimmed = token_str.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let token = Token::first(trimmed)?;
             tokens.push(token);
         }
 
@@ -144,6 +128,34 @@ impl Meteor {
         }
 
         Ok(tokens)
+    }
+
+    fn from_parts(
+        context: Context,
+        namespace: Namespace,
+        tokens: Vec<Token>,
+    ) -> Result<Self, String> {
+        Self::validate_tokens(&namespace, &tokens)?;
+        Ok(Meteor {
+            context,
+            namespace,
+            tokens,
+        })
+    }
+
+    fn validate_tokens(namespace: &Namespace, tokens: &[Token]) -> Result<(), String> {
+        for token in tokens {
+            if let Some(token_namespace) = token.namespace() {
+                if token_namespace != namespace {
+                    return Err(format!(
+                        "Token namespace '{}' does not match meteor namespace '{}'",
+                        token_namespace, namespace
+                    ));
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -199,6 +211,12 @@ mod tests {
     }
 
     #[test]
+    fn test_meteor_parse_mismatched_namespace() {
+        let result = Meteor::parse("app:ui.widgets:button=submit;profile:user=name");
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_meteor_parse_minimal() {
         let meteors = Meteor::parse("button=submit").unwrap();
         assert_eq!(meteors.len(), 1);
@@ -231,5 +249,21 @@ mod tests {
             Token::new("theme", "dark"),
         );
         assert_eq!(meteor.to_string(), "user:settings:theme=dark");
+    }
+
+    #[test]
+    fn test_meteor_parse_with_quoted_semicolon() {
+        let meteors = Meteor::parse("app:ui.widgets:message=\"Hello; World\"").unwrap();
+        assert_eq!(meteors.len(), 1);
+        let meteor = &meteors[0];
+        assert_eq!(meteor.namespace().to_string(), "ui.widgets");
+        assert_eq!(meteor.tokens().len(), 1);
+        assert_eq!(meteor.tokens()[0].value(), "\"Hello; World\"");
+    }
+
+    #[test]
+    fn test_meteor_parse_unbalanced_quotes() {
+        let result = Meteor::parse("app:ui.widgets:message=\"Hello; World");
+        assert!(result.is_err());
     }
 }

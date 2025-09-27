@@ -77,11 +77,17 @@ impl Token {
 
     /// Parse all tokens from semicolon-separated string: "key1=val1; key2=val2; namespace:key3=val3"
     pub fn parse(s: &str) -> Result<Vec<Self>, String> {
-        let token_parts = s.split(';').map(|s| s.trim()).filter(|s| !s.is_empty());
+        let parts = crate::utils::validators::smart_split_semicolons(s)
+            .ok_or_else(|| "Unbalanced quotes in token string".to_string())?;
+
         let mut tokens = Vec::new();
 
-        for token_str in token_parts {
-            let token = Self::parse_single(token_str)?;
+        for token_str in parts {
+            let trimmed = token_str.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            let token = Self::parse_single(trimmed)?;
             tokens.push(token);
         }
 
@@ -205,5 +211,18 @@ mod tests {
         let bracket = Token::new("list[0]", "item");
         assert_eq!(bracket.key_notation(), "list[0]");
         assert!(bracket.has_brackets());
+    }
+
+    #[test]
+    fn test_token_parse_with_quoted_semicolon() {
+        let tokens = Token::parse("message=\"Hello; World\"").unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].key_notation(), "message");
+        assert_eq!(tokens[0].value(), "\"Hello; World\"");
+    }
+
+    #[test]
+    fn test_token_parse_unbalanced_quotes() {
+        assert!(Token::parse("message=\"Hello; World").is_err());
     }
 }

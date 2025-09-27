@@ -31,7 +31,8 @@ mod tests {
         // Test that lite variants don't introduce excessive memory overhead
         // TODO: Add proper memory footprint tests after TICKET-003
 
-        assert!(true); // Placeholder during API transition
+        let usage = get_approximate_memory_usage();
+        assert_eq!(usage, 0, "Placeholder memory usage should remain zero");
     }
 
     fn get_approximate_memory_usage() -> usize {

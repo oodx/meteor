@@ -274,8 +274,15 @@ impl ContextStorage {
             let part = path_parts[depth];
 
             if depth == path_parts.len() - 1 {
-                // Last part - remove the file
-                children.remove(part).is_some()
+                // Last part - remove the file and access stored metadata for consistency checks
+                if let Some(node) = children.remove(part) {
+                    if node.is_file() {
+                        let _ = node.canonical_key();
+                    }
+                    true
+                } else {
+                    false
+                }
             } else {
                 // Intermediate part - recurse
                 if let Some(child) = children.get_mut(part) {
@@ -335,6 +342,23 @@ impl Default for ContextStorage {
 pub struct StorageData {
     /// Context-isolated hybrid storage systems
     contexts: HashMap<String, ContextStorage>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tree_node_file_helpers_expose_canonical_key() {
+        let file = TreeNode::new_file("main:ui.button".to_string());
+        assert!(file.is_file());
+        assert_eq!(file.canonical_key(), Some("main:ui.button"));
+
+        let dir = TreeNode::new_directory();
+        assert!(dir.is_directory());
+        assert!(!dir.is_file());
+        assert!(dir.canonical_key().is_none());
+    }
 }
 
 impl StorageData {

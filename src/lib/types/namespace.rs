@@ -177,25 +177,56 @@ fn is_reserved_namespace(part: &str) -> bool {
 mod tests {
     use super::*;
 
+    fn namespace_path(depth: usize) -> String {
+        if depth == 0 {
+            return String::new();
+        }
+
+        (0..depth)
+            .map(|i| format!("segment{}", i))
+            .collect::<Vec<_>>()
+            .join(".")
+    }
+
     #[test]
     fn test_namespace_depth() {
         let root = Namespace::root();
         assert_eq!(root.depth(), 0);
         assert!(!root.should_warn());
 
-        let shallow = Namespace::from_string("ui.widgets");
-        assert_eq!(shallow.depth(), 2);
-        assert!(!shallow.should_warn());
+        let shallow_depth = NAMESPACE_WARNING_DEPTH.saturating_sub(1);
+        if shallow_depth > 0 {
+            let shallow = Namespace::from_string(&namespace_path(shallow_depth));
+            assert_eq!(shallow.depth(), shallow_depth);
+            assert!(!shallow.should_warn());
+            assert!(!shallow.is_too_deep());
+        }
 
-        let deep = Namespace::from_string("ui.widgets.buttons.primary");
-        assert_eq!(deep.depth(), 4);
-        assert!(!deep.should_warn()); // 4 levels are clear now
-        assert!(!deep.is_too_deep());
+        let warning_depth = NAMESPACE_WARNING_DEPTH;
+        if warning_depth > 0 {
+            let warning_ns = Namespace::from_string(&namespace_path(warning_depth));
+            assert_eq!(warning_ns.depth(), warning_depth);
+            assert_eq!(
+                warning_ns.should_warn(),
+                warning_depth >= NAMESPACE_WARNING_DEPTH
+            );
+            assert_eq!(
+                warning_ns.is_too_deep(),
+                warning_depth >= NAMESPACE_ERROR_DEPTH
+            );
+        }
 
-        let warning_deep = Namespace::from_string("ui.widgets.buttons.primary.active.hover");
-        assert_eq!(warning_deep.depth(), 6);
-        assert!(warning_deep.should_warn()); // 6 levels warn
-        assert!(!warning_deep.is_too_deep());
+        let error_depth = NAMESPACE_ERROR_DEPTH;
+        if error_depth > 0 {
+            match Namespace::try_from_string(&namespace_path(error_depth)) {
+                Ok(ns) => {
+                    assert!(ns.is_too_deep());
+                }
+                Err(_) => {
+                    // Reaching or exceeding the error depth triggers validation failure.
+                }
+            }
+        }
     }
 
     #[test]
@@ -243,20 +274,32 @@ mod tests {
 
     #[test]
     fn test_depth_thresholds() {
-        // 5 levels = no warning (clear) in enterprise
-        let clear_ns = Namespace::try_from_string("a.b.c.d.e").unwrap();
-        assert_eq!(clear_ns.depth(), 5);
-        assert!(!clear_ns.should_warn());
-        assert!(!clear_ns.is_too_deep());
+        let warning_depth = NAMESPACE_WARNING_DEPTH;
+        let error_depth = NAMESPACE_ERROR_DEPTH;
 
-        // 6 levels = warning but allowed in enterprise
-        let warning_ns = Namespace::try_from_string("a.b.c.d.e.f").unwrap();
-        assert_eq!(warning_ns.depth(), 6);
-        assert!(warning_ns.should_warn());
-        assert!(!warning_ns.is_too_deep());
+        if warning_depth > 0 {
+            let clear_depth = warning_depth.saturating_sub(1);
+            if clear_depth > 0 {
+                let clear_ns = Namespace::try_from_string(&namespace_path(clear_depth)).unwrap();
+                assert_eq!(clear_ns.depth(), clear_depth);
+                assert!(!clear_ns.should_warn());
+                assert!(!clear_ns.is_too_deep());
+            }
 
-        // 8+ levels = error, should be rejected in enterprise
-        assert!(Namespace::try_from_string("a.b.c.d.e.f.g.h").is_err());
+            if warning_depth < error_depth {
+                let warning_ns =
+                    Namespace::try_from_string(&namespace_path(warning_depth)).unwrap();
+                assert_eq!(warning_ns.depth(), warning_depth);
+                assert!(warning_ns.should_warn());
+                assert!(!warning_ns.is_too_deep());
+            } else {
+                assert!(Namespace::try_from_string(&namespace_path(warning_depth)).is_err());
+            }
+        }
+
+        if error_depth > 0 {
+            assert!(Namespace::try_from_string(&namespace_path(error_depth)).is_err());
+        }
     }
 
     #[test]

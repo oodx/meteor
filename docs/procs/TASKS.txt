@@ -291,8 +291,16 @@
 ### 🚨 **NEXT PHASE**:
 **Parser Integration Complete** → Ready for CLI Enhancement or Production Use
 
+### 🧱 **Upcoming Architecture Work**
+- **ENG-40**: Enforce Meteor invariant (single context/namespace per meteor) – requires parser and engine updates.
+- **ENG-41**: Adjust TokenStream/MeteorStream parsers to split or reject mixed-address input according to new policy.
+- **ENG-42**: Reuse shared semicolon smart-split within `Meteor::parse_tokens` and add regression coverage for quoted literals.
+
+### 🧹 **Immediate Quality Work**
+- **QA-10**: Clear compiler/test warnings (storage_data helpers, deprecated `black_box`, unused meteor parser import).
+
 ### ⚠️ **Active Regressions**
-- **REGR-03**: `types::namespace::tests::test_namespace_depth` and `test_depth_thresholds` failing under default profile. Tests expect enterprise depth thresholds (warn at 6, error at 8) but build config delivers default profile (warn at 5, error at 6). Needs either profile alignment or test parametrisation.
+- _(none)_
 
 ### 🚀 NEXT OPTIONS
 

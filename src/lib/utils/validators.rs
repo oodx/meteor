@@ -163,7 +163,7 @@ pub fn is_valid_meteor_shower_format(s: &str) -> bool {
 ///
 /// Splits on semicolons but treats quoted strings as single units.
 /// Returns None if quotes are unclosed.
-fn smart_split_semicolons(s: &str) -> Option<Vec<&str>> {
+pub(crate) fn smart_split_semicolons(s: &str) -> Option<Vec<&str>> {
     let mut result = Vec::new();
     let mut current_start = 0;
     let mut in_quotes = false;

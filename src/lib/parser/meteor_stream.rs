@@ -6,7 +6,7 @@
 //! - Control commands (ctl:delete=path)
 //! - Delegation to MeteorEngine for state changes
 
-use crate::types::{Meteor, MeteorEngine};
+use crate::types::MeteorEngine;
 use crate::utils::validators::is_valid_meteor_format;
 use std::str::FromStr;
 

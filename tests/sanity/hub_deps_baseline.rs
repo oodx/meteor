@@ -10,7 +10,8 @@ mod tests {
         // Test that hub::test_ext provides criterion for benchmarking
         // This should work since we have test-ext feature enabled
 
-        use hub::criterion::{black_box, Criterion};
+        use hub::criterion::Criterion;
+        use std::hint::black_box;
 
         // Test basic criterion functionality
         let mut criterion = Criterion::default();

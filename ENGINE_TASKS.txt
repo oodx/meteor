@@ -19,6 +19,12 @@ This task board aligns the enhancement work in `ENGINE_ENHANCEMENT.md` and `DOC_
 - [ENG-22] Create export helper: `engine.export_namespace(path, context, namespace, options)`.
 - [ENG-23] Create import helper: `engine.import_namespace(path, context, namespace, options)` with metadata capture.
 - [ENG-24] Add scratch facade (`engine.scratch_slot(name)`) backed by workspace, not canonical storage.
+- [ENG-40] Enforce Meteor invariant (single context/namespace) and update `Meteor` constructors.
+- [ENG-41] Adjust parsers to emit meteors grouped by `(context, namespace)` and handle mixed-address policies.
+- [CLI-05] CLI output pipelines use `engine.meteors()` (text/json/validate).`
+- [REPL-05] REPL `meteor`, `list`, `history` commands consume new meteor view APIs.
+- [ENG-42] Reuse shared semicolon smart-split inside `Meteor::parse_tokens` and cover quoted literal regression.
+- [QA-10] Eliminate outstanding compiler/test warnings (storage_data utilities, deprecated `black_box`, unused imports).
 
 ## Phase 3 – Parsing & Query Improvements
 - [ENG-30] Move path parsing into `meteor::path` with structured error types.
@@ -43,7 +49,6 @@ This task board aligns the enhancement work in `ENGINE_ENHANCEMENT.md` and `DOC_
 - [TEST-02] Add REPL integration tests (scripted input) covering cursor guard and workspace scratch.
 - [TEST-03] Add unit tests for export/import round-trip with Markdown + shell fixtures.
 - [REGR-01] Ensure legacy `find` substring behavior stays covered during migration (temporary dual-mode tests).
-- [REGR-02] Track parser regression from earlier failure (`test_quoted_values_in_streams`) when refactoring split logic.
 
 ## Phase 7 – Documentation & Follow-up
 - [ENG-90] Update `docs/ref/architecture/METEORSHOWER_ENGINE.md` with workspace and iterator additions.
