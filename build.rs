@@ -12,6 +12,7 @@ fn main() {
     println!("cargo:rerun-if-changed=meteor.toml");
 
     // Declare custom cfg attributes to avoid warnings
+    println!("cargo:rustc-check-cfg=cfg(meteor_default)");
     println!("cargo:rustc-check-cfg=cfg(meteor_enterprise)");
     println!("cargo:rustc-check-cfg=cfg(meteor_embedded)");
     println!("cargo:rustc-check-cfg=cfg(meteor_strict)");
@@ -42,7 +43,8 @@ fn main() {
         "enterprise" => println!("cargo:rustc-cfg=meteor_enterprise"),
         "embedded" => println!("cargo:rustc-cfg=meteor_embedded"),
         "strict" => println!("cargo:rustc-cfg=meteor_strict"),
-        _ => {} // Default profile doesn't need a cfg attribute
+        "default" => println!("cargo:rustc-cfg=meteor_default"),
+        _ => println!("cargo:rustc-cfg=meteor_default"), // Unknown profiles default to default
     }
 
     // Extract security settings

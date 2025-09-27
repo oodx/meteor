@@ -1,99 +1,111 @@
 ================================================================================
- 🗺️ METEOR PROJECT ROADMAP
+ 🗺️ METEOR ENGINE ROADMAP
 ================================================================================
 
-🎯 **Vision**: Shooting star token data transport library with RSB CLI
-📅 **Current Status**: RSB CLI Completed, Architecture Corrections Needed
-🚀 **Priority**: Fix architectural inversion, complete test foundation
+🎯 Vision: Deliver a stateful MeteorEngine with first-class iteration, aggregation,
+          and virtualization APIs that unblock CLI/REPL parity and ProntoDB streams.
+📅 Horizon: Milestones cover the next three delivery cycles (≈6–8 weeks total).
+🚀 Priority: Stand up the workspace layer, surface iterator/guard APIs, then
+             ship meteor aggregation/export tooling.
 
 ================================================================================
- 📊 CURRENT STATE (2025-09-22)
+ 📆 MILESTONE OVERVIEW
 ================================================================================
 
-**COMPLETED**:
-✅ RSB CLI Implementation (native RSB patterns working)
-  - bootstrap!(), dispatch!(), options!() macros operational
-  - Built-in commands: help, inspect, stack
-  - Working CLI: ./target/debug/meteor help, parse, inspect
-  - 23 tests passing (11 RSB sanity + 12 types)
+| Milestone | Target Window  | Scope Summary                                         | Exit Criteria |
+|-----------|----------------|-------------------------------------------------------|---------------|
+| ME-1      | Week 1–2       | Engine workspace foundations + cache invalidation     | Workspace behind API, mutation hooks gated, debug dump ready |
+| ME-2      | Week 3–4       | Iterator surfaces, namespace views, cursor guards     | CLI smoke tests on iterators, cursor guard restores on error |
+| ME-3      | Week 5–6       | Meteor aggregation/export/import + parser alignment   | CLI/REPL powered by meteor views, export/import round trips |
 
-✅ Core Architecture Types
-  - Context, Namespace, TokenKey with bracket notation
-  - Token with key-value pairs
-  - Meteor with multi-token support
-  - MeteorEngine with StorageData hybrid indexing (cursor + command history)
-  - MeteorShower retained for compatibility but no longer primary
-
-**CRITICAL ISSUES**:
-❌ TokenBucket still present in codebase (needs full removal or clear legacy path)
-❌ Compilation Error: Duplicate parser module definition
-❌ Broken Tests: Using old APIs and non-existent types
-❌ Documentation Debt: Previous docs contained hallucinations
+Total Planned Capacity: 33 SP (ME-1: 8 SP, ME-2: 7 SP, ME-3: 18 SP)
 
 ================================================================================
- 🎯 IMMEDIATE PRIORITIES
+ 🧱 ME-1 — Workspace Foundations (Phase 0)
 ================================================================================
 
-**PHASE 1: FOUNDATION REPAIR** (4-6 hours)
-1. Fix compilation errors (duplicate parser module)
-2. Delete TokenBucket type entirely
-3. Remove broken test files using old APIs
-4. Create minimal working test foundation
+**Goal**: Introduce the internal `EngineWorkspace` layer and supporting safeguards so
+future features can rely on ordering metadata, caches, and scratch buffers without
+leaking concerns into `StorageData`.
 
-**PHASE 2: COMPLETE ARCHITECTURE** (6-8 hours)
-1. Finalise MeteorEngine-first architecture (MeteorShower deprecated, TokenBucket removed)
-2. Create comprehensive test suite for engine + parsers
-3. Validate RSB CLI with corrected architecture
-4. Ensure all 23 RSB tests continue passing
+| Ticket | SP | Status | Summary |
+|--------|----|--------|---------|
+| ENG-01 | 3  | 🔵 Ready | Implement `EngineWorkspace` (ordering tables, query caches, scratch buffers) anchored to `StorageData` invariants. |
+| ENG-02 | 2  | Planned | Add atomic mutation hooks on `set/delete/reset` to invalidate workspace caches consistently. |
+| ENG-03 | 1  | Planned | Expose debug-only workspace inspection via `cfg(debug_assertions)` toggle. |
+| REGR-03 | 2 | Planned | Align namespace depth regression guard with configuration profiles. |
 
-**PHASE 3: POLISH & VALIDATION** (3-4 hours)
-1. Complete RSB CLI Phase 3 (edge cases, feature parity)
-2. Performance validation and optimization
-3. Clean documentation aligned with reality
-4. Comprehensive validation suite
-
-================================================================================
- 🔍 NEXT MILESTONES
-================================================================================
-
-**M1: Compilation Success** (Target: Immediate)
-- lib.rs compiles without errors
-- Basic cargo build succeeds
-- Foundation ready for test development
-
-**M2: Test Foundation** (Target: 1-2 days)
-- TokenKey, Token, Meteor, MeteorShower tests working
-- RSB CLI tests integrated with corrected architecture
-- All tests using correct APIs and types
-
-**M3: Architecture Complete** (Target: 3-5 days)
-- MeteorEngine as proven primary storage
-- TokenBucket completely removed from codebase (or isolated legacy shim)
-- Full TOKEN_NAMESPACE_CONCEPT compliance
-
-**M4: Production Ready** (Target: 1 week)
-- RSB CLI Phase 3 completed
-- Performance validated
-- Comprehensive test coverage
-- Clean, accurate documentation
+**Dependencies**: None.
+**Acceptance**:
+- Workspace internal-only with accessor shims for future phases.
+- Cache invalidation triggered on every mutation path.
+- Debug builds can dump workspace state without affecting release binaries.
+- Namespace depth regression harness passes on all profiles.
 
 ================================================================================
- 📋 SUCCESS CRITERIA
+ 🔄 ME-2 — Iterators & Cursor Guards (Phase 1)
 ================================================================================
 
-**Minimal Viable Product**:
-- cargo build && cargo test passes
-- ./target/debug/meteor help works
-- MeteorEngine can ingest "app:ui:button=click"
-- No TokenBucket references anywhere in active code paths
+**Goal**: Replace direct `StorageData` probing with iterator/view APIs and provide
+cursor lifetime guards that make REPL/CLI cursor handling safe by default.
 
-**Production Ready**:
-- Comprehensive test coverage for all types
-- RSB CLI feature complete with edge case handling
-- Performance meets requirements
-- Documentation matches implementation reality
+| Ticket | SP | Status | Summary |
+|--------|----|--------|---------|
+| ENG-10 | 2 | Planned | Surface `iter_entries`, `contexts_iter`, `namespaces_iter` backed by workspace ordering hints. |
+| ENG-11 | 2 | Planned | Deliver ordered namespace views with metadata (counts, default markers, ordering hints). |
+| ENG-12 | 3 | Planned | Add `CursorGuard` / `with_cursor` helpers plus `engine.cursor()` accessor struct. |
+
+**Dependencies**: ME-1 workspace infrastructure.
+**Acceptance**:
+- Iterators cover hybrid storage (flat + tree) including empty namespaces.
+- Cursor guard automatically restores prior state on early returns/errors.
+- CLI smoke tests for `parse`, `list`, `contexts`, `namespaces` exercise new iterators.
 
 ================================================================================
-Last Updated: 2025-09-22 (Removed hallucinations, added current reality)
-Next Review: After Phase 1 completion (compilation fixed)
+ 🌠 ME-3 — Meteor Aggregation & Virtualization Hooks (Phase 2)
+================================================================================
+
+**Goal**: Provide aggregated meteor views grouped by `(context, namespace)` and hook
+up export/import capabilities in preparation for document virtualization.
+
+| Ticket | SP | Status | Summary |
+|--------|----|--------|---------|
+| ENG-20 | 3 | Planned | Expose `meteors()` / `meteor_for()` grouped views feeding CLI/REPL outputs. |
+| ENG-21 | 2 | Planned | Honor ordering metadata when emitting sections/parts/snippets. |
+| ENG-22 | 2 | Planned | Implement `export_namespace` helper supporting multiple formats. |
+| ENG-23 | 2 | Planned | Implement `import_namespace` with metadata capture & validation. |
+| ENG-24 | 2 | Planned | Provide workspace-backed scratch slots (`scratch_slot`) for REPL workflows. |
+| ENG-40 | 3 | Planned | Enforce meteor invariant (single context/namespace) and update constructors. |
+| ENG-41 | 2 | Planned | Align parsers with grouped meteors and mixed-address policy toggles. |
+| CLI-05 | 1 | Planned | Route CLI `parse` output through meteor views (text/json parity). |
+| REPL-05 | 1 | Planned | Update REPL `meteor`, `list`, `history` commands to new APIs. |
+| ENG-42 | 1 | Planned | Centralize semicolon smart-split logic; add regression tests for quoted literals. |
+| QA-10  | 1 | Planned | Maintain zero-warning baseline post-refactor. |
+
+**Dependencies**: ME-2 iterators/guards.
+**Acceptance**:
+- CLI/REPL command set consumes aggregated meteor APIs without direct `StorageData` access.
+- Export/import helpers round-trip sample fixtures and capture metadata.
+- Parser alignment retains legacy substring find behavior under compatibility flag until glob search lands.
+- Scratch slots isolated from canonical storage; debug dumps illustrate workspace usage.
+
+================================================================================
+ 🔗 CROSS-CUTTING TRACKERS
+================================================================================
+
+- **Testing**: Phase 6 tickets (TEST-01..03, REGR-01) scheduled once ME-3 stabilizes.
+- **Documentation**: ENG-90..92 will refresh architecture references post ME-3.
+- **Integration**: ProntoDB stream adapter re-evaluates after ME-3 completion.
+
+================================================================================
+ ✅ SUCCESS METRICS
+================================================================================
+
+- Every milestone exits with cargo tests + targeted CLI smoke suites passing.
+- No public API regressions (tracked via REGR-03, ENG-42, QA-10).
+- CLI/REPL latency within ±5% of pre-workspace benchmarks once ME-3 lands.
+- Workspace debug tooling available for diagnostics without enabling in release builds.
+
+Last Updated: 2025-10-03
+Next Review: Post ME-1 completion or earlier if scope shifts.
 ================================================================================

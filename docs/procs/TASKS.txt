@@ -1,509 +1,177 @@
-# METEOR TASKS - Configuration System and Architecture Refactoring Complete
-
-## 🔴 Integration Readiness Tickets (2025-09-27)
-
-### MET-BUGS-01: Reduce High-Risk Unwraps in Runtime ✅ COMPLETED
-**Priority**: P1 – Integration Stability
-**Type**: Bugfix / Hardening
-**Effort**: 5 SP (estimate)
-**Status**: ✅ **COMPLETED** (2025-09-27)
-
-**Background**: Validation surfaced 91 `unwrap()` calls across Meteor. Several live in parsing and CLI surfaces that propagate panics into downstream projects. RSB is replacing its own file-system unwraps with Result-based flows, so Meteor must follow suit to keep error contracts aligned.
-
-**Required Actions**:
-- Audit every `unwrap()` and `expect()` in core runtime, parser, and CLI modules.
-- Replace high-risk I/O / parsing unwraps with typed errors that bubble through the RSB dispatcher.
-- Update tests to assert new error variants; add regression coverage for failure paths that previously panicked.
-
-**✅ Acceptance Criteria Met**:
-1. ✅ High-risk unwrap sites now use documented `expect()` with safety invariants
-2. ✅ All tests passing (94+ tests, 100% pass rate) - no panics on malformed input
-3. ✅ All remaining unwraps documented with SAFETY comments explaining invariants
-4. ✅ Unwrap count: 23 documented runtime unwraps + 60 test unwraps = 83 total (target <30 undocumented met)
-
-**Resolution** (2025-09-27):
-- Fixed CLI unwrap in repl.rs:50 with documented expect
-- Documented parser strip_prefix safety invariants (token_stream.rs, meteor_stream.rs)
-- Added SAFETY comments to storage_data internal consistency checks
-- Created ERROR_SEMANTICS.md for PDB-PLAN-01 integration contract
-- All changes committed in a6824b0
-
-### MET-QOL-02: Normalize Worktree Ahead of Integration ✅ COMPLETED
-**Priority**: P1 – Build Hygiene
-**Type**: Quality of Life
-**Effort**: 2 SP (estimate)
-**Status**: ✅ **COMPLETED** (2025-09-27)
-
-**Background**: Current repo state has ~10 modified files and 1 untracked planning document. Dirty worktrees caused confusion during validation passes.
-
-**✅ Acceptance Criteria Met**:
-- ✅ `git status` clean on `main` - all changes committed
-- ✅ No untracked source files (only .eggs/ validation reports)
-- ✅ Fresh clone ready for validation
-
-**Resolution** (2025-09-27):
-- Worktree was already clean at start of MET-BUGS-01
-- Integration briefing and error semantics docs added and committed
-
-### MET-QOL-01: Resolve Compiler Warnings ✅ COMPLETED
-**Priority**: P2 – Developer Experience
-**Type**: Quality of Life
-**Effort**: 3 SP (estimate)
-**Status**: ✅ **COMPLETED** (pre-existing)
-
-**Background**: `cargo build --all-features` emits ~34 warnings (string prefix stripping, iterator simplifications, trait shadowing). Noise makes it harder to spot real regressions and violates team standards.
-
-**✅ Acceptance Criteria Met**:
-1. ✅ `cargo build --all-features` produces zero warnings
-2. ✅ No warnings to suppress - clean build
-3. ✅ No refactors needed - already clean
-
-**Resolution** (pre-existing):
-- Build was already warning-free before MET-BUGS-01 work began
-- Maintained zero warnings throughout unwrap audit
-
-### ✅ Integration Note → PDB-PLAN-01 Coordination Complete
-- ✅ MET-BUGS-01 complete - ERROR_SEMANTICS.md created with full error contract
-- ✅ Document includes: Result patterns, error message formats, integration guidance
-- ✅ Ready for ProntoDB integration - see ERROR_SEMANTICS.md for contract details
-- ✅ All Meteor APIs follow REBEL pattern aligned with RSB-BUGS-01
-
-## ✅ COMPLETED TICKETS
-
-### TICKET-001: Fix Compilation Error ✅ COMPLETED
-**Priority**: P0 - BLOCKING ALL DEVELOPMENT
-**Type**: Bugfix
-**Effort**: 30 minutes
-**Status**: ✅ COMPLETED (2025-09-24)
-
-**Description**: Duplicate parser module definition in lib.rs preventing compilation
-**Resolution**: Fixed all compilation errors, clean build achieved
-
-### TICKET-002: Clean Broken Test Files ✅ COMPLETED
-**Priority**: P0 - BLOCKING TESTING
-**Type**: Technical Debt
-**Effort**: 30 minutes
-**Status**: ✅ COMPLETED (2025-09-24)
-
-**Description**: Remove test content using old/non-existent APIs while preserving file structure
-**Resolution**: All broken tests removed, replaced with working foundation tests
-
-### TICKET-003: Validate MeteorShower Storage Implementation ✅ COMPLETED
-**Priority**: P1 - HIGH
-**Type**: Architecture Validation
-**Effort**: 4-6 hours
-**Status**: ✅ COMPLETED (2025-09-24)
-
-**Description**: Validate that MeteorShower can fully replace TokenBucket as primary storage
-**Resolution**: StorageData discovered as universal format, TokenBucket folding logic identified
-
-### TICKET-004: Create TokenKey & Token Foundation Tests ✅ COMPLETED
-**Priority**: P1 - HIGH
-**Type**: Test Development
-**Effort**: 2-3 hours
-**Status**: ✅ COMPLETED (2025-09-24)
-
-**Description**: Build comprehensive test foundation for core types using current APIs
-**Resolution**: 58 tests total including TokenBucket folding validation
-
-### TICKET-005: TokenBucket Architecture Discovery ✅ COMPLETED
-**Priority**: P0 - CRITICAL ARCHITECTURE INSIGHT
-**Type**: Architecture Discovery
-**Effort**: 4 hours
-**Status**: ✅ COMPLETED (2025-09-24)
-
-**Description**: Restore TokenBucket and discover relationship with MeteorShower/StorageData
-**Resolution**: **BREAKTHROUGH** - StorageData IS TokenBucketManager structure
-
-**Critical Discoveries**:
-- ✅ StorageData has identical structure to TokenBucketManager
-- ✅ TokenBucket folding logic required for stream processing
-- ✅ MeteorShower should use StorageData internally, not Vec<Meteor>
-- ✅ Two paradigms: TokenStream (folding) vs MeteorStream (explicit)
-- ✅ Default namespace: "main" (not "global" - RSB collision avoided)
-
-### TICKET-006: Stateful Engine Architecture Design ✅ COMPLETED
-**Priority**: P0 - FUNDAMENTAL ARCHITECTURE CHANGE
-**Type**: Architecture Revolution
-**Effort**: 6 hours
-**Status**: ✅ COMPLETED (2025-09-24)
-
-**Description**: Design MeteorShower as stateful data manipulation engine
-**Resolution**: **MAJOR PARADIGM SHIFT** - MeteorShower → Persistent Stream Processor
-
-**Revolutionary Design**:
-- ✅ **Stateful Cursor**: `current_context`, `current_namespace` persist across streams
-- ✅ **Command History**: Full audit trail of all data modifications
-- ✅ **Control Tokens**: `ctl:delete=path`, `ctl:reset=cursor` data manipulation
-- ✅ **Dot-notation API**: `shower.set("app.ui.button", "click")`
-- ✅ **Stream Continuity**: Token streams build on previous cursor state
-- ✅ **Parser Delegation**: Portable parsing logic, reusable across types
-
-**Documentation Created**:
-- ✅ `docs/arch/METEORSHOWER_ENGINE.md` - Complete engine architecture
-- ✅ `docs/arch/STREAM_ARCHITECTURE.md` - Stream processing concepts
-- ✅ Updated `docs/procs/CONTINUE.md` - Implementation roadmap
-
-## 🔄 ACTIVE DEVELOPMENT TICKETS
-
-### TICKET-007: Stateful Engine Implementation ✅ COMPLETED
-**Priority**: P0 - PARALLEL ENGINE DEVELOPMENT
-**Type**: Core Implementation
-**Effort**: 8-12 hours
-**Status**: ✅ **COMPLETED** (2025-09-24)
-
-**Description**: Create new MeteorEngine alongside existing MeteorShower (parallel implementation)
-
-**✅ Completed Engine Tasks**:
-1. **✅ MeteorEngine Structure Created**
-   - ✅ Built `src/lib/types/meteor/engine.rs` alongside existing `shower.rs`
-   - ✅ Added cursor state: `current_context: Context`, `current_namespace: Namespace`
-   - ✅ Added command history: `command_history: Vec<ControlCommand>`
-   - ✅ Used `StorageData` as primary internal format
-   - ✅ **Strategy**: Preserved existing MeteorShower functionality, built new capabilities in parallel
-
-2. **✅ Control Token System Implemented**
-   - ✅ `ctl:delete=app.ui.button` → delete specific key
-   - ✅ `ctl:delete=app.ui` → delete entire namespace
-   - ✅ `ctl:delete=app` → delete entire context
-   - ✅ `ctl:reset=cursor` → reset cursor to defaults
-   - ✅ `ctl:reset=storage` → clear all data
-   - ✅ Command execution with audit trail logging
-
-3. **✅ Dot-notation API Implemented**
-   - ✅ `engine.set("app.ui.button", "click")` → set value at path
-   - ✅ `engine.get("app.ui.button")` → get value at path
-   - ✅ `engine.delete("app.ui")` → delete namespace/context/key
-   - ✅ `engine.exists("app.ui.button")` → existence check
-   - ✅ Command history access: `command_history()`, `last_command()`, `failed_commands()`
-
-**✅ Success Criteria Achieved**:
-- ✅ MeteorEngine maintains cursor state across operations
-- ✅ Control command framework with full audit trail
-- ✅ Pure state/data controller - no validation logic (validation delegated to parsers)
-- ✅ Existing MeteorShower functionality completely preserved and unmodified
-- ✅ MeteorEngine provides new stateful capabilities alongside static MeteorShower
-- ✅ 5 comprehensive tests validating all core functionality
-
-### TICKET-008: Parser Module Development ✅ COMPLETED
-**Priority**: P0 - VALIDATION + DELEGATION
-**Type**: Core Implementation
-**Effort**: 4-6 hours
-**Status**: ✅ **COMPLETED** (2025-09-24)
-
-**Description**: Build parser module with validation logic and MeteorEngine delegation
-
-**✅ Completed Tasks**:
-- ✅ Created `src/lib/parser/` module structure
-- ✅ `token_stream.rs` - validates token streams, delegates to MeteorEngine
-- ✅ `meteor_stream.rs` - validates meteor streams, delegates to MeteorEngine
-- ✅ `escape.rs` - JSON-compatible escape sequence parsing
-- ✅ Control token parsing: `ctl:delete=path`, `ctl:reset=cursor`
-- ✅ **Pure validation approach**: Parsers validate, MeteorEngine controls state/data
-- ✅ 14 comprehensive tests covering all parser functionality
-- ✅ All 83 tests passing - no compilation errors
-
-### TICKET-009: Build-time Configuration System ✅ COMPLETED
-**Priority**: P0 - SECURITY + DEPLOYMENT
-**Type**: Core Infrastructure
-**Effort**: 6-8 hours
-**Status**: ✅ **COMPLETED** (2025-09-24)
-
-**Description**: Implement secure build-time configuration system with deployment profiles
-
-**✅ Completed Tasks**:
-- ✅ Created `meteor.toml` configuration file with deployment profiles
-- ✅ Implemented `build.rs` script for compile-time configuration reading
-- ✅ Added conditional compilation for security limits (prevents runtime tampering)
-- ✅ **Deployment Profiles**:
-  - Default: Balanced limits (4 clear, 5 warning, 6+ error namespace depth)
-  - Enterprise: High-performance (10k meteors, 256 char keys, 8k values)
-  - Embedded: Memory-constrained (100 meteors, 32 char keys, 256 values)
-  - Strict: Security-focused (50 meteors, 16 char keys, 128 values)
-- ✅ Environment variable override: `METEOR_PROFILE=enterprise cargo build`
-- ✅ Created `meteor-config` binary for configuration inspection
-- ✅ Comprehensive documentation with security model explanation
-- ✅ All 137 tests passing across all configuration profiles
-
-**✅ Security Benefits**:
-- ✅ Limits compiled into binary - no runtime tampering possible
-- ✅ Profile-specific distributions for different security postures
-- ✅ Build-time immutability prevents configuration attacks
-
-### TICKET-010: Architecture Refactoring ✅ COMPLETED
-**Priority**: P1 - CODE ORGANIZATION
-**Type**: Technical Debt / Architecture
-**Effort**: 2-3 hours
-**Status**: ✅ **COMPLETED** (2025-09-24)
-
-**Description**: Clean up architecture per feedback - move logic to appropriate modules
-
-**✅ Completed Tasks**:
-- ✅ **Moved dot path logic from MeteorEngine to namespace module** (belongs in namespace)
-- ✅ **Moved config constants from namespace.rs to meteor/config.rs** (proper module organization)
-- ✅ **Updated namespace limits to 4 clear, 5 warning, 6+ error** (user-requested improvement)
-- ✅ Updated all meteor.toml profiles with new namespace depth limits
-- ✅ Fixed all namespace validation tests for new thresholds
-- ✅ Updated imports and re-exports for clean module boundaries
-- ✅ All 88 tests passing - no compilation errors
-
-**✅ Architecture Improvements**:
-- ✅ `MeteorEngine` now focused purely on state management
-- ✅ `namespace` module handles all path parsing logic
-- ✅ `meteor::config` module centralized all configuration constants
-- ✅ Clean separation of concerns throughout codebase
-
-### TICKET-011: Meteor Path Parsing Format Fix ✅ COMPLETED
-**Priority**: P0 - CRITICAL FORMAT SPECIFICATION
-**Type**: Bugfix / Architecture
-**Effort**: 2-3 hours
-**Status**: ✅ **COMPLETED** (2025-09-24)
-
-**Description**: Fix meteor path parsing to use correct colon-delimited format per specification
-
-**✅ Critical Fix Applied**:
-- ✅ **Renamed parse_dot_path to parse_meteor_path** - moved from namespace.rs to engine.rs
-- ✅ **Fixed format from dots to colons**: `CONTEXT:NAMESPACE:KEY` (not `CONTEXT.NAMESPACE.KEY`)
-- ✅ **Maintained namespace hierarchy**: Dots still used within namespaces (`ui.widgets.forms`)
-- ✅ **Updated all engine tests**: 47+ test assertions fixed to use colon notation
-- ✅ **Format distinction clarified**:
-  - Meteor addressing: `app:ui.widgets:button` (colons separate main parts)
-  - Namespace hierarchy: `ui.widgets.forms` (dots within namespace for organization)
-- ✅ **Configuration profile issue resolved**: Enterprise profile was active, switched to default
-- ✅ All 173 tests passing including visual UAT demonstrations
-
-**✅ API Verification**:
-- ✅ **Direct API**: `engine.set("app:ui:button", "click")` - explicit addressing
-- ✅ **Cursor API**: `engine.store_token("button", "click")` - uses cursor context/namespace
-- ✅ **Format validation**: Rejects invalid formats like `too:many:colons:here`
-- ✅ **Visual UAT tests**: Comprehensive demonstrations of working format
-
-**✅ Documentation Impact**:
-- ✅ All tests now reflect correct meteor specification
-- ✅ Clear distinction between meteor addressing vs namespace organization
-- ✅ Visual UAT demonstrates real-world usage patterns
-
-### TICKET-012: CLI Parser Regression Fix ✅ COMPLETED
-**Priority**: P0 - BLOCKING CRITICAL REGRESSION
-**Type**: Bugfix - Critical
-**Effort**: 2-3 hours
-**Status**: ✅ **COMPLETED** (Resolved in earlier commits)
-
-**Description**: Fix critical regression in MeteorStreamParser causing meteor format parsing to fail
-
-**✅ Verification Results** (2025-09-27):
-- ✅ `app:ui:button=click` parses correctly
-- ✅ `global:main.help:button[]=click` parses correctly (Context=global, Namespace=main.help, Key=button[])
-- ✅ Multi-meteor parsing with `:;:` delimiter working
-- ✅ All 14 parser tests passing
-- ✅ CLI parse command functional
-
-**Resolution**:
-- Parser was already fixed in prior commits (likely c218d84 or earlier)
-- MeteorStreamParser correctly handles explicit meteor format
-- Bracket notation preserved through parsing
-- No action needed - marked as resolved
-
-### TICKET-013: CLI Enhancement Suite - P1 HIGH
-**Priority**: P1 - USER EXPERIENCE
-**Type**: CLI Enhancement
-**Effort**: 5.5-8.5 hours total (broken into sub-tickets)
-**Status**: ✅ **COMPLETED** (013A-D complete, 013E deferred)
-
-**Description**: Expand CLI capabilities for scripting, automation, and data manipulation
-
-**Sub-Tickets**:
-
-#### TICKET-013A: CLI Query Commands ✅ COMPLETED (2025-09-27)
-**Effort**: 1-2 hours
-**Status**: ✅ **COMPLETED** (commit 0563567)
-
-**Implemented Commands**:
-- ✅ `meteor get <path>` → Get value by meteor path
-- ✅ `meteor list <context> [namespace]` → List keys/values in context/namespace
-- ✅ `meteor contexts` → List all contexts
-- ✅ `meteor namespaces <context>` → List namespaces in context
-
-**Features**:
-- All commands support `--format=json|text` for flexible output
-- Ported from REPL handlers for stateless one-shot execution
-- Proper error handling with exit codes
-- Suitable for scripting and automation
-
-**Resolution**: See commit 0563567 and TICKET-013-BREAKDOWN.md for details
-
-#### TICKET-013B: CLI Data Manipulation Commands ✅ COMPLETED (2025-09-27)
-**Effort**: 1-2 hours
-**Status**: ✅ **COMPLETED** (commit fc48dae)
-
-**Implemented Commands**:
-- ✅ `meteor set <path> <value>` → Set key-value pair
-- ✅ `meteor delete <path>` → Delete key by path
-- ✅ `--dry-run` flag → Preview changes without executing
-
-**Resolution**: See commit fc48dae
-
-#### TICKET-013C: CLI History/Audit Commands ✅ COMPLETED (2025-09-27)
-**Effort**: 1 hour
-**Status**: ✅ **COMPLETED** (commit c2712f4)
-
-**Implemented Commands**:
-- ✅ `meteor history` → Show command audit trail
-- ✅ `--format=json|text` → Output formatting
-- ✅ `--limit=N` → Show last N commands
-
-**Resolution**: See commit c2712f4
-
-#### TICKET-013D: CLI Reset Commands ✅ COMPLETED (2025-09-27)
-**Effort**: 0.5 hours
-**Status**: ✅ **COMPLETED** (commit 588b54d)
-
-**Implemented Commands**:
-- ✅ `meteor reset cursor` → Reset cursor to app:main
-- ✅ `meteor reset storage` → Clear all stored data
-- ✅ `meteor reset all` → Reset cursor and storage
-- ✅ `meteor reset <context>` → Delete specific context
-
-**Resolution**: See commit 588b54d
-
-#### TICKET-013E: Stream Processing Mode - DEFERRED
-**Effort**: 0 hours (use REPL)
-**Status**: 🔵 **DEFERRED - Use REPL Instead**
-
-**Decision**:
-The meteor-repl binary already provides interactive, stateful stream processing with:
-- State persistence across commands
-- Interactive command history
-- Full data manipulation capabilities (set, get, delete, reset)
-- Stream parsing (parse, validate, token)
-
-**Recommendation**: Users should use `meteor-repl` for interactive/continuous processing workflows. The CLI commands (013A-D) are designed for one-shot scripting and automation.
-
-### TICKET-014: Escape Sequence Support - P2 MEDIUM
-**Priority**: P2 - ROBUSTNESS
-**Type**: Feature Addition
-**Effort**: 2-3 hours
-**Status**: 🔄 **READY TO START** (Parser Module Complete)
-
-**Description**: Implement JSON-compatible escape sequences for quoted values
-
-**Escape Support**:
-- `\"` → literal quote
-- `\\` → literal backslash
-- `\n` → literal newline
-- `\t` → literal tab
-- `\uXXXX` → unicode
-- Security-first: fail on invalid escapes
-
-## 📊 PROJECT STATUS SUMMARY
-
-### ✅ COMPLETED WORK - MAJOR BREAKTHROUGHS
-- **TokenBucket Restoration**: Folding logic recovered and integrated
-- **StorageData Discovery**: Universal format for all storage operations
-- **Architecture Unification**: Single format serves both TokenBucket + MeteorShower
-- **Stateful Engine Design**: Complete paradigm shift documented
-- **Parser Module Architecture**: Portable, delegated parsing logic
-- **Control Token System**: Data manipulation command framework
-- **Stream Architecture**: TokenStream (folding) vs MeteorStream (explicit)
-
-### 🎯 CURRENT STATE - PRODUCTION READY
-- **Architecture**: **REVOLUTIONARY BREAKTHROUGH** - Stateful data engine implemented
-- **CLI Suite**: ✅ COMPLETE - 11 commands for automation (TICKET-013)
-- **Benchmarks**: ✅ COMPLETE - 19 performance baselines established
-- **Code Quality**: ✅ EXCELLENT - Zero warnings, clippy clean (QA-10)
-- **Documentation**: ✅ ORGANIZED - Clean structure, comprehensive docs
-- **Tests**: 173 tests passing, clean build, comprehensive coverage
-
-### 🎯 **CURRENT STATE**:
-**Production Ready** → CLI Enhancement Complete, Benchmarks Established, Ready for Deployment
-
-### 🧱 **Upcoming Architecture Work**
-- **ENG-40**: Enforce Meteor invariant (single context/namespace per meteor) – requires parser and engine updates.
-- **ENG-41**: Adjust TokenStream/MeteorStream parsers to split or reject mixed-address input according to new policy.
-- **ENG-42**: Reuse shared semicolon smart-split within `Meteor::parse_tokens` and add regression coverage for quoted literals.
-
-### 🧹 **Quality Work**
-- **QA-10**: ✅ **COMPLETED** (commit 40d2ef5) - Clippy warnings addressed (38→35), zero cargo warnings
-
-### ⚠️ **Active Regressions**
-- _(none)_
-
-### 🚀 NEXT OPTIONS
-
-**Option A: CLI Enhancement (TICKET-013)**
-- Add stateful CLI commands: query, history, reset, set
-- Implement continuous processing mode
-- Estimated effort: 3-4 hours - Ready to start
-
-**Option B: Production Ready**
-- ✅ **READY** - Integration readiness complete (MET-BUGS-01, MET-QOL-02, MET-QOL-01)
-- Core architecture complete and parser working correctly
-- Can deploy to downstream projects (ProntoDB integration ready)
-
-**Option C: Advanced Features (TICKET-014)**
-- ✅ **READY** - Implement JSON-compatible escape sequences
-- Add `\"`, `\\`, `\n`, `\t`, `\uXXXX` support
-- Estimated effort: 2-3 hours - Parser module complete
+# METEOR ENGINE TASK BOARD
+
+## 🎯 CURRENT FOCUS (2025-10-03)
+- Roadmap: `docs/procs/ROADMAP.txt` — ME-1 ✅ COMPLETE → ME-2 next.
+- Architecture references: `docs/ref/architecture/ENGINE_ENHANCEMENT.md`, `docs/ref/planning/ENGINE_TASKS.txt`.
+- **ME-1 Status**: ✅ DELIVERED (8/8 SP) - Workspace foundations complete, all 234 tests passing.
+- **Next Phase**: ME-2 (Iterators & Cursor Guards, 7 SP) ready to start.
+
+Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when a driver is assigned.
 
 ---
 
-## 🌟 REVOLUTIONARY ACHIEVEMENTS
+## 🧱 ME-1 — WORKSPACE FOUNDATIONS (8 SP)
 
-**Architectural Breakthroughs**:
-- ✅ **StorageData = TokenBucketManager**: Same logical structure discovered
-- ✅ **Stateful Stream Processing**: MeteorShower as persistent data engine
-- ✅ **Control Token System**: In-stream data manipulation commands
-- ✅ **Parser Delegation**: Portable, reusable parsing logic
-- ✅ **Command Audit Trail**: Full history of data modifications
+| Ticket | SP | Status | Owner | Dependencies | Acceptance Snapshot |
+|--------|----|--------|-------|--------------|---------------------|
+| ENG-01 | 3 | ✅ Complete | - | None | Workspace struct wired into `MeteorEngine`; ordering, caches, scratch buffers stored per `(ctx, ns)`. |
+| ENG-02 | 2 | ✅ Complete | - | ENG-01 | All mutation paths trigger cache invalidation; tests cover success & error flows. |
+| ENG-03 | 1 | ✅ Complete | - | ENG-01 | Debug-only workspace dump behind `cfg(debug_assertions)` with snapshot test. |
+| REGR-03 | 2 | ✅ Complete | - | ENG-01 | Namespace depth guard respects profile overrides; regression suite green in strict + relaxed modes. |
 
-**Technical Quality**:
-- ✅ 173/173 tests passing (100% pass rate)
-- ✅ Clean compilation with comprehensive architecture documentation
-- ✅ RSB compliance maintained throughout evolution
-- ✅ Visual UAT demonstrations confirm real-world functionality
+**ENG-01 (3 SP)** ✅ **COMPLETED** (2025-10-03)
+- ✅ Delivered `EngineWorkspace` owning ordering tables, query caches, scratch slots keyed by `(context, namespace)`.
+- ✅ Integrated with `MeteorEngine` lifecycle (init, clone, reset) without leaking through public API.
+- ✅ Added 12 unit tests for workspace creation, cache invalidation, and scratch-slot reservation.
+- ✅ Implementation: `src/lib/types/meteor/workspace.rs` (202 LOC implementation + 206 LOC tests)
+- ✅ Test results: All 176 tests passing (105 lib + 71 integration, 100% pass rate)
+- ✅ **Fix**: Added `EngineWorkspace::clear()` to properly align workspace with `StorageData` during `clear_storage()` and `reset_all()` operations
+- ✅ Added regression tests: `tests/test_workspace_storage_alignment.rs` (3 tests validating workspace-storage alignment)
 
-**Innovation Impact**:
-- ✅ **Paradigm Shift**: Static container → Dynamic data manipulation engine
-- ✅ **Stream Continuity**: State persists across processing operations
-- ✅ **Command History**: Full audit trail for data security
-- ✅ **Unified Architecture**: Single storage format for all use cases
+**ENG-02 (2 SP)** ✅ **COMPLETED** (2025-10-03)
+- ✅ Extended all mutation methods (`store_token`, `store_token_at`, `set`, `delete`) to update workspace key_order
+- ✅ Implemented scope-aware invalidation (key/namespace/context/storage levels)
+- ✅ **Fixed**: Added `invalidate_caches()` calls on all insert/update/delete paths to prevent stale query cache
+- ✅ Added `workspace-instrumentation` feature flag with cache hit/miss tracking
+- ✅ Instrumentation includes: `cache_hits`, `cache_misses`, `cache_hit_ratio()` per namespace
+- ✅ Counters automatically reset on cache invalidation
+- ✅ Test results: 24 tests (14 mutation + 10 cache invalidation), all passing
+- ✅ **China's Review**: Production Ready - comprehensive mutation hooks, solid invalidation logic
+- ✅ Files modified: `Cargo.toml`, `workspace.rs` (+70 LOC), `engine.rs` (4 invalidation calls added), test suite (+390 LOC)
+
+**ENG-03 (1 SP)** ✅ **COMPLETED** (2025-10-03)
+- ✅ `workspace_status()` method already implemented in ENG-01 (returns `WorkspaceStatus` struct)
+- ✅ Added comprehensive documentation to `ENGINE_ENHANCEMENT.md` with:
+  - Full `WorkspaceStatus` struct definition with field descriptions
+  - Complete usage example with debug assertions and feature flag handling
+  - 5 guard rails documented (debug-only, read-only, feature flags, atomic invalidation, encapsulation)
+  - Cache invalidation semantics for all mutation paths
+  - Performance monitoring instructions for ME-2 testing
+- ✅ Documentation includes workspace inspection section (~80 lines) with guard rails and examples
+- ✅ All 203 tests passing (no changes to implementation, documentation-only ticket)
+
+**REGR-03 (2 SP)** ✅ **COMPLETED** (2025-10-03)
+- ✅ Created comprehensive regression test suite: `tests/test_namespace_depth_regression.rs` (13 tests, 298 LOC)
+- ✅ Profile-aware tests validate all 4 profiles: default, enterprise, embedded, strict
+- ✅ Test coverage includes:
+  - Clear/warning/error threshold validation
+  - Progressive depth validation (1-10 levels)
+  - Profile-specific boundary tests (cfg attributes)
+  - Edge case testing (max_depth - 1)
+  - Real-world namespace pattern validation
+  - Integration with MeteorEngine
+- ✅ Fixed cfg(meteor_default) warning by adding meteor_default to build.rs check-cfg declarations
+- ✅ Created GitHub Actions CI workflow: `.github/workflows/profile-regression.yml`
+  - Matrix testing across all 4 profiles
+  - Automatic rebuild with METEOR_PROFILE env var
+  - Profile configuration display for debugging
+  - Lint/clippy checks on default profile
+- ✅ Comprehensive testing guide: `docs/PROFILE_TESTING.md` (~300 lines)
+  - Local testing instructions with examples
+  - CI simulation scripts
+  - Profile-aware test writing patterns
+  - Troubleshooting guide
+  - Best practices for downstream consumers
+- ✅ All 13 regression tests pass in default profile
+- ✅ Namespace depth validation respects compile-time profile overrides via NAMESPACE_ERROR_DEPTH/NAMESPACE_WARNING_DEPTH constants
 
 ---
 
-**STATEFUL ENGINE + PARSER IMPLEMENTATION: COMPLETE** ✅🎯
-**API REFACTORING: COMPLETE** ✅🎯 - parse() returns Vec<T>, first() convenience methods
-**METEOR PATH PARSING: FIXED** ✅🎯 - MeteorStreamParser correctly handles explicit meteors
-**HYBRID STORAGE ARCHITECTURE: IMPLEMENTED** ✅🎯 - Complete flat+tree hybrid storage system
-**QUALITY**: 99.1% test success rate, production-ready hybrid storage architecture
+## 🔄 ME-2 — ITERATORS & CURSOR GUARDS (7 SP)
 
-### TICKET-015: Hybrid Storage Architecture Implementation ✅ COMPLETED
-**Priority**: P0 - FUNDAMENTAL ARCHITECTURE EVOLUTION
-**Type**: Architecture Revolution
-**Effort**: 8-12 hours (Actual: 12 hours)
-**Status**: ✅ **IMPLEMENTATION COMPLETE** (2025-09-24)
+| Ticket | SP | Status | Owner | Dependencies | Acceptance Snapshot |
+|--------|----|--------|-------|--------------|---------------------|
+| ENG-10 | 2 | ✅ Complete | - | ME-1 | `iter_entries`, `contexts_iter`, `namespaces_iter` cover hybrid storage with ordering hints. |
+| ENG-11 | 2 | ⚪ Planned | TBA | ENG-10 | Namespace view struct exposes counts/default markers; CLI list uses it behind feature flag. |
+| ENG-12 | 3 | ⚪ Planned | TBA | ENG-10 | `CursorGuard` restores cursor on panic/Error; REPL smoke proves guard safety. |
 
-**Description**: Implement hybrid storage model replacing simple HashMap with flat+tree architecture
+**ENG-10 (2 SP)** ✅ **COMPLETED** (2025-10-03)
+- ✅ Implemented `contexts_iter()` - iterator over sorted context names
+- ✅ Implemented `namespaces_iter(context)` - iterator over sorted namespace names within context
+- ✅ Implemented `iter_entries()` - iterator over all entries with workspace ordering
+  - Returns `EntriesIterator<'_>` yielding `(String, String, String, String)` tuples
+  - Leverages workspace `key_order` for deterministic insertion-order iteration
+  - Falls back to storage keys when workspace unavailable (hybrid storage support)
+  - Explicit lifetime annotation (`'_`) for clear borrowing semantics
+- ✅ Added 17 comprehensive unit tests (`tests/test_engine_iterators.rs`, 249 LOC):
+  - Context/namespace iterator edge cases (empty, single, multiple)
+  - Entry iteration across contexts/namespaces
+  - Workspace ordering preservation (insertion order, NOT alphabetical)
+  - Post-deletion consistency
+  - Update ordering stability
+- ✅ Added iteration instrumentation (feature-gated):
+  - `iteration_count`, `keys_iterated` per namespace
+  - `total_iterations`, `total_keys_iterated`, `avg_keys_per_iteration` in WorkspaceStatus
+  - `record_iteration()`, `avg_keys_per_iteration()` methods
+- ✅ Comprehensive documentation in `ENGINE_ENHANCEMENT.md` (~180 lines):
+  - API surface with examples
+  - Implementation details and algorithm
+  - Workspace integration strategy
+  - Performance characteristics (time/space complexity)
+  - Lifetime and borrowing semantics
+  - Test coverage summary
+- ✅ All 252 tests passing (234 existing + 17 new + 1 doc test)
 
-**✅ Completed Implementation**:
-- ✅ **ContextStorage struct**: Implemented with flat_data + tree_index
-- ✅ **TreeNode enum**: File/Directory navigation fully implemented
-- ✅ **Hybrid query methods**: Direct access + hierarchical traversal working
-- ✅ **StorageData migration**: Complete rewrite from HashMap to hybrid model
-- ✅ **MeteorEngine integration**: All operations updated for new storage
-- ✅ **Parser integration**: Token and meteor parsers updated for colon format
-- ✅ **Test fixes**: 116/117 tests passing (99.1% success rate)
+**ENG-11 (2 SP)**
+- Introduce `NamespaceView` with ordering hints, default value flags, entry counts.
+- Update CLI `list` (feature flag) to consume view and write formatting spec.
 
-**✅ Success Criteria Achieved**:
-- ✅ O(1) direct access: `get("user:settings:theme")` working
-- ✅ O(log n) hierarchical queries: Tree traversal implemented
-- ✅ Filesystem semantics: Files vs directories enforced
-- ✅ Context isolation: Complete separation implemented
-- ✅ Backward compatibility: All existing APIs working
-- ✅ New capabilities: `is_file()`, `is_directory()`, `has_default()`, `get_default()`
+**ENG-12 (3 SP)**
+- Provide `engine.cursor()` accessor plus RAII guard; ensure parsers adopt guard where necessary.
+- Add regression tests for cursor restoration after control-command errors and panics (using test hooks).
 
-**Implementation Files Modified**:
-- `src/lib/types/meteor/storage_data.rs` - Complete hybrid storage rewrite
-- `src/lib/types/meteor/engine.rs` - Updated for new storage methods
-- `src/lib/parser/token_stream.rs` - Fixed path format (colon notation)
-- `src/lib/parser/meteor_stream.rs` - Fixed explicit meteor parsing
-- `tests/foundation.rs` - Updated test assertions for new format
+---
+
+## 🌠 ME-3 — METEOR AGGREGATION & VIRTUALIZATION (18 SP)
+
+| Ticket | SP | Status | Owner | Dependencies | Acceptance Snapshot |
+|--------|----|--------|-------|--------------|---------------------|
+| ENG-20 | 3 | ⚪ Planned | TBA | ME-2 | `meteors()` / `meteor_for()` produce grouped meteor views consumed by CLI/REPL. |
+| ENG-21 | 2 | ⚪ Planned | TBA | ENG-20 | Section/part emission honours ordering metadata; golden tests updated. |
+| ENG-22 | 2 | ⚪ Planned | TBA | ENG-20 | `export_namespace` supports text+JSON, captures metadata checksum. |
+| ENG-23 | 2 | ⚪ Planned | TBA | ENG-22 | `import_namespace` validates metadata, enforces invariant, reports diff. |
+| ENG-24 | 2 | ⚪ Planned | TBA | ENG-20 | `scratch_slot` API isolates workspace scratch areas with lifetime guard. |
+| ENG-40 | 3 | ⚪ Planned | TBA | ENG-20 | Meteor constructors enforce single `(context, namespace)`; legacy shims guarded. |
+| ENG-41 | 2 | ⚪ Planned | TBA | ENG-20 | Parsers align with grouped meteors; compatibility flag retains substring find. |
+| ENG-42 | 1 | ⚪ Planned | TBA | ME-2 | Central smart-split shared by parsers/CLI; regression covers quoting edge cases. |
+| CLI-05 | 1 | ⚪ Planned | TBA | ENG-20, ENG-22 | CLI `parse` routed through meteor views with text/json parity tests. |
+| REPL-05 | 1 | ⚪ Planned | TBA | ENG-20, ENG-24 | REPL `meteor/list/history` commands use new APIs; scripted test added. |
+| QA-10  | 1 | ⚪ Planned | TBA | ME-3 | Zero-warning baseline kept; CI guard fails on new warnings. |
+
+**ENG-20 (3 SP)**
+- Create `MeteorView` struct and iterators grouping storage output by `(context, namespace)`.
+- Provide integration tests covering hybrid storage and empty namespaces; document API.
+
+**ENG-21 (2 SP)**
+- Ensure workspace ordering hints drive serialized section/part ordering; update fixtures.
+
+**ENG-22 (2 SP)** & **ENG-23 (2 SP)**
+- Build export/import helpers with configurable format adapters, metadata manifests, and validation errors.
+- Add sample fixtures (text + JSON) and round-trip integration tests.
+
+**ENG-24 (2 SP)**
+- Implement workspace-backed scratch slots with lifetime-managed handles; wire into REPL scratch workflow plan.
+
+**ENG-40 (3 SP)**
+- Harden meteor constructors, update `Meteor` docs, include migration notes for legacy multi-context meteors.
+
+**ENG-41 (2 SP)**
+- Align parser flows with aggregated meteor surfaces; toggle legacy substring search via config.
+
+**ENG-42 (1 SP)**
+- Centralize smart-split logic; add regression coverage for escaped quotes and ctl tokens.
+
+**CLI-05 (1 SP)** & **REPL-05 (1 SP)**
+- Move CLI/REPL rendering onto meteor views; verify parity with legacy logs via smoke tests.
+
+**QA-10 (1 SP)**
+- Ensure compilation warnings remain zero; extend CI script to fail on warning introduction.
+
+---
+
+## 📌 TRACKERS & FOLLOW-UPS
+- **Testing Expansion**: TEST-01..03, REGR-01 scheduled once ME-3 APIs stabilize.
+- **Documentation**: ENG-90..92 queued post ME-3 for architecture and workflow updates.
+- **Integration**: ProntoDB contract review after aggregated APIs land.
+
+Last Updated: 2025-10-03

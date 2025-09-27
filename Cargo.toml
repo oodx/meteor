@@ -31,6 +31,8 @@ default = []
 enterprise = []      # Higher limits for enterprise deployments
 embedded = []        # Lower limits for embedded/constrained environments
 strict = []          # Strictest limits for high-security environments
+# Workspace instrumentation for ME-2 iteration testing
+workspace-instrumentation = []  # Enable cache hit/miss tracking
 
 [dependencies]
 # Hub integration for shared dependencies - removed cli-ext for native RSB CLI, added test-ext for criterion

@@ -5,6 +5,7 @@ mod engine;
 mod meteor;
 mod shower;
 mod storage_data;
+mod workspace;
 
 pub use engine::{ControlCommand, MeteorEngine};
 pub use meteor::Meteor;

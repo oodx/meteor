@@ -4,12 +4,17 @@
 
 A Rust library implementing the TOKEN_NAMESPACE_CONCEPT with meteor data format, bracket notation, and RSB architecture compliance. **Meteor** is a DATA TYPE representing structured token data.
 
-## Current Status (2025-09-27)
+## Current Status (2025-10-03)
 
 ✅ **Architecture Complete** - Modular type system with extensible bracket notation
 ✅ **RSB Integration** - Full CLI command suite with global state
 ✅ **CLI Enhancement Suite** - Query, manipulation, history, and reset commands
-🎯 **Production Ready** - Core functionality complete, ready for integration
+✅ **ME-1 Complete (8/8 SP)** - Workspace foundations delivered
+  - ✅ ENG-01: EngineWorkspace with ordering, caching, scratch slots
+  - ✅ ENG-02: Mutation hooks with atomic cache invalidation
+  - ✅ ENG-03: Debug workspace inspection & instrumentation
+  - ✅ REGR-03: Namespace depth regression guard across all profiles
+🎯 **Production Ready** - 234 tests passing, ME-2 (Iterators) ready to start
 
 ## Key Features
 
@@ -29,8 +34,10 @@ assert_eq!("list__i_0".to_bracket(), "list[0]"); // Inverse parsing
 ```
 
 ### Primary Storage Architecture
-- **`MeteorShower`** - Primary storage with cross-context indexing and object-oriented meteor access
-- **`StorageData`** - Serialized/flattened interchange format for JSON/string export (from MeteorShower)
+- **`MeteorEngine`** - Stateful stream processor with cursor state, command history, and workspace management
+- **`MeteorShower`** - Static collection storage with cross-context indexing and object-oriented meteor access
+- **`StorageData`** - Hybrid flat+tree storage with O(1) access and hierarchical queries
+- **`EngineWorkspace`** - Internal workspace layer for ordering metadata, query caches, and scratch operations
 
 ### Extensible Design
 - **`BracketNotation`** trait for custom bracket notation
@@ -54,6 +61,32 @@ assert_eq!(meteor.context().name(), "app");
 // Bracket notation
 let key = TokenKey::new("grid[2,3]");
 assert_eq!(key.to_string(), "grid__i_2_3");
+```
+
+## Engine Workspace Features (ME-1)
+
+Meteor includes an internal **EngineWorkspace** layer that supports future iteration and aggregation APIs:
+
+- **Per-Namespace Ordering**: Deterministic key iteration via `key_order` tracking
+- **Query Caching**: Cached results for glob/prefix queries with automatic invalidation
+- **Scratch Slots**: Isolated temporary storage for REPL multi-step operations
+- **Cache Invalidation**: Atomic updates on all mutations (set, delete, reset)
+- **Instrumentation** (optional): Cache hit/miss tracking via `workspace-instrumentation` feature flag
+
+```rust
+use meteor::types::MeteorEngine;
+
+let mut engine = MeteorEngine::new();
+engine.set("app:ui:button", "click").unwrap();
+engine.set("app:ui:theme", "dark").unwrap();
+
+// Workspace automatically maintains key ordering for iteration
+#[cfg(debug_assertions)]
+{
+    let status = engine.workspace_status();
+    println!("Namespaces: {}", status.namespace_count);
+    println!("Ordered keys: {}", status.total_ordered_keys);
+}
 ```
 
 ## Configuration

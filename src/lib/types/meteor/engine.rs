@@ -12,6 +12,7 @@
 //! - Dot-notation path operations
 
 use crate::types::{Context, Namespace, StorageData};
+use super::workspace::EngineWorkspace;
 
 /// Command execution record for audit trail
 #[derive(Debug, Clone)]
@@ -66,6 +67,9 @@ pub struct MeteorEngine {
 
     /// Command execution history (audit trail)
     command_history: Vec<ControlCommand>,
+
+    /// Internal workspace for ordering, caching, and scratch operations
+    workspace: EngineWorkspace,
 }
 
 impl MeteorEngine {
@@ -76,6 +80,7 @@ impl MeteorEngine {
             current_context: Context::default(), // "app"
             current_namespace: Namespace::from_string("main"),
             command_history: Vec::new(),
+            workspace: EngineWorkspace::new(),
         }
     }
 
@@ -86,6 +91,7 @@ impl MeteorEngine {
             current_context: context,
             current_namespace: Namespace::from_string("main"),
             command_history: Vec::new(),
+            workspace: EngineWorkspace::new(),
         }
     }
 
@@ -94,17 +100,23 @@ impl MeteorEngine {
     /// This is the primary method for adding data. Uses current cursor
     /// context/namespace unless overridden by explicit addressing.
     pub fn store_token(&mut self, key: &str, value: &str) {
-        self.storage.set(
-            self.current_context.name(),
-            &self.current_namespace.to_string(),
-            key,
-            value,
-        );
+        let context = self.current_context.name();
+        let namespace = self.current_namespace.to_string();
+
+        self.storage.set(context, &namespace, key, value);
+
+        let ws = self.workspace.get_or_create_namespace(context, &namespace);
+        ws.add_key(key);
+        ws.invalidate_caches();
     }
 
     /// Store a token with explicit addressing (overrides cursor)
     pub fn store_token_at(&mut self, context: &str, namespace: &str, key: &str, value: &str) {
         self.storage.set(context, namespace, key, value);
+
+        let ws = self.workspace.get_or_create_namespace(context, namespace);
+        ws.add_key(key);
+        ws.invalidate_caches();
     }
 
     /// Switch current context (cursor state change)
@@ -126,6 +138,7 @@ impl MeteorEngine {
     /// Clear all stored data
     pub fn clear_storage(&mut self) {
         self.storage = StorageData::new();
+        self.workspace.clear();
     }
 
     /// Reset cursor and clear storage
@@ -142,6 +155,11 @@ impl MeteorEngine {
     pub fn set(&mut self, path: &str, value: &str) -> Result<(), String> {
         let (context, namespace, key) = parse_meteor_path(path)?;
         self.storage.set(&context, &namespace, &key, value);
+
+        let ws = self.workspace.get_or_create_namespace(&context, &namespace);
+        ws.add_key(&key);
+        ws.invalidate_caches();
+
         Ok(())
     }
 
@@ -164,14 +182,28 @@ impl MeteorEngine {
                 let result = if key.is_empty() {
                     if namespace.is_empty() {
                         // Delete entire context
-                        self.storage.delete_context(&context)
+                        let deleted = self.storage.delete_context(&context);
+                        if deleted {
+                            self.workspace.remove_context(&context);
+                        }
+                        deleted
                     } else {
                         // Delete entire namespace
-                        self.storage.delete_namespace(&context, &namespace)
+                        let deleted = self.storage.delete_namespace(&context, &namespace);
+                        if deleted {
+                            self.workspace.remove_namespace(&context, &namespace);
+                        }
+                        deleted
                     }
                 } else {
                     // Delete specific key
-                    self.storage.delete_key(&context, &namespace, &key)
+                    let deleted = self.storage.delete_key(&context, &namespace, &key);
+                    if deleted {
+                        let ws = self.workspace.get_or_create_namespace(&context, &namespace);
+                        ws.remove_key(&key);
+                        ws.invalidate_caches();
+                    }
+                    deleted
                 };
                 Ok(result)
             }
@@ -295,6 +327,48 @@ impl MeteorEngine {
     }
 
     // ================================
+    // Iterator Access (ENG-10)
+    // ================================
+
+    /// Iterate over all contexts
+    ///
+    /// Returns an iterator over context names in sorted order.
+    /// Replacement for repeated `storage.contexts()` clones.
+    pub fn contexts_iter(&self) -> impl Iterator<Item = String> {
+        self.storage.contexts().into_iter()
+    }
+
+    /// Iterate over namespaces in a context
+    ///
+    /// Returns an iterator over namespace names in sorted order for the given context.
+    pub fn namespaces_iter(&self, context: &str) -> impl Iterator<Item = String> {
+        self.storage.namespaces_in_context(context).into_iter()
+    }
+
+    /// Iterate over all entries with workspace ordering
+    ///
+    /// Returns an iterator over `(context, namespace, key, value)` tuples.
+    /// Keys within each namespace are returned in workspace insertion order
+    /// when available, otherwise in sorted order.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use meteor::types::MeteorEngine;
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// engine.set("app:ui:button", "click").unwrap();
+    /// engine.set("app:ui:theme", "dark").unwrap();
+    ///
+    /// for (context, namespace, key, value) in engine.iter_entries() {
+    ///     println!("{}:{}:{} = {}", context, namespace, key, value);
+    /// }
+    /// ```
+    pub fn iter_entries(&self) -> EntriesIterator<'_> {
+        EntriesIterator::new(self)
+    }
+
+    // ================================
     // Hybrid Storage Methods
     // ================================
 
@@ -339,11 +413,134 @@ impl MeteorEngine {
             None
         }
     }
+
+    // ================================
+    // Workspace Access (Internal)
+    // ================================
+
+    /// Get mutable reference to workspace (internal use only)
+    pub(crate) fn workspace_mut(&mut self) -> &mut EngineWorkspace {
+        &mut self.workspace
+    }
+
+    /// Get reference to workspace (internal use only)
+    pub(crate) fn workspace(&self) -> &EngineWorkspace {
+        &self.workspace
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn workspace_status(&self) -> super::workspace::WorkspaceStatus {
+        self.workspace.workspace_status()
+    }
 }
 
 impl Default for MeteorEngine {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ================================
+// Entries Iterator (ENG-10)
+// ================================
+
+/// Iterator over all entries in the engine with workspace ordering
+///
+/// Iterates over all contexts, namespaces, and keys, yielding
+/// `(context, namespace, key, value)` tuples. Keys within each namespace
+/// are returned in workspace insertion order when available.
+pub struct EntriesIterator<'a> {
+    engine: &'a MeteorEngine,
+    contexts: Vec<String>,
+    current_context_idx: usize,
+    current_namespaces: Vec<String>,
+    current_namespace_idx: usize,
+    current_keys: Vec<String>,
+    current_key_idx: usize,
+}
+
+impl<'a> EntriesIterator<'a> {
+    fn new(engine: &'a MeteorEngine) -> Self {
+        let contexts = engine.storage.contexts();
+        Self {
+            engine,
+            contexts,
+            current_context_idx: 0,
+            current_namespaces: Vec::new(),
+            current_namespace_idx: 0,
+            current_keys: Vec::new(),
+            current_key_idx: 0,
+        }
+    }
+
+    fn advance_to_next_context(&mut self) -> bool {
+        if self.current_context_idx >= self.contexts.len() {
+            return false;
+        }
+
+        let context = &self.contexts[self.current_context_idx];
+        self.current_namespaces = self.engine.storage.namespaces_in_context(context);
+        self.current_namespace_idx = 0;
+        self.current_context_idx += 1;
+
+        self.advance_to_next_namespace()
+    }
+
+    fn advance_to_next_namespace(&mut self) -> bool {
+        if self.current_namespace_idx >= self.current_namespaces.len() {
+            return self.advance_to_next_context();
+        }
+
+        let context = &self.contexts[self.current_context_idx - 1];
+        let namespace = &self.current_namespaces[self.current_namespace_idx];
+
+        // Try to get workspace ordering, fall back to storage keys
+        if let Some(ws) = self.engine.workspace.get_namespace(context, namespace) {
+            self.current_keys = ws.key_order.clone();
+        } else {
+            // No workspace data, get keys from storage
+            self.current_keys = self.engine.storage.find_keys(context, namespace, "*");
+        }
+
+        self.current_key_idx = 0;
+        self.current_namespace_idx += 1;
+
+        if self.current_keys.is_empty() {
+            self.advance_to_next_namespace()
+        } else {
+            true
+        }
+    }
+}
+
+impl<'a> Iterator for EntriesIterator<'a> {
+    type Item = (String, String, String, String);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            // If we have a current key, return it
+            if self.current_key_idx < self.current_keys.len() {
+                let context = &self.contexts[self.current_context_idx - 1];
+                let namespace = &self.current_namespaces[self.current_namespace_idx - 1];
+                let key = &self.current_keys[self.current_key_idx];
+                self.current_key_idx += 1;
+
+                if let Some(value) = self.engine.storage.get(context, namespace, key) {
+                    return Some((
+                        context.clone(),
+                        namespace.clone(),
+                        key.clone(),
+                        value.to_string(),
+                    ));
+                }
+                continue;
+            }
+
+            // No more keys in current namespace, advance
+            if !self.advance_to_next_namespace() {
+                return None;
+            }
+        }
     }
 }
 
