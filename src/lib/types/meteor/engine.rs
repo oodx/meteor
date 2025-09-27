@@ -497,6 +497,10 @@ impl<'a> EntriesIterator<'a> {
         // Try to get workspace ordering, fall back to storage keys
         if let Some(ws) = self.engine.workspace.get_namespace(context, namespace) {
             self.current_keys = ws.key_order.clone();
+
+            // Record iteration in workspace instrumentation
+            #[cfg(feature = "workspace-instrumentation")]
+            ws.record_iteration(self.current_keys.len());
         } else {
             // No workspace data, get keys from storage
             self.current_keys = self.engine.storage.find_keys(context, namespace, "*");

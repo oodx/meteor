@@ -222,34 +222,53 @@ This ensures:
 
 ### Instrumentation (Optional)
 
-When compiled with `workspace-instrumentation` feature flag, workspace tracks:
+When compiled with `workspace-instrumentation` feature flag, workspace tracks iteration metrics using `Cell<u64>` for interior mutability (allows updating through immutable references):
 
 ```rust
-pub(crate) iteration_count: u64,        // Total iterations over namespace
-pub(crate) keys_iterated: u64,          // Total keys returned from namespace
-pub(crate) fn record_iteration(&mut self, key_count: usize)
+pub(crate) iteration_count: Cell<u64>,     // Total iterations over namespace
+pub(crate) keys_iterated: Cell<u64>,       // Total keys returned from namespace
+pub(crate) fn record_iteration(&self, key_count: usize)  // Note: &self (immutable)
 pub(crate) fn avg_keys_per_iteration(&self) -> f64
 ```
 
 Added to `WorkspaceStatus`:
 ```rust
 #[cfg(feature = "workspace-instrumentation")]
-pub total_iterations: u64,              // Aggregate iteration count
+pub total_iterations: u64,                 // Aggregate iteration count
 #[cfg(feature = "workspace-instrumentation")]
-pub total_keys_iterated: u64,           // Aggregate keys iterated
+pub total_keys_iterated: u64,              // Aggregate keys iterated
 #[cfg(feature = "workspace-instrumentation")]
-pub avg_keys_per_iteration: f64,        // Global average
+pub avg_keys_per_iteration: f64,           // Global average
 ```
+
+**Key Design Decisions:**
+- **Interior Mutability**: Uses `Cell<u64>` so `EntriesIterator` (which holds `&MeteorEngine`) can update counters
+- **Lifetime Statistics**: Iteration metrics persist across cache invalidations (track cumulative usage)
+- **Automatic Recording**: `EntriesIterator` calls `record_iteration()` when using workspace `key_order`
+- **No Overhead without Feature**: All instrumentation code removed when feature flag disabled
 
 **Usage:**
 ```bash
+# Build with instrumentation
 cargo build --features workspace-instrumentation
+
+# Run tests with instrumentation
 cargo test --features workspace-instrumentation
+
+# Check iteration metrics in debug builds
+#[cfg(debug_assertions)]
+{
+    let status = engine.workspace_status();
+    println!("Total iterations: {}", status.total_iterations);
+    println!("Avg keys/iteration: {:.2}", status.avg_keys_per_iteration);
+}
 ```
 
 ### Test Coverage
 
-**Test File**: `tests/test_engine_iterators.rs` (17 tests, 231 LOC)
+**Test Files**:
+- `tests/test_engine_iterators.rs` (17 tests, 249 LOC) - Core iterator functionality
+- `tests/test_iteration_instrumentation.rs` (6 tests, 137 LOC) - Instrumentation validation (requires `workspace-instrumentation` feature)
 
 - `test_contexts_iter_empty/single/multiple` - Context iteration edge cases
 - `test_contexts_iter_is_sorted` - Alphabetical ordering verification

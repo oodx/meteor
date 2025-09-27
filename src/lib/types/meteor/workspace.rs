@@ -1,21 +1,41 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(feature = "workspace-instrumentation")]
+use std::cell::Cell;
 
 type ContextNamespaceKey = (String, String);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct NamespaceWorkspace {
     pub(crate) key_order: Vec<String>,
     pub(crate) query_cache: HashMap<String, Vec<String>>,
     pub(crate) last_modified: u64,
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) cache_hits: u64,
+    pub(crate) cache_hits: Cell<u64>,
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) cache_misses: u64,
+    pub(crate) cache_misses: Cell<u64>,
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) iteration_count: u64,
+    pub(crate) iteration_count: Cell<u64>,
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) keys_iterated: u64,
+    pub(crate) keys_iterated: Cell<u64>,
+}
+
+impl Clone for NamespaceWorkspace {
+    fn clone(&self) -> Self {
+        Self {
+            key_order: self.key_order.clone(),
+            query_cache: self.query_cache.clone(),
+            last_modified: self.last_modified,
+            #[cfg(feature = "workspace-instrumentation")]
+            cache_hits: Cell::new(self.cache_hits.get()),
+            #[cfg(feature = "workspace-instrumentation")]
+            cache_misses: Cell::new(self.cache_misses.get()),
+            #[cfg(feature = "workspace-instrumentation")]
+            iteration_count: Cell::new(self.iteration_count.get()),
+            #[cfg(feature = "workspace-instrumentation")]
+            keys_iterated: Cell::new(self.keys_iterated.get()),
+        }
+    }
 }
 
 impl NamespaceWorkspace {
@@ -25,13 +45,13 @@ impl NamespaceWorkspace {
             query_cache: HashMap::new(),
             last_modified: current_timestamp(),
             #[cfg(feature = "workspace-instrumentation")]
-            cache_hits: 0,
+            cache_hits: Cell::new(0),
             #[cfg(feature = "workspace-instrumentation")]
-            cache_misses: 0,
+            cache_misses: Cell::new(0),
             #[cfg(feature = "workspace-instrumentation")]
-            iteration_count: 0,
+            iteration_count: Cell::new(0),
             #[cfg(feature = "workspace-instrumentation")]
-            keys_iterated: 0,
+            keys_iterated: Cell::new(0),
         }
     }
 
@@ -44,8 +64,10 @@ impl NamespaceWorkspace {
         self.touch();
         #[cfg(feature = "workspace-instrumentation")]
         {
-            self.cache_hits = 0;
-            self.cache_misses = 0;
+            // Reset cache metrics (tied to cache validity)
+            self.cache_hits.set(0);
+            self.cache_misses.set(0);
+            // Iteration metrics persist (lifetime statistics)
         }
     }
 
@@ -62,37 +84,38 @@ impl NamespaceWorkspace {
     }
 
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) fn record_cache_hit(&mut self) {
-        self.cache_hits += 1;
+    pub(crate) fn record_cache_hit(&self) {
+        self.cache_hits.set(self.cache_hits.get() + 1);
     }
 
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) fn record_cache_miss(&mut self) {
-        self.cache_misses += 1;
+    pub(crate) fn record_cache_miss(&self) {
+        self.cache_misses.set(self.cache_misses.get() + 1);
     }
 
     #[cfg(feature = "workspace-instrumentation")]
     pub(crate) fn cache_hit_ratio(&self) -> f64 {
-        let total = self.cache_hits + self.cache_misses;
+        let total = self.cache_hits.get() + self.cache_misses.get();
         if total == 0 {
             0.0
         } else {
-            self.cache_hits as f64 / total as f64
+            self.cache_hits.get() as f64 / total as f64
         }
     }
 
     #[cfg(feature = "workspace-instrumentation")]
-    pub(crate) fn record_iteration(&mut self, key_count: usize) {
-        self.iteration_count += 1;
-        self.keys_iterated += key_count as u64;
+    pub(crate) fn record_iteration(&self, key_count: usize) {
+        self.iteration_count.set(self.iteration_count.get() + 1);
+        self.keys_iterated.set(self.keys_iterated.get() + key_count as u64);
     }
 
     #[cfg(feature = "workspace-instrumentation")]
     pub(crate) fn avg_keys_per_iteration(&self) -> f64 {
-        if self.iteration_count == 0 {
+        let iters = self.iteration_count.get();
+        if iters == 0 {
             0.0
         } else {
-            self.keys_iterated as f64 / self.iteration_count as f64
+            self.keys_iterated.get() as f64 / iters as f64
         }
     }
 }
@@ -225,8 +248,8 @@ impl EngineWorkspace {
     pub(crate) fn workspace_status(&self) -> WorkspaceStatus {
         #[cfg(feature = "workspace-instrumentation")]
         let (total_hits, total_misses, hit_ratio) = {
-            let hits: u64 = self.namespaces.values().map(|ns| ns.cache_hits).sum();
-            let misses: u64 = self.namespaces.values().map(|ns| ns.cache_misses).sum();
+            let hits: u64 = self.namespaces.values().map(|ns| ns.cache_hits.get()).sum();
+            let misses: u64 = self.namespaces.values().map(|ns| ns.cache_misses.get()).sum();
             let total = hits + misses;
             let ratio = if total == 0 {
                 0.0
@@ -238,8 +261,8 @@ impl EngineWorkspace {
 
         #[cfg(feature = "workspace-instrumentation")]
         let (total_iters, total_keys_iter, avg_keys) = {
-            let iters: u64 = self.namespaces.values().map(|ns| ns.iteration_count).sum();
-            let keys: u64 = self.namespaces.values().map(|ns| ns.keys_iterated).sum();
+            let iters: u64 = self.namespaces.values().map(|ns| ns.iteration_count.get()).sum();
+            let keys: u64 = self.namespaces.values().map(|ns| ns.keys_iterated.get()).sum();
             let avg = if iters == 0 {
                 0.0
             } else {

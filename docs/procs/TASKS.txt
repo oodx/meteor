@@ -111,6 +111,12 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
   - Lifetime and borrowing semantics
   - Test coverage summary
 - ✅ All 252 tests passing (234 existing + 17 new + 1 doc test)
+- ✅ **Bug Fix** (2025-10-03): Fixed instrumentation bug where `record_iteration()` was never called
+  - Changed counters from `u64` to `Cell<u64>` for interior mutability
+  - `EntriesIterator` now calls `workspace.record_iteration()` when using `key_order`
+  - Implemented manual `Clone` for `NamespaceWorkspace` to handle `Cell` fields
+  - Added 6 instrumentation tests (`tests/test_iteration_instrumentation.rs`)
+  - Iteration metrics now persist across cache invalidations (lifetime statistics)
 
 **ENG-11 (2 SP)**
 - Introduce `NamespaceView` with ordering hints, default value flags, entry counts.
