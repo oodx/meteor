@@ -1,5 +1,53 @@
 # METEOR TASKS - Configuration System and Architecture Refactoring Complete
 
+## 🔴 Integration Readiness Tickets (2025-09-27)
+
+### MET-BUGS-01: Reduce High-Risk Unwraps in Runtime 🔄 IN PROGRESS
+**Priority**: P1 – Integration Stability
+**Type**: Bugfix / Hardening
+**Effort**: 5 SP (estimate)
+**Status**: 🔄 OPEN (Owned by integration squad – coordinate with RSB-BUGS-01)
+
+**Background**: Validation surfaced 91 `unwrap()` calls across Meteor. Several live in parsing and CLI surfaces that propagate panics into downstream projects. RSB is replacing its own file-system unwraps with Result-based flows, so Meteor must follow suit to keep error contracts aligned.
+
+**Required Actions**:
+- Audit every `unwrap()` and `expect()` in core runtime, parser, and CLI modules.
+- Replace high-risk I/O / parsing unwraps with typed errors that bubble through the RSB dispatcher.
+- Update tests to assert new error variants; add regression coverage for failure paths that previously panicked.
+
+**Acceptance Criteria**:
+1. High-risk unwrap sites return `Result`/`Option` handling with descriptive Meteor error types.
+2. Updated tests cover bad input, malformed meteor strings, and CLI failure scenarios without panics.
+3. Residual intentional unwraps are documented inline explaining why they are safe (e.g., static regex creation).
+4. Validation report reflects the reduced unwrap count (<30 remaining, all justified).
+
+### MET-QOL-02: Normalize Worktree Ahead of Integration 🔄 OPEN
+**Priority**: P1 – Build Hygiene
+**Type**: Quality of Life
+**Effort**: 2 SP (estimate)
+
+**Background**: Current repo state has ~10 modified files and 1 untracked planning document. Dirty worktrees caused confusion during validation passes.
+
+**Acceptance Criteria**:
+- `git status` clean on `main` after retaining intentional changes via commit or documentation.
+- Any local experiment files either committed to feature branches or documented for future work.
+- Validation protocol can be re-run from a fresh clone without manual cleanup.
+
+### MET-QOL-01: Resolve Compiler Warnings 🔄 READY TO START
+**Priority**: P2 – Developer Experience
+**Type**: Quality of Life
+**Effort**: 3 SP (estimate)
+
+**Background**: `cargo build --all-features` emits ~34 warnings (string prefix stripping, iterator simplifications, trait shadowing). Noise makes it harder to spot real regressions and violates team standards.
+
+**Acceptance Criteria**:
+1. Default build produces zero warnings on stable toolchain.
+2. Any unavoidable warnings are suppressed with documented justifications.
+3. Updated CHANGELOG/notes highlighting notable refactors (e.g., Display implementations).
+
+### Integration Note → PDB-PLAN-01 Coordination
+- As soon as MET-BUGS-01 lands, share updated error semantics with the ProntoDB integration owner so the upcoming usage contract (PDB-PLAN-01) can rely on consistent failure behaviour.
+
 ## ✅ COMPLETED TICKETS
 
 ### TICKET-001: Fix Compilation Error ✅ COMPLETED
