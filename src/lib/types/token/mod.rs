@@ -1,7 +1,5 @@
-//! Token subsystem - Token storage
+//! Token subsystem - Token data type
 
-mod bucket;
 mod token;
 
-pub use bucket::TokenBucket;
 pub use token::Token;

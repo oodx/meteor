@@ -33,7 +33,7 @@ pub use config::{config_profile, config_summary};
 pub use parser::{parse_escaped_value, validate_escapes, MeteorStreamParser, TokenStreamParser};
 pub use types::{
     BracketNotation, Context, ControlCommand, Meteor, MeteorEngine, MeteorError, MeteorShower,
-    Namespace, StorageData, Token, TokenBucket, TokenKey,
+    Namespace, StorageData, Token, TokenKey,
 };
 pub use utils::{is_valid_meteor_format, is_valid_meteor_shower_format, is_valid_token_format};
 pub use validation::{is_valid_meteor, is_valid_meteor_shower, is_valid_token};

@@ -164,7 +164,7 @@ impl fmt::Display for Meteor {
         let tokens_str = self
             .tokens
             .iter()
-            .map(|token| format!("{}={}", token.key().to_string(), token.value()))
+            .map(|token| format!("{}={}", token.key_notation(), token.value()))
             .collect::<Vec<_>>()
             .join(";");
 

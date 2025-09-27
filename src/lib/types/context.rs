@@ -72,6 +72,18 @@ impl Default for Context {
     }
 }
 
+impl From<&str> for Context {
+    fn from(s: &str) -> Self {
+        Context::new(s)
+    }
+}
+
+impl From<String> for Context {
+    fn from(s: String) -> Self {
+        Context::new(s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

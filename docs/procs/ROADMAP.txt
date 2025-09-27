@@ -5,107 +5,107 @@
 🎯 Vision: Deliver a stateful MeteorEngine with first-class iteration, aggregation,
           and virtualization APIs that unblock CLI/REPL parity and ProntoDB streams.
 📅 Horizon: Milestones cover the next three delivery cycles (≈6–8 weeks total).
-🚀 Priority: Stand up the workspace layer, surface iterator/guard APIs, then
-             ship meteor aggregation/export tooling.
+🚀 Priority: ME-1 ✅ → ME-2 ✅ → ME-3 in flight (aggregation/export/import focus).
 
 ================================================================================
  📆 MILESTONE OVERVIEW
 ================================================================================
 
-| Milestone | Target Window  | Scope Summary                                         | Exit Criteria |
-|-----------|----------------|-------------------------------------------------------|---------------|
-| ME-1      | Week 1–2       | Engine workspace foundations + cache invalidation     | Workspace behind API, mutation hooks gated, debug dump ready |
-| ME-2      | Week 3–4       | Iterator surfaces, namespace views, cursor guards     | CLI smoke tests on iterators, cursor guard restores on error |
-| ME-3      | Week 5–6       | Meteor aggregation/export/import + parser alignment   | CLI/REPL powered by meteor views, export/import round trips |
+| Milestone | Target Window  | Scope Summary                                         | Exit Criteria | Status |
+|-----------|----------------|-------------------------------------------------------|---------------|--------|
+| ME-1      | Week 1–2       | Engine workspace foundations + cache invalidation     | Workspace behind API, mutation hooks gated, debug dump ready | ✅ Delivered |
+| ME-2      | Week 3–4       | Iterator surfaces, namespace views, cursor guards     | CLI/REPL ready helpers, cursor guard restores on error        | ✅ Delivered |
+| ME-3      | Week 5–6       | Meteor aggregation/export/import + parser alignment   | CLI/REPL powered by meteor views, export/import round trips   | 🔵 Ready |
 
-Total Planned Capacity: 33 SP (ME-1: 8 SP, ME-2: 7 SP, ME-3: 18 SP)
+Total Planned Capacity: 33 SP (ME-1: 8 SP ✅, ME-2: 7 SP ✅, ME-3: 18 SP pending).
 
 ================================================================================
  🧱 ME-1 — Workspace Foundations (Phase 0)
 ================================================================================
 
+**Status**: ✅ Completed (8/8 SP)
 **Goal**: Introduce the internal `EngineWorkspace` layer and supporting safeguards so
 future features can rely on ordering metadata, caches, and scratch buffers without
 leaking concerns into `StorageData`.
 
 | Ticket | SP | Status | Summary |
 |--------|----|--------|---------|
-| ENG-01 | 3  | 🔵 Ready | Implement `EngineWorkspace` (ordering tables, query caches, scratch buffers) anchored to `StorageData` invariants. |
-| ENG-02 | 2  | Planned | Add atomic mutation hooks on `set/delete/reset` to invalidate workspace caches consistently. |
-| ENG-03 | 1  | Planned | Expose debug-only workspace inspection via `cfg(debug_assertions)` toggle. |
-| REGR-03 | 2 | Planned | Align namespace depth regression guard with configuration profiles. |
+| ENG-01 | 3  | ✅ Done | EngineWorkspace implemented (ordering tables, caches, scratch buffers) with lifecycle integration + tests. |
+| ENG-02 | 2  | ✅ Done | Mutation hooks + scope-aware cache invalidation + instrumentation feature flag. |
+| ENG-03 | 1  | ✅ Done | Debug-only workspace inspection + documentation guard rails. |
+| REGR-03 | 2 | ✅ Done | Namespace depth regression guard + profile-aware CI + testing guide. |
 
-**Dependencies**: None.
-**Acceptance**:
-- Workspace internal-only with accessor shims for future phases.
-- Cache invalidation triggered on every mutation path.
-- Debug builds can dump workspace state without affecting release binaries.
-- Namespace depth regression harness passes on all profiles.
+**Acceptance Achieved**:
+- Workspace access stays internal; mutation hooks keep caches coherent.
+- Debug builds expose `workspace_status()` behind guard; namespace depth tests pass in all profiles.
+- 203 tests passing at phase completion (lib + integration).
 
 ================================================================================
  🔄 ME-2 — Iterators & Cursor Guards (Phase 1)
 ================================================================================
 
+**Status**: ✅ Completed (7/7 SP)
 **Goal**: Replace direct `StorageData` probing with iterator/view APIs and provide
 cursor lifetime guards that make REPL/CLI cursor handling safe by default.
 
 | Ticket | SP | Status | Summary |
 |--------|----|--------|---------|
-| ENG-10 | 2 | Planned | Surface `iter_entries`, `contexts_iter`, `namespaces_iter` backed by workspace ordering hints. |
-| ENG-11 | 2 | Planned | Deliver ordered namespace views with metadata (counts, default markers, ordering hints). |
-| ENG-12 | 3 | Planned | Add `CursorGuard` / `with_cursor` helpers plus `engine.cursor()` accessor struct. |
+| ENG-10 | 2 | ✅ Done | `contexts_iter`, `namespaces_iter`, `iter_entries` with workspace ordering + instrumentation. |
+| ENG-11 | 2 | ✅ Done | `NamespaceView` with metadata, ordered iteration, access helpers. |
+| ENG-12 | 3 | ✅ Done | `Cursor` accessor + `CursorGuard` RAII, parser-friendly context switching. |
 
-**Dependencies**: ME-1 workspace infrastructure.
-**Acceptance**:
-- Iterators cover hybrid storage (flat + tree) including empty namespaces.
-- Cursor guard automatically restores prior state on early returns/errors.
-- CLI smoke tests for `parse`, `list`, `contexts`, `namespaces` exercise new iterators.
+**Acceptance Achieved**:
+- Iterators cover hybrid storage; workspace ordering preserved; instrumentation optional.
+- Namespace views feed future CLI formatting; lazy value access keeps memory overhead low.
+- Cursor guard restores on early returns/panics; nested guard behavior verified by 18 tests.
+- 288 tests passing at phase completion (100 lib + 179 integration + 9 doc).
 
 ================================================================================
  🌠 ME-3 — Meteor Aggregation & Virtualization Hooks (Phase 2)
 ================================================================================
 
+**Status**: 🔵 Ready (18 SP)
 **Goal**: Provide aggregated meteor views grouped by `(context, namespace)` and hook
 up export/import capabilities in preparation for document virtualization.
 
 | Ticket | SP | Status | Summary |
 |--------|----|--------|---------|
-| ENG-20 | 3 | Planned | Expose `meteors()` / `meteor_for()` grouped views feeding CLI/REPL outputs. |
-| ENG-21 | 2 | Planned | Honor ordering metadata when emitting sections/parts/snippets. |
-| ENG-22 | 2 | Planned | Implement `export_namespace` helper supporting multiple formats. |
-| ENG-23 | 2 | Planned | Implement `import_namespace` with metadata capture & validation. |
-| ENG-24 | 2 | Planned | Provide workspace-backed scratch slots (`scratch_slot`) for REPL workflows. |
-| ENG-40 | 3 | Planned | Enforce meteor invariant (single context/namespace) and update constructors. |
-| ENG-41 | 2 | Planned | Align parsers with grouped meteors and mixed-address policy toggles. |
-| CLI-05 | 1 | Planned | Route CLI `parse` output through meteor views (text/json parity). |
-| REPL-05 | 1 | Planned | Update REPL `meteor`, `list`, `history` commands to new APIs. |
-| ENG-42 | 1 | Planned | Centralize semicolon smart-split logic; add regression tests for quoted literals. |
-| QA-10  | 1 | Planned | Maintain zero-warning baseline post-refactor. |
+| ENG-20 | 3 | 🔵 Ready | Expose `meteors()` / `meteor_for()` grouped views feeding CLI/REPL outputs. |
+| ENG-21 | 2 | 🔵 Ready | Honor ordering metadata when emitting sections/parts/snippets. |
+| ENG-22 | 2 | 🔵 Ready | Implement `export_namespace` helper supporting multiple formats. |
+| ENG-23 | 2 | 🔵 Ready | Implement `import_namespace` with metadata capture & validation. |
+| ENG-24 | 2 | 🔵 Ready | Provide workspace-backed scratch slots (`scratch_slot`) for REPL workflows. |
+| ENG-40 | 3 | 🔵 Ready | Enforce meteor invariant (single context/namespace) and update constructors. |
+| ENG-41 | 2 | 🔵 Ready | Align parsers with grouped meteors and mixed-address policy toggles. |
+| CLI-05 | 1 | 🔵 Ready | Route CLI `parse` output through meteor views (text/json parity). |
+| REPL-05 | 1 | 🔵 Ready | Update REPL `meteor`, `list`, `history` commands to new APIs. |
+| ENG-42 | 1 | 🔵 Ready | Centralize semicolon smart-split logic; regression tests for quoted literals. |
+| QA-10  | 1 | 🔵 Ready | Maintain zero-warning baseline post-refactor. |
 
 **Dependencies**: ME-2 iterators/guards.
-**Acceptance**:
-- CLI/REPL command set consumes aggregated meteor APIs without direct `StorageData` access.
-- Export/import helpers round-trip sample fixtures and capture metadata.
-- Parser alignment retains legacy substring find behavior under compatibility flag until glob search lands.
+**Acceptance Focus**:
+- Aggregation APIs feed CLI/REPL without direct `StorageData` access.
+- Export/import helpers round-trip fixtures, capture metadata.
+- Parser alignment retains legacy substring find via compatibility flag until glob search lands.
 - Scratch slots isolated from canonical storage; debug dumps illustrate workspace usage.
 
 ================================================================================
  🔗 CROSS-CUTTING TRACKERS
 ================================================================================
 
-- **Testing**: Phase 6 tickets (TEST-01..03, REGR-01) scheduled once ME-3 stabilizes.
-- **Documentation**: ENG-90..92 will refresh architecture references post ME-3.
-- **Integration**: ProntoDB stream adapter re-evaluates after ME-3 completion.
+- **Testing**: Phase 6 tickets (TEST-01..03, REGR-01) scheduled once ME-3 stabilizes API surface.
+- **Documentation**: ENG-90..92 queued post ME-3 for architecture + workflow refresh.
+- **Integration**: ProntoDB contract review after aggregated APIs land (post ENG-23/ENG-24).
 
 ================================================================================
  ✅ SUCCESS METRICS
 ================================================================================
 
-- Every milestone exits with cargo tests + targeted CLI smoke suites passing.
-- No public API regressions (tracked via REGR-03, ENG-42, QA-10).
+- Every milestone exits with `cargo test` + targeted CLI/REPL smoke suites passing.
+- No public API regressions (guarded by REGR-03, ENG-42, QA-10).
 - CLI/REPL latency within ±5% of pre-workspace benchmarks once ME-3 lands.
-- Workspace debug tooling available for diagnostics without enabling in release builds.
+- Workspace debug tooling available for diagnostics without impacting release builds.
 
-Last Updated: 2025-10-03
-Next Review: Post ME-1 completion or earlier if scope shifts.
+Last Updated: 2025-10-03 (ME-1 & ME-2 delivered)
+Next Review: Post ME-3 delivery or earlier if scope shifts.
 ================================================================================

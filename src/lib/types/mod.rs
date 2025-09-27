@@ -26,4 +26,4 @@ pub use meteor::{
 pub use namespace::{
     Namespace, MAX_NAMESPACE_PART_LENGTH, NAMESPACE_ERROR_DEPTH, NAMESPACE_WARNING_DEPTH,
 };
-pub use token::{Token, TokenBucket};
+pub use token::Token;

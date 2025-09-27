@@ -11,8 +11,8 @@
 //! - Full command audit trail
 //! - Dot-notation path operations
 
-use crate::types::{Context, Namespace, StorageData};
-use super::workspace::EngineWorkspace;
+use crate::types::{Context, Namespace, StorageData, Token};
+use super::{Meteor, workspace::EngineWorkspace};
 
 /// Command execution record for audit trail
 #[derive(Debug, Clone)]
@@ -48,6 +48,115 @@ impl ControlCommand {
         self.success = false;
         self.error_message = Some(error.to_string());
         self
+    }
+}
+
+/// Lightweight cursor accessor for reading and modifying cursor state.
+///
+/// Provides safe access to cursor state with validation and convenience methods.
+/// Borrows the engine mutably, preventing data mutations while cursor is accessed.
+///
+/// # Example
+/// ```
+/// use meteor::types::MeteorEngine;
+///
+/// let mut engine = MeteorEngine::new();
+/// {
+///     let mut cursor = engine.cursor();
+///     assert_eq!(cursor.context().name(), "app");
+///     assert_eq!(cursor.namespace().to_string(), "main");
+///
+///     cursor.set_context("user");
+///     cursor.set_namespace("settings");
+/// }
+/// assert_eq!(engine.current_context.name(), "user");
+/// ```
+pub struct Cursor<'a> {
+    engine: &'a mut MeteorEngine,
+}
+
+impl<'a> Cursor<'a> {
+    fn new(engine: &'a mut MeteorEngine) -> Self {
+        Self { engine }
+    }
+
+    /// Get the current context
+    pub fn context(&self) -> &Context {
+        &self.engine.current_context
+    }
+
+    /// Get the current namespace
+    pub fn namespace(&self) -> &Namespace {
+        &self.engine.current_namespace
+    }
+
+    /// Set the current context
+    pub fn set_context(&mut self, context: impl Into<Context>) {
+        self.engine.current_context = context.into();
+    }
+
+    /// Set the current namespace
+    pub fn set_namespace(&mut self, namespace: impl Into<Namespace>) {
+        self.engine.current_namespace = namespace.into();
+    }
+
+    /// Reset cursor to defaults (app:main)
+    pub fn reset(&mut self) {
+        self.engine.reset_cursor();
+    }
+
+    /// Get the current cursor position as a formatted string (context:namespace)
+    pub fn position(&self) -> String {
+        format!("{}:{}", self.engine.current_context.name(), self.engine.current_namespace.to_string())
+    }
+}
+
+/// RAII guard that saves cursor state and restores it on drop.
+///
+/// Automatically restores cursor position when the guard goes out of scope,
+/// even if a panic occurs. Useful for temporary cursor switches in parsers
+/// and REPL commands.
+///
+/// # Example
+/// ```
+/// use meteor::types::{MeteorEngine, Context};
+///
+/// let mut engine = MeteorEngine::new();
+/// engine.set("app:main:key", "original").unwrap();
+///
+/// {
+///     let _guard = engine.cursor_guard();
+///     engine.switch_context(Context::user());
+///     engine.switch_namespace("temp".into());
+///     engine.store_token("temp_key", "temp_value");
+/// } // Guard drops here, cursor restored to app:main
+///
+/// assert_eq!(engine.current_context.name(), "app");
+/// assert_eq!(engine.current_namespace.to_string(), "main");
+/// ```
+pub struct CursorGuard {
+    saved_context: Context,
+    saved_namespace: Namespace,
+    engine_ptr: *mut MeteorEngine,
+}
+
+impl CursorGuard {
+    fn new(engine: &mut MeteorEngine) -> Self {
+        Self {
+            saved_context: engine.current_context.clone(),
+            saved_namespace: engine.current_namespace.clone(),
+            engine_ptr: engine as *mut MeteorEngine,
+        }
+    }
+}
+
+impl Drop for CursorGuard {
+    fn drop(&mut self) {
+        unsafe {
+            let engine = &mut *self.engine_ptr;
+            engine.current_context = self.saved_context.clone();
+            engine.current_namespace = self.saved_namespace.clone();
+        }
     }
 }
 
@@ -127,6 +236,45 @@ impl MeteorEngine {
     /// Switch current namespace (cursor state change)
     pub fn switch_namespace(&mut self, namespace: Namespace) {
         self.current_namespace = namespace;
+    }
+
+    /// Get a cursor accessor for reading and modifying cursor state.
+    ///
+    /// Returns a `Cursor` that borrows the engine mutably, providing
+    /// safe access to cursor operations with convenient methods.
+    ///
+    /// # Example
+    /// ```
+    /// use meteor::types::MeteorEngine;
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// let mut cursor = engine.cursor();
+    /// cursor.set_context("user");
+    /// assert_eq!(cursor.context().name(), "user");
+    /// ```
+    pub fn cursor(&mut self) -> Cursor<'_> {
+        Cursor::new(self)
+    }
+
+    /// Create a cursor guard that saves current cursor position and restores it on drop.
+    ///
+    /// This is an RAII guard that automatically restores cursor state when it goes
+    /// out of scope, even if a panic occurs. Useful for temporary cursor switches.
+    ///
+    /// # Example
+    /// ```
+    /// use meteor::types::{MeteorEngine, Context};
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// {
+    ///     let _guard = engine.cursor_guard();
+    ///     engine.switch_context(Context::user());
+    ///     // Do work with temporary cursor...
+    /// } // Cursor automatically restored here
+    /// assert_eq!(engine.current_context.name(), "app");
+    /// ```
+    pub fn cursor_guard(&mut self) -> CursorGuard {
+        CursorGuard::new(self)
     }
 
     /// Reset cursor to defaults
@@ -368,6 +516,124 @@ impl MeteorEngine {
         EntriesIterator::new(self)
     }
 
+    /// Returns a view into a specific namespace, or None if the namespace doesn't exist.
+    ///
+    /// NamespaceView provides ordered access to entries with metadata including:
+    /// - Entry count
+    /// - Default value detection (.index key)
+    /// - Workspace-ordered iteration
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use meteor::types::MeteorEngine;
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// engine.set("doc:guides.install:intro", "Welcome").unwrap();
+    /// engine.set("doc:guides.install:setup", "Step 1...").unwrap();
+    /// engine.set("doc:guides.install:.index", "default").unwrap();
+    ///
+    /// if let Some(view) = engine.namespace_view("doc", "guides.install") {
+    ///     assert_eq!(view.entry_count, 3);
+    ///     assert!(view.has_default);
+    ///     for (key, value) in view.entries() {
+    ///         println!("{} = {}", key, value);
+    ///     }
+    /// }
+    /// ```
+    pub fn namespace_view(&self, context: &str, namespace: &str) -> Option<NamespaceView<'_>> {
+        // Try to get keys from workspace (insertion order), fall back to storage
+        let keys = if let Some(ws) = self.workspace.get_namespace(context, namespace) {
+            ws.key_order.clone()
+        } else {
+            let keys = self.storage.find_keys(context, namespace, "*");
+            if keys.is_empty() {
+                return None;
+            }
+            keys
+        };
+
+        let entry_count = keys.len();
+        let has_default = keys.iter().any(|k| k == ".index");
+
+        Some(NamespaceView {
+            context: context.to_string(),
+            namespace: namespace.to_string(),
+            entry_count,
+            has_default,
+            engine: self,
+            keys,
+        })
+    }
+
+    // ================================
+    // Meteor Aggregation (ENG-20)
+    // ================================
+
+    /// Iterate over all meteors, grouped by (context, namespace).
+    ///
+    /// Returns an iterator that yields `Meteor` instances, one per namespace.
+    /// Each meteor contains all tokens (key-value pairs) for that namespace,
+    /// in workspace insertion order when available.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use meteor::types::MeteorEngine;
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// engine.set("app:ui:button", "click").unwrap();
+    /// engine.set("app:ui:theme", "dark").unwrap();
+    /// engine.set("user:settings:lang", "en").unwrap();
+    ///
+    /// for meteor in engine.meteors() {
+    ///     println!("{}", meteor);
+    /// }
+    /// ```
+    pub fn meteors(&self) -> MeteorsIterator<'_> {
+        MeteorsIterator::new(self)
+    }
+
+    /// Get a meteor for a specific (context, namespace) pair.
+    ///
+    /// Returns `Some(Meteor)` if the namespace exists and has entries,
+    /// `None` otherwise. The meteor contains all tokens in that namespace
+    /// in workspace insertion order.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use meteor::types::MeteorEngine;
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// engine.set("app:ui:button", "click").unwrap();
+    /// engine.set("app:ui:theme", "dark").unwrap();
+    ///
+    /// if let Some(meteor) = engine.meteor_for("app", "ui") {
+    ///     assert_eq!(meteor.context().name(), "app");
+    ///     assert_eq!(meteor.namespace().to_string(), "ui");
+    ///     assert_eq!(meteor.tokens().len(), 2);
+    /// }
+    /// ```
+    pub fn meteor_for(&self, context: &str, namespace: &str) -> Option<Meteor> {
+        let view = self.namespace_view(context, namespace)?;
+
+        let mut tokens = Vec::new();
+        for (key, value) in view.entries() {
+            tokens.push(Token::new(key, value));
+        }
+
+        if tokens.is_empty() {
+            return None;
+        }
+
+        Some(Meteor::new_with_tokens(
+            Context::new(context),
+            Namespace::from_string(namespace),
+            tokens,
+        ))
+    }
+
     // ================================
     // Hybrid Storage Methods
     // ================================
@@ -443,6 +709,72 @@ impl Default for MeteorEngine {
 // ================================
 // Entries Iterator (ENG-10)
 // ================================
+
+/// Iterator over all meteors, grouped by (context, namespace).
+///
+/// Yields `Meteor` instances, one per namespace. Each meteor contains
+/// all tokens (key-value pairs) for that namespace in workspace insertion
+/// order when available.
+///
+/// Created by `MeteorEngine::meteors()`.
+pub struct MeteorsIterator<'a> {
+    engine: &'a MeteorEngine,
+    contexts: Vec<String>,
+    current_context_idx: usize,
+    current_namespaces: Vec<String>,
+    current_namespace_idx: usize,
+}
+
+impl<'a> MeteorsIterator<'a> {
+    fn new(engine: &'a MeteorEngine) -> Self {
+        let contexts = engine.storage.contexts();
+        Self {
+            engine,
+            contexts,
+            current_context_idx: 0,
+            current_namespaces: Vec::new(),
+            current_namespace_idx: 0,
+        }
+    }
+
+    fn advance_to_next_context(&mut self) -> bool {
+        if self.current_context_idx >= self.contexts.len() {
+            return false;
+        }
+
+        let context = &self.contexts[self.current_context_idx];
+        self.current_namespaces = self.engine.storage.namespaces_in_context(context);
+        self.current_namespace_idx = 0;
+        self.current_context_idx += 1;
+
+        !self.current_namespaces.is_empty()
+    }
+}
+
+impl<'a> Iterator for MeteorsIterator<'a> {
+    type Item = Meteor;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            // If we have more namespaces in current context, process next one
+            if self.current_namespace_idx < self.current_namespaces.len() {
+                let context = &self.contexts[self.current_context_idx - 1];
+                let namespace = &self.current_namespaces[self.current_namespace_idx];
+                self.current_namespace_idx += 1;
+
+                if let Some(meteor) = self.engine.meteor_for(context, namespace) {
+                    return Some(meteor);
+                }
+                continue;
+            }
+
+            // No more namespaces in current context, advance to next context
+            if !self.advance_to_next_context() {
+                return None;
+            }
+        }
+    }
+}
 
 /// Iterator over all entries in the engine with workspace ordering
 ///
@@ -545,6 +877,85 @@ impl<'a> Iterator for EntriesIterator<'a> {
                 return None;
             }
         }
+    }
+}
+
+/// A view into a single namespace, providing metadata and ordered access to entries.
+///
+/// NamespaceView provides a lightweight, read-only view into a namespace with:
+/// - Ordered iteration using workspace key_order (insertion order preservation)
+/// - Entry count and default value detection (.index)
+/// - Efficient key/value access without copying all data
+///
+/// ## Example
+/// ```rust
+/// use meteor::types::MeteorEngine;
+///
+/// let mut engine = MeteorEngine::new();
+/// engine.set("doc:guides.install:intro", "Welcome").unwrap();
+/// engine.set("doc:guides.install:setup", "Step 1...").unwrap();
+///
+/// if let Some(view) = engine.namespace_view("doc", "guides.install") {
+///     println!("Namespace has {} entries", view.entry_count);
+///     for (key, value) in view.entries() {
+///         println!("{} = {}", key, value);
+///     }
+/// }
+/// ```
+pub struct NamespaceView<'a> {
+    /// The context this namespace belongs to
+    pub context: String,
+    /// The namespace path
+    pub namespace: String,
+    /// Number of entries in this namespace
+    pub entry_count: usize,
+    /// Whether this namespace has a default value (.index)
+    pub has_default: bool,
+
+    // Private fields
+    engine: &'a MeteorEngine,
+    keys: Vec<String>,
+}
+
+impl<'a> NamespaceView<'a> {
+    /// Returns an iterator over (key, value) pairs in workspace order
+    pub fn entries(&self) -> impl Iterator<Item = (String, String)> + '_ {
+        self.keys.iter().filter_map(move |key| {
+            self.engine
+                .get(&format!("{}:{}:{}", self.context, self.namespace, key))
+                .map(|v| (key.clone(), v.to_string()))
+        })
+    }
+
+    /// Returns an iterator over keys in workspace order
+    pub fn keys(&self) -> impl Iterator<Item = &str> {
+        self.keys.iter().map(|k| k.as_str())
+    }
+
+    /// Returns an iterator over values in workspace order
+    pub fn values(&self) -> impl Iterator<Item = String> + '_ {
+        self.keys.iter().filter_map(move |key| {
+            self.engine
+                .get(&format!("{}:{}:{}", self.context, self.namespace, key))
+                .map(|s| s.to_string())
+        })
+    }
+
+    /// Get a single value by key
+    pub fn get(&self, key: &str) -> Option<String> {
+        self.engine
+            .get(&format!("{}:{}:{}", self.context, self.namespace, key))
+            .map(|s| s.to_string())
+    }
+
+    /// Check if a key exists in this namespace
+    pub fn has_key(&self, key: &str) -> bool {
+        self.keys.iter().any(|k| k == key)
+    }
+
+    /// Get all keys that match a pattern (supports * wildcard)
+    pub fn find_keys(&self, pattern: &str) -> Vec<String> {
+        self.engine.storage.find_keys(&self.context, &self.namespace, pattern)
     }
 }
 

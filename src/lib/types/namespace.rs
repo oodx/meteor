@@ -139,6 +139,18 @@ impl Default for Namespace {
     }
 }
 
+impl From<&str> for Namespace {
+    fn from(s: &str) -> Self {
+        Namespace::from_string(s)
+    }
+}
+
+impl From<String> for Namespace {
+    fn from(s: String) -> Self {
+        Namespace::from_string(&s)
+    }
+}
+
 /// Validate a namespace part for valid identifier characters
 fn is_valid_namespace_part(part: &str) -> bool {
     if part.is_empty() {
