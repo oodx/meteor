@@ -6,7 +6,11 @@ fn main() {
     dispatch!(&args, {
         "parse" => parse_command, desc: "Parse meteor token streams",
         "validate" => validate_command, desc: "Validate meteor token stream",
-        "token" => token_command, desc: "Parse token stream without context"
+        "token" => token_command, desc: "Parse token stream without context",
+        "get" => get_command, desc: "Get value by path",
+        "list" => list_command, desc: "List keys and values",
+        "contexts" => contexts_command, desc: "List all contexts",
+        "namespaces" => namespaces_command, desc: "List namespaces in context"
     });
 }
 
@@ -330,4 +334,226 @@ fn show_validation_help() {
     println!("  Use ':;:' to separate meteors in a stream");
     println!();
     println!("Example: meteor parse \"app:ui:button=click :;: user:settings:theme=dark\"");
+}
+
+fn get_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let input = collect_input(&args);
+
+    if input.is_empty() {
+        eprintln!("Error: No path provided");
+        eprintln!("Usage: meteor get [--format=FORMAT] <context:namespace:key>");
+        eprintln!("Example: meteor get app:ui:button");
+        return 1;
+    }
+
+    let engine = meteor::MeteorEngine::new();
+
+    // Need to populate engine first - load from file or require parse first
+    // For now, this command only works on empty engine (will return not found)
+    // In future, could load from persistent storage
+
+    match engine.get(&input) {
+        Some(value) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"path\": \"{}\",", input);
+                    println!("  \"value\": \"{}\"", value);
+                    println!("}}");
+                }
+                _ => {
+                    println!("{} = {}", input, value);
+                }
+            }
+            0
+        }
+        None => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"path\": \"{}\",", input);
+                    println!("  \"found\": false");
+                    println!("}}");
+                }
+                _ => {
+                    eprintln!("{} not found", input);
+                }
+            }
+            1
+        }
+    }
+}
+
+fn contexts_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let _input = collect_input(&args);
+
+    let engine = meteor::MeteorEngine::new();
+    let contexts = engine.contexts();
+
+    if contexts.is_empty() {
+        match format {
+            "json" => println!("[]"),
+            _ => println!("No contexts"),
+        }
+        return 0;
+    }
+
+    match format {
+        "json" => {
+            println!("[");
+            for (index, ctx) in contexts.iter().enumerate() {
+                if index + 1 < contexts.len() {
+                    println!("  \"{}\",", ctx);
+                } else {
+                    println!("  \"{}\"", ctx);
+                }
+            }
+            println!("]");
+        }
+        _ => {
+            println!("Contexts:");
+            for ctx in contexts {
+                println!("  {}", ctx);
+            }
+        }
+    }
+    0
+}
+
+fn namespaces_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let input = collect_input(&args);
+
+    if input.is_empty() {
+        eprintln!("Error: No context provided");
+        eprintln!("Usage: meteor namespaces [--format=FORMAT] <context>");
+        eprintln!("Example: meteor namespaces app");
+        return 1;
+    }
+
+    let engine = meteor::MeteorEngine::new();
+    let namespaces = engine.namespaces_in_context(&input);
+
+    if namespaces.is_empty() {
+        match format {
+            "json" => {
+                println!("{{");
+                println!("  \"context\": \"{}\",", input);
+                println!("  \"namespaces\": []");
+                println!("}}");
+            }
+            _ => {
+                println!("No namespaces in context '{}'", input);
+            }
+        }
+        return 0;
+    }
+
+    match format {
+        "json" => {
+            println!("{{");
+            println!("  \"context\": \"{}\",", input);
+            println!("  \"namespaces\": [");
+            for (index, ns) in namespaces.iter().enumerate() {
+                let display = if ns.is_empty() { "(root)" } else { ns };
+                if index + 1 < namespaces.len() {
+                    println!("    \"{}\",", display);
+                } else {
+                    println!("    \"{}\"", display);
+                }
+            }
+            println!("  ]");
+            println!("}}");
+        }
+        _ => {
+            println!("Namespaces in '{}':", input);
+            for ns in namespaces {
+                println!("  {}", if ns.is_empty() { "(root)" } else { &ns });
+            }
+        }
+    }
+    0
+}
+
+fn list_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let input = collect_input(&args);
+
+    if input.is_empty() {
+        eprintln!("Error: No context provided");
+        eprintln!("Usage: meteor list [--format=FORMAT] <context> [namespace]");
+        eprintln!("Example: meteor list app");
+        eprintln!("Example: meteor list app ui");
+        return 1;
+    }
+
+    let parts: Vec<&str> = input.split_whitespace().collect();
+    let context = parts[0];
+    let namespace = if parts.len() > 1 { parts[1] } else { "" };
+
+    let engine = meteor::MeteorEngine::new();
+    let storage = engine.storage();
+    let entries = storage.get_all_keys_in_namespace(context, namespace);
+
+    if entries.is_empty() {
+        match format {
+            "json" => {
+                println!("{{");
+                println!("  \"context\": \"{}\",", context);
+                if !namespace.is_empty() {
+                    println!("  \"namespace\": \"{}\",", namespace);
+                }
+                println!("  \"entries\": []");
+                println!("}}");
+            }
+            _ => {
+                if namespace.is_empty() {
+                    println!("No entries in context '{}'", context);
+                } else {
+                    println!("No entries in '{}:{}'", context, namespace);
+                }
+            }
+        }
+        return 0;
+    }
+
+    match format {
+        "json" => {
+            println!("{{");
+            println!("  \"context\": \"{}\",", context);
+            if !namespace.is_empty() {
+                println!("  \"namespace\": \"{}\",", namespace);
+            }
+            println!("  \"entries\": [");
+            for (index, (key, value)) in entries.iter().enumerate() {
+                println!("    {{");
+                println!("      \"key\": \"{}\",", key);
+                println!("      \"value\": \"{}\"", value);
+                if index + 1 < entries.len() {
+                    println!("    }},");
+                } else {
+                    println!("    }}");
+                }
+            }
+            println!("  ]");
+            println!("}}");
+        }
+        _ => {
+            if namespace.is_empty() {
+                println!("Entries in '{}':", context);
+            } else {
+                println!("Entries in '{}:{}':", context, namespace);
+            }
+            for (key, value) in entries {
+                println!("  {} = {}", key, value);
+            }
+        }
+    }
+    0
 }
