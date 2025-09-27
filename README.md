@@ -4,11 +4,12 @@
 
 A Rust library implementing the TOKEN_NAMESPACE_CONCEPT with meteor data format, bracket notation, and RSB architecture compliance. **Meteor** is a DATA TYPE representing structured token data.
 
-## Current Status (2025-09-22)
+## Current Status (2025-09-27)
 
 ✅ **Architecture Complete** - Modular type system with extensible bracket notation
-🚧 **RSB Integration** - Ready for global state and enhanced CLI features
-🎯 **Next Phase** - RSB feature implementation and advanced functionality
+✅ **RSB Integration** - Full CLI command suite with global state
+✅ **CLI Enhancement Suite** - Query, manipulation, history, and reset commands
+🎯 **Production Ready** - Core functionality complete, ready for integration
 
 ## Key Features
 
@@ -112,33 +113,60 @@ cargo run --bin meteor-config
 ### CLI Usage
 
 ```bash
-# Parse into the engine
-cargo run --bin meteor -- parse "app:ui:button=click :;: user:settings:theme=dark"
+# Stream Parsing Commands
+meteor parse "app:ui:button=click :;: user:settings:theme=dark"
+meteor validate "app:ui:button=click :;: user:settings:theme=dark"
+meteor token "profile=name;role=admin"
 
-# Alternate output formats
-cargo run --bin meteor -- parse --format=json "app:ui:button=click"
-cargo run --bin meteor -- parse --format=debug --verbose "app:ui:button=click"
+# Query Commands (one-shot stateless)
+meteor get app:ui:button                    # Get value by path
+meteor list app ui                          # List keys in namespace
+meteor contexts                             # List all contexts
+meteor namespaces app                       # List namespaces in context
 
-# Validate without storing
-cargo run --bin meteor -- validate "app:ui:button=click :;: user:settings:theme=dark"
+# Data Manipulation Commands
+meteor set app:ui:button click              # Set key-value pair
+meteor set --dry-run app:ui:button click    # Preview without executing
+meteor delete app:ui:button                 # Delete key by path
 
-# Parse token streams
-cargo run --bin meteor -- token "profile=name;role=admin"
+# History & Audit Commands
+meteor history                              # Show command audit trail
+meteor history --limit=10                   # Last 10 commands
+meteor history --format=json                # JSON output
 
-# Inspect registered handlers (RSB built-in)
-cargo run --bin meteor -- inspect
+# Reset Commands
+meteor reset cursor                         # Reset cursor to default (app:main)
+meteor reset storage                        # Clear all stored data
+meteor reset all                            # Reset cursor and storage
+meteor reset app                            # Delete specific context
+
+# All commands support --format=json|text for scripting
+meteor get app:ui:button --format=json
+
+# RSB Built-in Commands
+meteor inspect                              # List all registered commands
+meteor help                                 # Show help
 ```
 
 ### REPL Usage
 
-```bash
-cargo run --bin meteor-repl
+The REPL provides **interactive, stateful** processing:
 
-# Sample session
+```bash
+meteor-repl
+
+# Sample session - stateful data manipulation
 meteor> parse app:ui:button=click
+meteor> set app:ui:theme dark
 meteor> get app:ui:button
-meteor> mem set  hello world
-meteor> mem edit 
+meteor> list app ui
+meteor> contexts
+meteor> history
+meteor> reset cursor
 meteor> dump
 meteor> exit
 ```
+
+**When to use CLI vs REPL:**
+- **CLI**: One-shot scripting, automation, pipelines (`meteor get app:ui:button`)
+- **REPL**: Interactive exploration, continuous processing, stateful workflows
