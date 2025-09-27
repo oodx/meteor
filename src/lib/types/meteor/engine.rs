@@ -238,10 +238,10 @@ impl MeteorEngine {
         };
 
         // Record command execution in history
-        cmd = if result.is_ok() {
-            cmd.success()
+        cmd = if let Err(err) = &result {
+            cmd.failure(err)
         } else {
-            cmd.failure(result.as_ref().unwrap_err())
+            cmd.success()
         };
 
         self.command_history.push(cmd);

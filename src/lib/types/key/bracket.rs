@@ -243,8 +243,7 @@ pub fn reverse_transform_key(flat_key: &str) -> Option<String> {
         let suffix = &flat_key[dunder_pos + 2..];
 
         // Check if it's an index pattern (starts with "i_")
-        if suffix.starts_with("i_") {
-            let indices = &suffix[2..]; // Remove "i_" prefix
+        if let Some(indices) = suffix.strip_prefix("i_") {
 
             if indices == "APPEND" {
                 // Special case for append

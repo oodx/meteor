@@ -91,7 +91,7 @@ impl Meteor {
                     let tokens = Self::parse_tokens(parts[1])?;
                     Self::from_parts(Context::default(), namespace, tokens)
                 } else {
-                    return Err(format!("Invalid meteor format: {}", s));
+                    Err(format!("Invalid meteor format: {}", s))
                 }
             }
             2 => {
