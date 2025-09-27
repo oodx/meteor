@@ -108,7 +108,9 @@ impl MeteorStreamParser {
     /// Process control command
     fn process_control_command(engine: &mut MeteorEngine, command: &str) -> Result<(), String> {
         // Parse ctl:command=target format
-        let without_prefix = command.strip_prefix("ctl:").unwrap();
+        // SAFETY: Caller ensures command starts with "ctl:" via starts_with check
+        let without_prefix = command.strip_prefix("ctl:")
+            .expect("control command must start with 'ctl:' prefix");
         let parts: Vec<&str> = without_prefix.splitn(2, '=').collect();
 
         if parts.len() != 2 {

@@ -207,7 +207,9 @@ impl ContextStorage {
 
     /// Helper: Ensure directory exists at path
     fn ensure_directory_at_path(&mut self, namespace: &str, path: &[&str]) {
-        let ns_tree = self.tree_index.get_mut(namespace).unwrap();
+        // SAFETY: Caller (update_tree_index) ensures namespace exists in tree_index first
+        let ns_tree = self.tree_index.get_mut(namespace)
+            .expect("namespace must exist in tree_index before calling ensure_directory_at_path");
         let mut current = ns_tree;
 
         for part in path {
@@ -216,7 +218,9 @@ impl ContextStorage {
                     if !children.contains_key(*part) {
                         children.insert(part.to_string(), TreeNode::new_directory());
                     }
-                    current = children.get_mut(*part).unwrap();
+                    // SAFETY: Key was just inserted if it didn't exist, so get_mut must succeed
+                    current = children.get_mut(*part)
+                        .expect("key must exist after insertion");
                 }
                 None => return,
             }
@@ -225,14 +229,18 @@ impl ContextStorage {
 
     /// Helper: Insert file at path
     fn insert_file_at_path(&mut self, namespace: &str, path: &[&str], canonical_key: &str) {
-        let ns_tree = self.tree_index.get_mut(namespace).unwrap();
+        // SAFETY: Caller (update_tree_index) ensures namespace exists in tree_index first
+        let ns_tree = self.tree_index.get_mut(namespace)
+            .expect("namespace must exist in tree_index before calling insert_file_at_path");
         let mut current = ns_tree;
 
         // Navigate to parent directory
         for part in &path[..path.len().saturating_sub(1)] {
             match current.children_mut() {
                 Some(children) => {
-                    current = children.get_mut(*part).unwrap();
+                    // SAFETY: ensure_directory_at_path called first to create directory structure
+                    current = children.get_mut(*part)
+                        .expect("directory structure must exist before inserting file");
                 }
                 None => return,
             }

@@ -147,7 +147,8 @@ fn is_valid_namespace_part(part: &str) -> bool {
 
     // Must start with letter or underscore
     let mut chars = part.chars();
-    let first = chars.next().unwrap();
+    // SAFETY: We've already checked !part.is_empty() above, so chars has at least one element
+    let first = chars.next().expect("non-empty string must have at least one character");
     if !first.is_ascii_alphabetic() && first != '_' {
         return false;
     }

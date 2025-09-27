@@ -47,7 +47,8 @@ fn run_repl(engine: &mut meteor::MeteorEngine) {
                 }
 
                 let mut parts = line.splitn(2, ' ');
-                let command = parts.next().unwrap();
+                // SAFETY: splitn(2, ' ') on non-empty string always yields at least one element
+                let command = parts.next().expect("splitn always yields at least one element");
                 let rest = parts.next().unwrap_or("").trim();
 
                 match command {
