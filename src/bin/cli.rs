@@ -13,7 +13,8 @@ fn main() {
         "namespaces" => namespaces_command, desc: "List namespaces in context",
         "set" => set_command, desc: "Set key-value pair",
         "delete" => delete_command, desc: "Delete key by path",
-        "history" => history_command, desc: "Show command audit trail"
+        "history" => history_command, desc: "Show command audit trail",
+        "reset" => reset_command, desc: "Reset cursor or clear data"
     });
 }
 
@@ -773,4 +774,70 @@ fn history_command(_args: Args) -> i32 {
     }
 
     0
+}
+
+fn reset_command(args: Args) -> i32 {
+    let format_key = get_var("opt_format");
+    let format = resolve_format(&format_key);
+    let input = collect_input(&args);
+
+    if input.is_empty() {
+        eprintln!("Error: Missing reset target");
+        eprintln!("Usage: meteor reset <target>");
+        eprintln!("Targets: cursor, storage, all, <context_name>");
+        return 1;
+    }
+
+    let target = input.trim();
+    let mut engine = meteor::MeteorEngine::new();
+
+    let result = match target {
+        "cursor" | "storage" | "all" => engine.execute_control_command("reset", target),
+        _ => {
+            // Treat as context name to delete
+            engine.delete(target).map(|deleted| {
+                if !deleted {
+                    Err(format!("Context '{}' not found", target))
+                } else {
+                    Ok(())
+                }
+            }).unwrap_or_else(|e| Err(e))
+        }
+    };
+
+    match result {
+        Ok(()) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": true,");
+                    println!("  \"target\": \"{}\"", target);
+                    println!("}}");
+                }
+                _ => {
+                    match target {
+                        "cursor" => println!("Cursor reset to default (app:main)"),
+                        "storage" => println!("All storage cleared"),
+                        "all" => println!("Cursor and storage reset"),
+                        _ => println!("Context '{}' deleted", target),
+                    }
+                }
+            }
+            0
+        }
+        Err(err) => {
+            match format {
+                "json" => {
+                    println!("{{");
+                    println!("  \"success\": false,");
+                    println!("  \"error\": \"{}\"", err);
+                    println!("}}");
+                }
+                _ => {
+                    eprintln!("Reset error: {}", err);
+                }
+            }
+            1
+        }
+    }
 }
