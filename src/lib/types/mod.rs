@@ -21,7 +21,9 @@ pub use key::{
     TokenKey,
 };
 pub use meteor::{
-    ControlCommand, Meteor, MeteorEngine, MeteorShower, StorageData, METEOR_DELIMITER,
+    ContentType, ControlCommand, Cursor, CursorGuard, EntriesIterator, ExportData, ExportFormat,
+    ExportMetadata, ImportDiff, ImportResult, Meteor, MeteorEngine, MeteorsIterator, MeteorShower,
+    NamespaceView, ScratchSlotGuard, StorageData, METEOR_DELIMITER,
 };
 pub use namespace::{
     Namespace, MAX_NAMESPACE_PART_LENGTH, NAMESPACE_ERROR_DEPTH, NAMESPACE_WARNING_DEPTH,

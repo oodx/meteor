@@ -1,13 +1,13 @@
 # METEOR ENGINE TASK BOARD
 
-## 🎯 CURRENT FOCUS (2025-09-27)
+## 🎯 CURRENT FOCUS (2025-09-28)
 - Roadmap: `docs/procs/ROADMAP.txt` — ME-1 ✅ COMPLETE → ME-2 ✅ COMPLETE → ME-3 in progress.
 - Architecture references: `docs/ref/architecture/ENGINE_ENHANCEMENT.md`, `docs/ref/planning/ENGINE_TASKS.txt`.
 - **ME-1 Status**: ✅ DELIVERED (8/8 SP, 100%) - Workspace foundations complete.
 - **ME-2 Status**: ✅ DELIVERED (7/7 SP, 100%) - Iterators, NamespaceView, Cursor Guards complete.
-- **ME-3 Status**: 🟠 IN PROGRESS (5/18 SP, 28%) - ENG-20 (Meteor Aggregation) & ENG-21 (Section Emission) complete.
-- **Current Test Count**: 312 total tests passing (100 lib + 203 integration + 9 doc tests)
-- **Next Phase**: Continue ME-3 (ENG-22 through QA-10) - Export/import, scratch slots, constructor hardening.
+- **ME-3 Status**: 🟠 IN PROGRESS (11/18 SP, 61%) - ENG-20 (Meteor Aggregation), ENG-21 (Section Emission), ENG-22 (Export), ENG-23 (Import), ENG-24 (Scratch Slots) complete.
+- **Current Test Count**: 365 total tests passing (100 lib + 256 integration + 9 doc tests)
+- **Next Phase**: Continue ME-3 (ENG-40 through QA-10) - Constructor hardening, parser alignment, CLI/REPL integration.
 
 Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when a driver is assigned.
 
@@ -204,14 +204,14 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
 |--------|----|--------|-------|--------------|---------------------|
 | ENG-20 | 3 | ✅ Complete | - | ME-2 | `meteors()` / `meteor_for()` produce grouped meteor views consumed by CLI/REPL. |
 | ENG-21 | 2 | ✅ Complete | - | ENG-20 | Section/part emission honours ordering metadata; golden tests updated. |
-| ENG-22 | 2 | ⚪ Planned | TBA | ENG-20 | `export_namespace` supports text+JSON, captures metadata checksum. |
-| ENG-23 | 2 | ⚪ Planned | TBA | ENG-22 | `import_namespace` validates metadata, enforces invariant, reports diff. |
-| ENG-24 | 2 | ⚪ Planned | TBA | ENG-20 | `scratch_slot` API isolates workspace scratch areas with lifetime guard. |
+| ENG-22 | 2 | ✅ Complete | - | ENG-20 | `export_namespace` supports text+JSON, captures metadata checksum. |
+| ENG-23 | 2 | ✅ Complete | - | ENG-22 | `import_namespace` validates metadata, enforces invariant, reports diff. |
+| ENG-24 | 2 | ✅ Complete | - | ENG-20 | `scratch_slot` API isolates workspace scratch areas with lifetime guard. |
 | ENG-40 | 3 | ⚪ Planned | TBA | ENG-20 | Meteor constructors enforce single `(context, namespace)`; legacy shims guarded. |
 | ENG-41 | 2 | ⚪ Planned | TBA | ENG-20 | Parsers align with grouped meteors; compatibility flag retains substring find. |
-| ENG-42 | 1 | ⚪ Planned | TBA | ME-2 | Central smart-split shared by parsers/CLI; regression covers quoting edge cases. |
-| CLI-05 | 1 | ⚪ Planned | TBA | ENG-20, ENG-22 | CLI `parse` routed through meteor views with text/json parity tests. |
-| REPL-05 | 1 | ⚪ Planned | TBA | ENG-20, ENG-24 | REPL `meteor/list/history` commands use new APIs; scripted test added. |
+| ENG-42 | 1 | ✅ Complete | - | ME-2 | Central smart-split shared by parsers/CLI; regression covers quoting edge cases. |
+| CLI-05 | 1 | ✅ Complete | - | ENG-20, ENG-22 | CLI `parse` routed through meteor views with text/json parity tests. |
+| REPL-05 | 1 | ✅ Complete | - | ENG-20, ENG-24 | REPL `meteor/list/history` commands use new APIs; scripted test added. |
 | QA-10  | 1 | ⚪ Planned | TBA | ME-3 | Zero-warning baseline kept; CI guard fails on new warnings. |
 
 **ENG-20 (3 SP)** ✅ **COMPLETED** (2025-09-27)
@@ -269,24 +269,124 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
 - ✅ Total test count: 312 tests (309 existing + 3 new)
 - ✅ Ready for ENG-22 (export_namespace) and ENG-23 (import_namespace) implementation
 
-**ENG-22 (2 SP)** & **ENG-23 (2 SP)**
-- Build export/import helpers with configurable format adapters, metadata manifests, and validation errors.
-- Add sample fixtures (text + JSON) and round-trip integration tests.
+**ENG-22 (2 SP)** ✅ **COMPLETED** (2025-09-27)
+- ✅ Implemented `export_namespace(context, namespace, format)` returning `Option<ExportData>`
+- ✅ Created comprehensive export infrastructure:
+  - `ExportData` struct with context, namespace, tokens, metadata, format
+  - `ExportMetadata` with checksum validation, timestamp, token count
+  - `ExportFormat` enum supporting Text and JSON formats
+  - `ContentType` detection for bracket notation patterns (section[], part[], chunk[], function[], library[], module[], blob[])
+- ✅ Content type system with singular forms for semantic clarity:
+  - Document: `section[intro]`, `section[body]`, `full`, `metadata[type]`
+  - Script: `part[header]`, `chunk[A18BfD]`, `function[parse]`, `library[utils]`, `module[parser]`, `blob[data]`, `raw`
+  - Simple values: `port`, `debug`, `enabled` (no brackets)
+- ✅ Export formats with round-trip fidelity:
+  - Text format: Human-readable with headers and key=value pairs
+  - JSON format: Structured with manual serialization (no serde dependency)
+- ✅ Checksum validation using base64-encoded hash for integrity checking
+- ✅ Integration with ME-2 infrastructure using `namespace_view()` for workspace ordering
+- ✅ Implementation: `src/lib/types/meteor/export.rs` (470 LOC)
+- ✅ Exported from public API: `ContentType`, `ExportFormat`, `ExportData`, `ExportMetadata`
 
-**ENG-24 (2 SP)**
-- Implement workspace-backed scratch slots with lifetime-managed handles; wire into REPL scratch workflow plan.
+**ENG-23 (2 SP)** ✅ **COMPLETED** (2025-09-27)
+- ✅ Implemented `import_namespace(export_data)` returning `Result<ImportResult, MeteorError>`
+- ✅ Created comprehensive import validation and diff tracking:
+  - `ImportResult` with success status, token counts (added/updated/unchanged), diff tracking
+  - `ImportDiff` enum for tracking changes: Added, Updated, Unchanged
+  - Checksum validation for integrity verification
+- ✅ Import features:
+  - Validates export metadata and checksum integrity
+  - Tracks detailed diff information for each token change
+  - Updates existing tokens, adds new tokens, preserves unchanged tokens
+  - Supports both Text and JSON import formats via `ExportData::from_text()` and `ExportData::from_json()`
+- ✅ Round-trip validation: Export → Text/JSON → Import preserves all data
+- ✅ Error handling for malformed import data, missing context/namespace, invalid checksums
+- ✅ Integration with existing mutation paths using `set()` method
+- ✅ Added 16 comprehensive tests (`tests/test_export_import.rs`, 280 LOC):
+  - Export functionality: text/JSON formats, metadata validation, content type detection
+  - Import functionality: validation, diff tracking, round-trip integrity
+  - Edge cases: nonexistent namespaces, special characters, checksum changes
+- ✅ Comprehensive documentation added to `ENGINE_ENHANCEMENT.md` (~370 lines):
+  - Complete API reference with examples
+  - Content type patterns and philosophy
+  - Export/import workflow documentation
+  - Use cases for document virtualization, backup/restore, data migration
+- ✅ Total test count: 328 tests (312 existing + 16 new export/import tests)
+- ✅ ME-3 export/import foundation complete, ready for ENG-24 (scratch slots)
+
+**ENG-24 (2 SP)** ✅ **COMPLETED** (2025-09-28)
+- ✅ Discovered workspace-backed scratch slots were already fully implemented with comprehensive RAII lifetime management
+- ✅ Updated REPL mem commands to use scratch slot APIs instead of direct storage access:
+  - `mem_set` → uses `engine.scratch_slot(name).persist()` with workspace backing
+  - `mem_get` → accesses scratch slot data directly via `ScratchSlotGuard`
+  - `mem_delete` → uses `engine.remove_scratch_slot()` for proper cleanup
+  - `mem_list` → uses `engine.list_scratch_slots()` for workspace-ordered listing
+  - `mem_edit` → full scratch slot API integration with RAII guards
+- ✅ Comprehensive testing: 20 total tests (13 existing unit + 7 new integration tests)
+- ✅ Implementation: `tests/test_scratch_slot_repl_integration_eng24.rs` (190 LOC integration tests)
+- ✅ REPL integration validates:
+  - Scratch slot lifecycle management through REPL operations
+  - Multiple independent scratch slots working correctly
+  - Persistence across other REPL operations without interference
+  - Edge cases, error handling, and naming conventions
+  - Zero breaking changes to existing REPL behavior
+- ✅ Key features: RAII automatic cleanup, `.persist()` option, workspace integration, API consistency
+- ✅ Files modified: `src/bin/repl.rs` (converted mem commands to scratch slot APIs)
+- ✅ All tests passing: REPL scratch workflow properly wired to workspace-backed scratch slots
+- ✅ Ready for ENG-40 (constructor hardening) and remaining ME-3 tasks
+
+**ENG-42 (1 SP)** ✅ **COMPLETED** (2025-09-28)
+- ✅ Created centralized smart-split implementation: `src/lib/parser/split.rs` (220 LOC)
+- ✅ Consolidated three different smart-split implementations into single, configurable solution:
+  - `SplitConfig` with behavior patterns: semicolon_tokens(), general_parsing(), meteor_streams(), meteor_delimiter()
+  - `smart_split()` and `smart_split_borrowed()` for owned/borrowed string operations
+  - `smart_split_multi_char()` for meteor delimiter (:;:) parsing
+  - `smart_split_semicolons()` compatibility function for validators.rs
+- ✅ Updated all parsers to use centralized logic:
+  - `token_stream.rs` → `smart_split(input, SplitConfig::general_parsing(';'))`
+  - `meteor_stream.rs` → `smart_split_multi_char(input, METEOR_DELIMITER, config)`
+  - `validators.rs` → `crate::parser::split::smart_split_semicolons(s)`
+- ✅ Fixed Unicode handling issues: proper byte boundary management prevents panics on Unicode strings
+- ✅ Comprehensive regression testing: `tests/test_split_regression_eng42.rs` (12 tests, 285 LOC)
+  - Escaped quotes in various contexts, control tokens, bracket notation
+  - Meteor format compliance, Unicode handling, performance with large inputs
+  - Legacy compatibility validation, error handling edge cases
+- ✅ Zero breaking changes: all existing parser behavior preserved
+- ✅ All tests passing: centralized split logic with robust edge case coverage
+
+**CLI-05 (1 SP)** ✅ **COMPLETED** (2025-09-28)
+- ✅ Updated CLI parse command to use meteor view APIs instead of direct storage access
+- ✅ Modified `print_text_engine_output` and `print_json_engine_output` functions:
+  - Replaced `storage.get_all_keys_in_namespace()` with `engine.namespace_view()` calls
+  - Leveraged `NamespaceView.entries()` for workspace-ordered iteration
+  - Maintained consistent ordering across text and JSON output formats
+- ✅ Comprehensive parity testing: `tests/test_cli_output_parity_eng42.rs` (8 tests, 270 LOC)
+  - Text/JSON output consistency validation
+  - Complex meteor streams with quotes and special characters
+  - Bracket notation handling, control token processing
+  - Workspace ordering preservation, error handling parity
+- ✅ Files modified: `src/bin/cli.rs` (updated output functions to use NamespaceView APIs)
+- ✅ All tests passing: CLI parse command properly uses meteor view infrastructure
+
+**REPL-05 (1 SP)** ✅ **COMPLETED** (2025-09-28)
+- ✅ Updated REPL commands to use meteor view APIs for workspace-ordered iteration:
+  - `handle_list()` → uses `engine.namespace_view()` instead of direct storage
+  - `render_engine()` → uses `NamespaceView.entries()` for consistent ordering
+  - `mem_list()` → converted to scratch slot APIs (as part of ENG-24 integration)
+- ✅ Comprehensive scripted testing: `tests/test_repl_functionality_eng42.rs` (10 tests, 290 LOC)
+  - Basic parse and state operations, list command functionality
+  - Context and namespace commands, CRUD operations
+  - Memory/scratch functionality, token parsing, validation
+  - Bracket notation support, workspace ordering consistency
+- ✅ Files modified: `src/bin/repl.rs` (updated to use NamespaceView APIs)
+- ✅ All tests passing: REPL commands properly use meteor view infrastructure
+- ✅ Integrated with ENG-24: REPL scratch functionality uses workspace-backed scratch slots
 
 **ENG-40 (3 SP)**
 - Harden meteor constructors, update `Meteor` docs, include migration notes for legacy multi-context meteors.
 
 **ENG-41 (2 SP)**
 - Align parser flows with aggregated meteor surfaces; toggle legacy substring search via config.
-
-**ENG-42 (1 SP)**
-- Centralize smart-split logic; add regression coverage for escaped quotes and ctl tokens.
-
-**CLI-05 (1 SP)** & **REPL-05 (1 SP)**
-- Move CLI/REPL rendering onto meteor views; verify parity with legacy logs via smoke tests.
 
 **QA-10 (1 SP)**
 - Ensure compilation warnings remain zero; extend CI script to fail on warning introduction.
@@ -298,4 +398,4 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
 - **Documentation**: ENG-90..92 queued post ME-3 for architecture and workflow updates.
 - **Integration**: ProntoDB contract review after aggregated APIs land.
 
-Last Updated: 2025-09-27
+Last Updated: 2025-09-28

@@ -77,7 +77,7 @@ impl Token {
 
     /// Parse all tokens from semicolon-separated string: "key1=val1; key2=val2; namespace:key3=val3"
     pub fn parse(s: &str) -> Result<Vec<Self>, String> {
-        let parts = crate::utils::validators::smart_split_semicolons(s)
+        let parts = crate::parser::split::smart_split_semicolons(s)
             .ok_or_else(|| "Unbalanced quotes in token string".to_string())?;
 
         let mut tokens = Vec::new();

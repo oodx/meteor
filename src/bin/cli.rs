@@ -165,8 +165,8 @@ fn print_text_engine_output(engine: &meteor::MeteorEngine, input: &str, verbose:
         engine.current_namespace.to_string()
     );
 
-    let storage = engine.storage();
-    let contexts = storage.contexts();
+    // Use meteor view APIs instead of direct storage access (CLI-05)
+    let contexts = engine.contexts();
 
     if contexts.is_empty() {
         println!("No meteors parsed");
@@ -177,21 +177,27 @@ fn print_text_engine_output(engine: &meteor::MeteorEngine, input: &str, verbose:
     println!("=== Parsed Data ===");
 
     let mut meteor_count = 0;
+    let total_contexts = contexts.len();
+
+    // Use meteor view APIs for structured access with workspace ordering
     for context in &contexts {
-        let namespaces = storage.namespaces_in_context(context);
+        let namespaces = engine.namespaces_in_context(context);
         for namespace in namespaces {
-            for (key, value) in storage.get_all_keys_in_namespace(context, &namespace) {
-                meteor_count += 1;
-                println!("Meteor {}:", meteor_count);
-                println!("  Context: {}", context);
-                if namespace.is_empty() {
-                    println!("  Namespace: (root)");
-                } else {
-                    println!("  Namespace: {}", namespace);
+            if let Some(view) = engine.namespace_view(context, &namespace) {
+                // Use NamespaceView for ordered iteration and metadata
+                for (key, value) in view.entries() {
+                    meteor_count += 1;
+                    println!("Meteor {}:", meteor_count);
+                    println!("  Context: {}", context);
+                    if namespace.is_empty() {
+                        println!("  Namespace: (root)");
+                    } else {
+                        println!("  Namespace: {}", namespace);
+                    }
+                    println!("  Key: {}", key);
+                    println!("  Value: {}", value);
+                    println!();
                 }
-                println!("  Key: {}", key);
-                println!("  Value: {}", value);
-                println!();
             }
         }
     }
@@ -199,13 +205,13 @@ fn print_text_engine_output(engine: &meteor::MeteorEngine, input: &str, verbose:
     println!(
         "Total: {} meteors across {} contexts",
         meteor_count,
-        contexts.len()
+        total_contexts
     );
 }
 
 fn print_json_engine_output(engine: &meteor::MeteorEngine, _input: &str, _verbose: bool) {
-    let storage = engine.storage();
-    let contexts = storage.contexts();
+    // Use meteor view APIs instead of direct storage access (CLI-05)
+    let contexts = engine.contexts();
 
     println!("{{");
     println!("  \"cursor\": {{");
@@ -219,20 +225,24 @@ fn print_json_engine_output(engine: &meteor::MeteorEngine, _input: &str, _verbos
     println!("  \"meteors\": [");
 
     let mut first = true;
+    // Use meteor view APIs for structured access with workspace ordering
     for context in &contexts {
-        let namespaces = storage.namespaces_in_context(context);
+        let namespaces = engine.namespaces_in_context(context);
         for namespace in namespaces {
-            for (key, value) in storage.get_all_keys_in_namespace(context, &namespace) {
-                if !first {
-                    println!(",");
+            if let Some(view) = engine.namespace_view(context, &namespace) {
+                // Use NamespaceView for ordered iteration
+                for (key, value) in view.entries() {
+                    if !first {
+                        println!(",");
+                    }
+                    first = false;
+                    println!("    {{");
+                    println!("      \"context\": \"{}\",", context);
+                    println!("      \"namespace\": \"{}\",", namespace);
+                    println!("      \"key\": \"{}\",", key);
+                    println!("      \"value\": \"{}\"", value);
+                    print!("    }}");
                 }
-                first = false;
-                println!("    {{");
-                println!("      \"context\": \"{}\",", context);
-                println!("      \"namespace\": \"{}\",", namespace);
-                println!("      \"key\": \"{}\",", key);
-                println!("      \"value\": \"{}\"", value);
-                print!("    }}");
             }
         }
     }

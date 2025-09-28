@@ -40,6 +40,22 @@ pub enum MeteorError {
     /// Empty input or component
     EmptyInput { component: String },
 
+    /// Empty token list when creating meteor (ENG-40)
+    EmptyTokens,
+
+    /// Token namespace mismatch in meteor (ENG-40)
+    TokenNamespaceMismatch {
+        meteor_namespace: String,
+        token_namespace: String,
+        token_key: String,
+    },
+
+    /// Mixed namespaces in meteor tokens (ENG-40)
+    MixedTokenNamespaces {
+        meteor_namespace: String,
+        conflicting_namespaces: Vec<String>,
+    },
+
     /// Generic error for other cases
     Other(String),
 }
@@ -111,6 +127,35 @@ impl MeteorError {
     pub fn other(message: impl Into<String>) -> Self {
         MeteorError::Other(message.into())
     }
+
+    /// Create an empty tokens error (ENG-40)
+    pub fn empty_tokens() -> Self {
+        MeteorError::EmptyTokens
+    }
+
+    /// Create a token namespace mismatch error (ENG-40)
+    pub fn token_namespace_mismatch(
+        meteor_namespace: impl Into<String>,
+        token_namespace: impl Into<String>,
+        token_key: impl Into<String>,
+    ) -> Self {
+        MeteorError::TokenNamespaceMismatch {
+            meteor_namespace: meteor_namespace.into(),
+            token_namespace: token_namespace.into(),
+            token_key: token_key.into(),
+        }
+    }
+
+    /// Create a mixed token namespaces error (ENG-40)
+    pub fn mixed_token_namespaces(
+        meteor_namespace: impl Into<String>,
+        conflicting_namespaces: Vec<String>,
+    ) -> Self {
+        MeteorError::MixedTokenNamespaces {
+            meteor_namespace: meteor_namespace.into(),
+            conflicting_namespaces,
+        }
+    }
 }
 
 impl fmt::Display for MeteorError {
@@ -160,6 +205,31 @@ impl fmt::Display for MeteorError {
             }
             MeteorError::EmptyInput { component } => {
                 write!(f, "Empty input for {}", component)
+            }
+            MeteorError::EmptyTokens => {
+                write!(f, "Cannot create meteor with empty token list")
+            }
+            MeteorError::TokenNamespaceMismatch {
+                meteor_namespace,
+                token_namespace,
+                token_key,
+            } => {
+                write!(
+                    f,
+                    "Token '{}' has namespace '{}' but meteor requires namespace '{}'",
+                    token_key, token_namespace, meteor_namespace
+                )
+            }
+            MeteorError::MixedTokenNamespaces {
+                meteor_namespace,
+                conflicting_namespaces,
+            } => {
+                write!(
+                    f,
+                    "Meteor with namespace '{}' cannot contain tokens from namespaces: {}",
+                    meteor_namespace,
+                    conflicting_namespaces.join(", ")
+                )
             }
             MeteorError::Other(message) => write!(f, "{}", message),
         }

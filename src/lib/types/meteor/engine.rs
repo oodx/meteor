@@ -635,6 +635,132 @@ impl MeteorEngine {
     }
 
     // ================================
+    // Export / Import Methods
+    // ================================
+
+    /// Export a namespace to ExportData with checksum metadata
+    ///
+    /// # Arguments
+    /// * `context` - Context name (e.g., "doc", "shell")
+    /// * `namespace` - Namespace path (e.g., "guides.install")
+    /// * `format` - Export format (Text or Json)
+    ///
+    /// # Returns
+    /// `Some(ExportData)` if namespace exists and has tokens, `None` otherwise
+    ///
+    /// # Example
+    /// ```
+    /// use meteor::types::{MeteorEngine, ExportFormat};
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// engine.set("doc:guide:section[intro]", "Welcome").unwrap();
+    /// engine.set("doc:guide:section[body]", "Content").unwrap();
+    ///
+    /// let export = engine.export_namespace("doc", "guide", ExportFormat::Text).unwrap();
+    /// assert_eq!(export.tokens.len(), 2);
+    /// assert!(!export.metadata.checksum.is_empty());
+    /// ```
+    pub fn export_namespace(
+        &self,
+        context: &str,
+        namespace: &str,
+        format: super::export::ExportFormat,
+    ) -> Option<super::export::ExportData> {
+        let view = self.namespace_view(context, namespace)?;
+
+        let mut tokens = Vec::new();
+        for (key, value) in view.entries() {
+            tokens.push((key, value));
+        }
+
+        if tokens.is_empty() {
+            return None;
+        }
+
+        Some(super::export::ExportData::new(
+            context.to_string(),
+            namespace.to_string(),
+            tokens,
+            format,
+        ))
+    }
+
+    /// Import namespace data from ExportData with validation
+    ///
+    /// # Arguments
+    /// * `data` - ExportData containing tokens and metadata
+    ///
+    /// # Returns
+    /// `ImportResult` with success status, diff information, and checksum validation
+    ///
+    /// # Example
+    /// ```
+    /// use meteor::types::{MeteorEngine, ExportFormat};
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// engine.set("doc:guide:section[intro]", "Welcome").unwrap();
+    ///
+    /// let export = engine.export_namespace("doc", "guide", ExportFormat::Text).unwrap();
+    ///
+    /// // Import into new engine
+    /// let mut engine2 = MeteorEngine::new();
+    /// let result = engine2.import_namespace(export).unwrap();
+    /// assert!(result.success);
+    /// assert_eq!(result.tokens_added, 1);
+    /// ```
+    pub fn import_namespace(
+        &mut self,
+        data: super::export::ExportData,
+    ) -> Result<super::export::ImportResult, String> {
+        let mut result = super::export::ImportResult::new();
+
+        let existing_tokens: std::collections::HashMap<String, String> =
+            if let Some(view) = self.namespace_view(&data.context, &data.namespace) {
+                view.entries().collect()
+            } else {
+                std::collections::HashMap::new()
+            };
+
+        for (key, new_value) in data.tokens.iter() {
+            let full_key = format!("{}:{}:{}", data.context, data.namespace, key);
+
+            if let Some(old_value) = existing_tokens.get(key) {
+                if old_value == new_value {
+                    result.tokens_unchanged += 1;
+                    result.diff.push(super::export::ImportDiff::Unchanged {
+                        key: key.clone(),
+                    });
+                } else {
+                    self.set(&full_key, new_value)?;
+                    result.tokens_updated += 1;
+                    result.diff.push(super::export::ImportDiff::Updated {
+                        key: key.clone(),
+                        old_value: old_value.clone(),
+                        new_value: new_value.clone(),
+                    });
+                }
+            } else {
+                self.set(&full_key, new_value)?;
+                result.tokens_added += 1;
+                result.diff.push(super::export::ImportDiff::Added {
+                    key: key.clone(),
+                    value: new_value.clone(),
+                });
+            }
+        }
+
+        let recalc_export = self.export_namespace(&data.context, &data.namespace, data.format.clone());
+        result.checksum_valid = if let Some(recalc) = recalc_export {
+            recalc.metadata.checksum == data.metadata.checksum
+        } else {
+            false
+        };
+
+        result.success = true;
+        Ok(result)
+    }
+
+    // ================================
     // Hybrid Storage Methods
     // ================================
 
@@ -697,6 +823,60 @@ impl MeteorEngine {
     #[cfg(debug_assertions)]
     pub fn workspace_status(&self) -> super::workspace::WorkspaceStatus {
         self.workspace.workspace_status()
+    }
+
+    // ================================
+    // Scratch Slot API (ENG-24)
+    // ================================
+
+    /// Create a scratch slot with lifetime management.
+    ///
+    /// Returns a `ScratchSlotGuard` that provides RAII access to a temporary
+    /// key-value store. By default, the slot is automatically cleaned up when
+    /// the guard is dropped. Use `.persist()` to keep the slot beyond guard lifetime.
+    ///
+    /// # Example
+    /// ```
+    /// use meteor::types::MeteorEngine;
+    ///
+    /// let mut engine = MeteorEngine::new();
+    /// {
+    ///     let mut slot = engine.scratch_slot("temp_vars");
+    ///     slot.set("user_id", "12345");
+    ///     slot.set("session", "abc123");
+    ///     assert_eq!(slot.get("user_id"), Some("12345"));
+    /// } // Slot automatically cleaned up here
+    /// ```
+    pub fn scratch_slot(&mut self, name: &str) -> super::workspace::ScratchSlotGuard<'_> {
+        super::workspace::ScratchSlotGuard::new(name.to_string(), &mut self.workspace)
+    }
+
+    /// Remove a scratch slot by name.
+    ///
+    /// Returns `true` if the slot existed and was removed, `false` otherwise.
+    pub fn remove_scratch_slot(&mut self, name: &str) -> bool {
+        self.workspace.remove_scratch_slot(name)
+    }
+
+    /// Clear all scratch slots.
+    ///
+    /// This removes all temporary data stored in scratch slots.
+    pub fn clear_all_scratch(&mut self) {
+        self.workspace.clear_all_scratch()
+    }
+
+    /// List all scratch slot names.
+    ///
+    /// Returns a vector of scratch slot names currently active.
+    pub fn list_scratch_slots(&self) -> Vec<&str> {
+        self.workspace.list_scratch_slots()
+    }
+
+    /// Check if a scratch slot exists.
+    ///
+    /// Returns `true` if a slot with the given name exists.
+    pub fn has_scratch_slot(&self, name: &str) -> bool {
+        self.workspace.get_scratch_slot(name).is_some()
     }
 }
 

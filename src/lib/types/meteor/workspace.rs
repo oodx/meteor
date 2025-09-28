@@ -151,6 +151,119 @@ impl ScratchSlot {
     pub(crate) fn size(&self) -> usize {
         self.data.len()
     }
+
+    pub(crate) fn remove(&mut self, key: &str) -> bool {
+        self.data.remove(key).is_some()
+    }
+
+    pub(crate) fn keys(&self) -> impl Iterator<Item = &str> {
+        self.data.keys().map(|s| s.as_str())
+    }
+
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.data.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+    }
+
+    pub(crate) fn contains_key(&self, key: &str) -> bool {
+        self.data.contains_key(key)
+    }
+}
+
+pub struct ScratchSlotGuard<'a> {
+    name: String,
+    workspace: &'a mut EngineWorkspace,
+    auto_cleanup: bool,
+}
+
+impl<'a> ScratchSlotGuard<'a> {
+    pub(crate) fn new(name: String, workspace: &'a mut EngineWorkspace) -> Self {
+        workspace.reserve_scratch_slot(name.clone());
+        Self {
+            name,
+            workspace,
+            auto_cleanup: true,
+        }
+    }
+
+    pub fn set(&mut self, key: &str, value: &str) {
+        if let Some(slot) = self.workspace.get_scratch_slot_mut(&self.name) {
+            slot.set(key.to_string(), value.to_string());
+        }
+    }
+
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.workspace
+            .get_scratch_slot(&self.name)
+            .and_then(|slot| slot.get(key))
+    }
+
+    pub fn remove(&mut self, key: &str) -> bool {
+        self.workspace
+            .get_scratch_slot_mut(&self.name)
+            .map_or(false, |slot| slot.remove(key))
+    }
+
+    pub fn clear(&mut self) {
+        if let Some(slot) = self.workspace.get_scratch_slot_mut(&self.name) {
+            slot.clear();
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.workspace
+            .get_scratch_slot(&self.name)
+            .map_or(0, |slot| slot.size())
+    }
+
+    pub fn contains_key(&self, key: &str) -> bool {
+        self.workspace
+            .get_scratch_slot(&self.name)
+            .map_or(false, |slot| slot.contains_key(key))
+    }
+
+    pub fn keys(&self) -> Vec<String> {
+        self.workspace
+            .get_scratch_slot(&self.name)
+            .map_or(Vec::new(), |slot| slot.keys().map(|s| s.to_string()).collect())
+    }
+
+    pub fn entries(&self) -> Vec<(String, String)> {
+        self.workspace
+            .get_scratch_slot(&self.name)
+            .map_or(Vec::new(), |slot| {
+                slot.entries()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect()
+            })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn created_at(&self) -> Option<u64> {
+        self.workspace
+            .get_scratch_slot(&self.name)
+            .map(|slot| slot.created_at)
+    }
+
+    pub fn persist(mut self) -> Self {
+        self.auto_cleanup = false;
+        self
+    }
+
+    pub fn cleanup_on_drop(mut self) -> Self {
+        self.auto_cleanup = true;
+        self
+    }
+}
+
+impl<'a> Drop for ScratchSlotGuard<'a> {
+    fn drop(&mut self) {
+        if self.auto_cleanup {
+            self.workspace.remove_scratch_slot(&self.name);
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -242,6 +355,10 @@ impl EngineWorkspace {
 
     pub(crate) fn clear_all_scratch(&mut self) {
         self.scratch_slots.clear();
+    }
+
+    pub(crate) fn list_scratch_slots(&self) -> Vec<&str> {
+        self.scratch_slots.keys().map(|s| s.as_str()).collect()
     }
 
     #[cfg(debug_assertions)]

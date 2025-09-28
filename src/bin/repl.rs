@@ -1,8 +1,7 @@
 use rsb::prelude::*;
 use std::io::{self, Write};
 
-const MEM_CONTEXT: &str = "_mem";
-const MEM_NAMESPACE: &str = "scratch";
+// Scratch memory functionality now uses engine scratch slots instead of direct storage
 
 fn main() {
     let args = bootstrap!();
@@ -220,21 +219,23 @@ fn handle_list(engine: &meteor::MeteorEngine, input: &str) {
     };
 
     let namespace = parts.next().unwrap_or("");
-    let storage = engine.storage();
 
-    let entries = storage.get_all_keys_in_namespace(context, namespace);
-    if entries.is_empty() {
-        println!(
-            "No entries for {}:{}",
-            context,
-            if namespace.is_empty() {
-                "(root)"
-            } else {
-                namespace
-            }
-        );
-        return;
-    }
+    // Use meteor view APIs for workspace-ordered iteration
+    let view = match engine.namespace_view(context, namespace) {
+        Some(view) => view,
+        None => {
+            println!(
+                "No entries for {}:{}",
+                context,
+                if namespace.is_empty() {
+                    "(root)"
+                } else {
+                    namespace
+                }
+            );
+            return;
+        }
+    };
 
     println!(
         "Entries for {}:{}:",
@@ -245,14 +246,15 @@ fn handle_list(engine: &meteor::MeteorEngine, input: &str) {
             namespace
         }
     );
-    for (key, value) in entries {
+
+    // Use NamespaceView for workspace-ordered iteration
+    for (key, value) in view.entries() {
         println!("  {} = {}", key, value);
     }
 }
 
 fn render_engine(engine: &meteor::MeteorEngine) {
-    let storage = engine.storage();
-    let contexts = storage.contexts();
+    let contexts = engine.contexts();
 
     if contexts.is_empty() {
         println!("(engine empty)");
@@ -267,23 +269,28 @@ fn render_engine(engine: &meteor::MeteorEngine) {
     );
     println!();
 
-    for context in contexts {
-        if context == MEM_CONTEXT {
+    // Use meteor view APIs for workspace-ordered iteration
+    for context in &contexts {
+        if context == "_mem" {
             println!("Context: {} (scratch)", context);
         } else {
             println!("Context: {}", context);
         }
-        let namespaces = storage.namespaces_in_context(&context);
+
+        let namespaces = engine.namespaces_in_context(context);
         for namespace in namespaces {
-            let entries = storage.get_all_keys_in_namespace(&context, &namespace);
             let display_ns = if namespace.is_empty() {
                 "(root)"
             } else {
                 &namespace
             };
             println!("  Namespace: {}", display_ns);
-            for (key, value) in entries {
-                println!("    {} = {}", key, value);
+
+            // Use NamespaceView for workspace-ordered iteration
+            if let Some(view) = engine.namespace_view(context, &namespace) {
+                for (key, value) in view.entries() {
+                    println!("    {} = {}", key, value);
+                }
             }
         }
         println!();
@@ -397,32 +404,35 @@ fn mem_slot_name(raw: &str) -> Option<String> {
     }
 }
 
-fn mem_path(slot: &str) -> String {
-    format!("{}:{}:{}", MEM_CONTEXT, MEM_NAMESPACE, slot)
-}
+// mem_path function removed - now using scratch slot APIs directly
 
 fn mem_set(engine: &mut meteor::MeteorEngine, raw_name: &str, value: &str) {
     let Some(slot) = mem_slot_name(raw_name) else {
         println!("Invalid name");
         return;
     };
-    let path = mem_path(&slot);
-    if let Err(err) = engine.set(&path, value) {
-        println!("Set error: {}", err);
-    } else {
-        println!("Stored ${}", slot);
-    }
+
+    // Use scratch slot API with RAII lifetime management
+    let mut scratch = engine.scratch_slot(&slot).persist();
+    scratch.set("value", value);
+    println!("Stored ${}", slot);
 }
 
-fn mem_get(engine: &meteor::MeteorEngine, raw_name: &str) {
+fn mem_get(engine: &mut meteor::MeteorEngine, raw_name: &str) {
     let Some(slot) = mem_slot_name(raw_name) else {
         println!("Invalid name");
         return;
     };
-    let path = mem_path(&slot);
-    match engine.get(&path) {
-        Some(value) => println!("${} = {}", slot, value),
-        None => println!("${} is empty", slot),
+
+    // Use scratch slot API to access value
+    if engine.has_scratch_slot(&slot) {
+        let scratch = engine.scratch_slot(&slot).persist();
+        match scratch.get("value") {
+            Some(value) => println!("${} = {}", slot, value),
+            None => println!("${} is empty", slot),
+        }
+    } else {
+        println!("${} is empty", slot);
     }
 }
 
@@ -431,8 +441,15 @@ fn mem_edit(engine: &mut meteor::MeteorEngine, raw_name: &str) {
         println!("Invalid name");
         return;
     };
-    let path = mem_path(&slot);
-    let current = engine.get(&path).unwrap_or("");
+
+    // Get current value using scratch slot API
+    let current = if engine.has_scratch_slot(&slot) {
+        let scratch = engine.scratch_slot(&slot).persist();
+        scratch.get("value").unwrap_or("").to_string()
+    } else {
+        String::new()
+    };
+
     println!("Editing ${} (current value: {})", slot, current);
     print!("Enter new value (leave blank to keep): ");
     if io::stdout().flush().is_err() {
@@ -456,11 +473,10 @@ fn mem_edit(engine: &mut meteor::MeteorEngine, raw_name: &str) {
             if io::stdin().read_line(&mut confirm).is_ok() {
                 let reply = confirm.trim().to_lowercase();
                 if reply == "y" || reply == "yes" {
-                    if let Err(err) = engine.set(&path, new_value) {
-                        println!("Save error: {}", err);
-                    } else {
-                        println!("Saved ${}", slot);
-                    }
+                    // Use scratch slot API to save
+                    let mut scratch = engine.scratch_slot(&slot).persist();
+                    scratch.set("value", new_value);
+                    println!("Saved ${}", slot);
                 } else {
                     println!("Discarded");
                 }
@@ -475,24 +491,29 @@ fn mem_delete(engine: &mut meteor::MeteorEngine, raw_name: &str) {
         println!("Invalid name");
         return;
     };
-    let path = mem_path(&slot);
-    match engine.delete(&path) {
-        Ok(true) => println!("Removed ${}", slot),
-        Ok(false) => println!("${} was empty", slot),
-        Err(err) => println!("Delete error: {}", err),
+
+    // Use scratch slot API for deletion
+    if engine.remove_scratch_slot(&slot) {
+        println!("Removed ${}", slot);
+    } else {
+        println!("${} was empty", slot);
     }
 }
 
-fn mem_list(engine: &meteor::MeteorEngine) {
-    let storage = engine.storage();
-    let entries = storage.get_all_keys_in_namespace(MEM_CONTEXT, MEM_NAMESPACE);
-    if entries.is_empty() {
+fn mem_list(engine: &mut meteor::MeteorEngine) {
+    // Use scratch slot APIs for listing - collect names first to avoid borrowing conflicts
+    let slot_names: Vec<String> = engine.list_scratch_slots().iter().map(|s| s.to_string()).collect();
+    if slot_names.is_empty() {
         println!("Scratch pad empty");
         return;
     }
+
     println!("Scratch entries:");
-    for (key, value) in entries {
-        println!("  ${} = {}", key, value);
+    for slot_name in slot_names {
+        let scratch = engine.scratch_slot(&slot_name).persist();
+        if let Some(value) = scratch.get("value") {
+            println!("  ${} = {}", slot_name, value);
+        }
     }
 }
 

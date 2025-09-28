@@ -81,7 +81,7 @@ pub fn is_valid_meteor_format(s: &str) -> bool {
     }
 
     // Smart split by semicolon, respecting quotes
-    let token_parts = match smart_split_semicolons(s) {
+    let token_parts = match crate::parser::split::smart_split_semicolons(s) {
         Some(parts) => parts,
         None => return false, // Unclosed quotes
     };
@@ -163,53 +163,7 @@ pub fn is_valid_meteor_shower_format(s: &str) -> bool {
 ///
 /// Splits on semicolons but treats quoted strings as single units.
 /// Returns None if quotes are unclosed.
-pub(crate) fn smart_split_semicolons(s: &str) -> Option<Vec<&str>> {
-    let mut result = Vec::new();
-    let mut current_start = 0;
-    let mut in_quotes = false;
-    let chars: Vec<char> = s.chars().collect();
-
-    let mut i = 0;
-    while i < chars.len() {
-        match chars[i] {
-            '"' => {
-                // Handle escaped quotes if needed
-                if i == 0 || chars[i - 1] != '\\' {
-                    in_quotes = !in_quotes;
-                }
-            }
-            ';' => {
-                if !in_quotes {
-                    // Found a semicolon outside quotes
-                    if i > current_start {
-                        let token = &s[current_start..i];
-                        if !token.trim().is_empty() {
-                            result.push(token);
-                        }
-                    }
-                    current_start = i + 1;
-                }
-            }
-            _ => {}
-        }
-        i += 1;
-    }
-
-    // Check for unclosed quotes
-    if in_quotes {
-        return None; // Unclosed quotes
-    }
-
-    // Add the final part
-    if current_start < s.len() {
-        let token = &s[current_start..];
-        if !token.trim().is_empty() {
-            result.push(token);
-        }
-    }
-
-    Some(result)
-}
+// smart_split_semicolons moved to centralized parser::split module (ENG-42)
 
 /// Check for consecutive semicolons outside quoted values
 fn has_consecutive_semicolons_outside_quotes(s: &str) -> bool {
@@ -416,20 +370,20 @@ mod tests {
     #[test]
     fn test_smart_semicolon_splitting() {
         let result =
-            smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
+            crate::parser::split::smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0], "key=value");
         assert_eq!(result[1], " message=\"hello; world\"");
         assert_eq!(result[2], " theme=dark");
 
         let result =
-            smart_split_semicolons("message=\"value;;; with lots; of semicolons\"").unwrap();
+            crate::parser::split::smart_split_semicolons("message=\"value;;; with lots; of semicolons\"").unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], "message=\"value;;; with lots; of semicolons\"");
 
         // Test unclosed quotes
-        assert!(smart_split_semicolons("key=\"unclosed quote").is_none());
-        assert!(smart_split_semicolons("key=value; message=\"unclosed").is_none());
+        assert!(crate::parser::split::smart_split_semicolons("key=\"unclosed quote").is_none());
+        assert!(crate::parser::split::smart_split_semicolons("key=value; message=\"unclosed").is_none());
     }
 
     #[test]

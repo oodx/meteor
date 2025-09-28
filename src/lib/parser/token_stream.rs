@@ -5,19 +5,50 @@
 //! - Control tokens (ns=, ctx=) for cursor state
 //! - Control commands (ctl:delete=path, ctl:reset=cursor)
 //! - Delegation to MeteorEngine for state changes
+//! - ENG-41: Meteor-aware parsing with aggregation and hardened constructors
 
-use crate::types::{Context, MeteorEngine, Namespace, Token};
+use crate::types::{Context, Meteor, MeteorEngine, MeteorError, Namespace, Token};
 use crate::utils::validators::is_valid_token_format;
+use crate::parser::split::{smart_split, SplitConfig};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 /// Token stream parser with validation and delegation
 pub struct TokenStreamParser;
 
 impl TokenStreamParser {
-    /// Parse and process a token stream
+    /// Parse and process a token stream with meteor aggregation (ENG-41)
+    ///
+    /// Groups tokens by (context, namespace) and creates meteors using hardened constructors.
+    /// Provides better error handling and validation than the legacy `process()` method.
+    ///
+    /// # Examples
+    /// ```ignore
+    /// let mut engine = MeteorEngine::new();
+    /// TokenStreamParser::process_with_aggregation(&mut engine, "button=click; theme=dark")?;
+    /// ```
+    pub fn process_with_aggregation(engine: &mut MeteorEngine, input: &str) -> Result<(), MeteorError> {
+        let grouped_tokens = Self::parse_and_group_tokens(engine, input)?;
+
+        // Create meteors using hardened constructors and store them
+        for ((context, namespace), tokens) in grouped_tokens {
+            if !tokens.is_empty() {
+                let meteor = Meteor::try_new_with_tokens(context, namespace, tokens)?;
+                Self::store_meteor_tokens(engine, &meteor)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Parse and process a token stream (Legacy method)
     ///
     /// Validates tokens and delegates to MeteorEngine for state changes.
     /// Supports folding logic with ns= and ctx= control tokens.
+    ///
+    /// # Migration Note (ENG-41)
+    /// Consider using `process_with_aggregation()` for better error handling
+    /// and consistency with meteor aggregation patterns.
     ///
     /// # Examples
     /// ```ignore
@@ -25,8 +56,8 @@ impl TokenStreamParser {
     /// TokenStreamParser::process(&mut engine, "button=click; ns=ui; theme=dark")?;
     /// ```
     pub fn process(engine: &mut MeteorEngine, input: &str) -> Result<(), String> {
-        // Split by semicolon (respecting quotes)
-        let parts = Self::smart_split(input, ';');
+        // Split by semicolon (respecting quotes) - using centralized split logic
+        let parts = smart_split(input, SplitConfig::general_parsing(';'));
 
         for part in parts {
             let trimmed = part.trim();
@@ -94,49 +125,90 @@ impl TokenStreamParser {
         engine.execute_control_command(cmd_type, target)
     }
 
-    /// Smart split that respects quoted values
-    fn smart_split(input: &str, delimiter: char) -> Vec<String> {
-        let mut result = Vec::new();
-        let mut current = String::new();
-        let mut in_quotes = false;
-        let mut escape_next = false;
+    // Smart split functionality moved to centralized parser::split module (ENG-42)
 
-        for ch in input.chars() {
-            if escape_next {
-                current.push(ch);
-                escape_next = false;
+    // ================================
+    // ENG-41: Meteor-Aware Parsing Helpers
+    // ================================
+
+    /// Parse tokens and group them by (context, namespace) for meteor aggregation
+    fn parse_and_group_tokens(
+        engine: &mut MeteorEngine,
+        input: &str,
+    ) -> Result<HashMap<(Context, Namespace), Vec<Token>>, MeteorError> {
+        let mut grouped_tokens: HashMap<(Context, Namespace), Vec<Token>> = HashMap::new();
+        let parts = smart_split(input, SplitConfig::general_parsing(';'));
+
+        // Track current cursor state (mutable during parsing)
+        let mut current_context = engine.current_context.clone();
+        let mut current_namespace = engine.current_namespace.clone();
+
+        for part in parts {
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
                 continue;
             }
 
-            match ch {
-                '\\' => {
-                    current.push(ch);
-                    escape_next = true;
+            // Check if it's a control command - handle but don't aggregate
+            if trimmed.starts_with("ctl:") {
+                Self::process_control_command(engine, trimmed)
+                    .map_err(|e| MeteorError::other(e))?;
+                continue;
+            }
+
+            // Validate token format
+            if !is_valid_token_format(trimmed) {
+                return Err(MeteorError::other(format!("Invalid token format: {}", trimmed)));
+            }
+
+            // Parse the token
+            let token = Token::from_str(trimmed)
+                .map_err(|e| MeteorError::other(format!("Failed to parse token '{}': {}", trimmed, e)))?;
+
+            // Check for control tokens (update cursor state)
+            match token.key().transformed() {
+                "ns" => {
+                    current_namespace = Namespace::from_string(token.value());
+                    continue;
                 }
-                '"' => {
-                    current.push(ch);
-                    in_quotes = !in_quotes;
+                "ctx" => {
+                    current_context = Context::from_str(token.value())
+                        .map_err(|e| MeteorError::other(format!("Invalid context '{}': {}", token.value(), e)))?;
+                    continue;
                 }
-                c if c == delimiter && !in_quotes => {
-                    if !current.trim().is_empty() {
-                        result.push(current.trim().to_string());
-                    }
-                    current.clear();
+                _ => {
+                    // Regular token - add to appropriate group
+                    let key = (current_context.clone(), current_namespace.clone());
+                    grouped_tokens.entry(key).or_insert_with(Vec::new).push(token);
                 }
-                _ => current.push(ch),
             }
         }
 
-        if !current.trim().is_empty() {
-            result.push(current.trim().to_string());
-        }
+        // Update engine cursor state to final state
+        engine.current_context = current_context;
+        engine.current_namespace = current_namespace;
 
-        result
+        Ok(grouped_tokens)
+    }
+
+    /// Store tokens from a validated meteor into the engine
+    fn store_meteor_tokens(engine: &mut MeteorEngine, meteor: &Meteor) -> Result<(), MeteorError> {
+        for token in meteor.tokens() {
+            let path = format!(
+                "{}:{}:{}",
+                meteor.context().to_string(),
+                meteor.namespace().to_string(),
+                token.key().transformed()
+            );
+            engine.set(&path, token.value())
+                .map_err(|e| MeteorError::other(e))?;
+        }
+        Ok(())
     }
 
     /// Validate a token stream without processing
     pub fn validate(input: &str) -> Result<(), String> {
-        let parts = Self::smart_split(input, ';');
+        let parts = smart_split(input, SplitConfig::general_parsing(';'));
 
         for part in parts {
             let trimmed = part.trim();

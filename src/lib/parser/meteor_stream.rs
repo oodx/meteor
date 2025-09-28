@@ -5,9 +5,12 @@
 //! - Meteor delimiter (:;:) parsing
 //! - Control commands (ctl:delete=path)
 //! - Delegation to MeteorEngine for state changes
+//! - ENG-41: Meteor aggregation with hardened constructors
 
-use crate::types::MeteorEngine;
+use crate::types::{Context, Meteor, MeteorEngine, MeteorError, Namespace, Token};
 use crate::utils::validators::is_valid_meteor_format;
+use crate::parser::split::{smart_split_multi_char, smart_split, SplitConfig};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 /// Meteor delimiter for separating meteors in a stream
@@ -17,10 +20,38 @@ pub const METEOR_DELIMITER: &str = ":;:";
 pub struct MeteorStreamParser;
 
 impl MeteorStreamParser {
-    /// Parse and process a meteor stream
+    /// Parse and process a meteor stream with aggregation (ENG-41)
+    ///
+    /// Groups tokens by (context, namespace) and creates meteors using hardened constructors.
+    /// Provides better validation and error handling than the legacy `process()` method.
+    ///
+    /// # Examples
+    /// ```ignore
+    /// let mut engine = MeteorEngine::new();
+    /// MeteorStreamParser::process_with_aggregation(&mut engine, "app:ui:button=click :;: app:ui:theme=dark")?;
+    /// ```
+    pub fn process_with_aggregation(engine: &mut MeteorEngine, input: &str) -> Result<(), MeteorError> {
+        let grouped_tokens = Self::parse_explicit_meteors(input)?;
+
+        // Create meteors using hardened constructors and store them
+        for ((context, namespace), tokens) in grouped_tokens {
+            if !tokens.is_empty() {
+                let meteor = Meteor::try_new_with_tokens(context, namespace, tokens)?;
+                Self::store_meteor_tokens(engine, &meteor)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Parse and process a meteor stream (Legacy method)
     ///
     /// Validates meteors and delegates to MeteorEngine for state changes.
     /// Uses explicit addressing only (no cursor state changes).
+    ///
+    /// # Migration Note (ENG-41)
+    /// Consider using `process_with_aggregation()` for better error handling
+    /// and consistency with meteor aggregation patterns.
     ///
     /// # Examples
     /// ```ignore
@@ -47,7 +78,7 @@ impl MeteorStreamParser {
     /// Process a single meteor that may contain multiple semicolon-separated tokens
     fn process_single_meteor(engine: &mut MeteorEngine, meteor_str: &str) -> Result<(), String> {
         // Split by semicolon to get individual tokens within this meteor
-        let token_parts = Self::smart_split_by_char(meteor_str, ';');
+        let token_parts = smart_split(meteor_str, SplitConfig::meteor_streams(';'));
 
         for token_str in token_parts {
             let trimmed = token_str.trim();
@@ -148,104 +179,97 @@ impl MeteorStreamParser {
     }
 
     /// Split a stream by delimiter, respecting quotes
+    ///
+    /// Uses centralized smart-split logic (ENG-42) for meteor delimiter parsing.
     pub fn smart_split(input: &str) -> Vec<String> {
-        let mut result = Vec::new();
-        let mut current = String::new();
-        let mut in_quotes = false;
-        let mut escape_next = false;
-        let delimiter_chars: Vec<char> = METEOR_DELIMITER.chars().collect();
-        let mut delimiter_match = 0;
-
-        for ch in input.chars() {
-            if escape_next {
-                current.push(ch);
-                escape_next = false;
-                continue;
-            }
-
-            match ch {
-                '\\' => {
-                    current.push(ch);
-                    escape_next = true;
-                }
-                '"' => {
-                    current.push(ch);
-                    in_quotes = !in_quotes;
-                }
-                c if !in_quotes && c == delimiter_chars[delimiter_match] => {
-                    delimiter_match += 1;
-                    if delimiter_match == delimiter_chars.len() {
-                        // Found complete delimiter
-                        if !current.trim().is_empty() {
-                            // Remove partial delimiter from current
-                            for _ in 0..(delimiter_chars.len() - 1) {
-                                current.pop();
-                            }
-                            result.push(current.trim().to_string());
-                        }
-                        current.clear();
-                        delimiter_match = 0;
-                    } else {
-                        current.push(c);
-                    }
-                }
-                _ => {
-                    // Reset delimiter match if we didn't complete it
-                    if delimiter_match > 0 && !in_quotes {
-                        delimiter_match = 0;
-                    }
-                    current.push(ch);
-                }
-            }
-        }
-
-        if !current.trim().is_empty() {
-            result.push(current.trim().to_string());
-        }
-
-        result
+        smart_split_multi_char(input, METEOR_DELIMITER, SplitConfig::meteor_streams(':'))
     }
 
-    /// Split a string by a single character delimiter, respecting quotes
-    fn smart_split_by_char(input: &str, delimiter: char) -> Vec<String> {
-        let mut result = Vec::new();
-        let mut current = String::new();
-        let mut in_quotes = false;
-        let mut escape_next = false;
+    // Smart split functionality moved to centralized parser::split module (ENG-42)
 
-        for ch in input.chars() {
-            if escape_next {
-                current.push(ch);
-                escape_next = false;
+    // ================================
+    // ENG-41: Meteor-Aware Parsing Helpers
+    // ================================
+
+    /// Parse explicit meteors and group tokens by (context, namespace)
+    fn parse_explicit_meteors(input: &str) -> Result<HashMap<(Context, Namespace), Vec<Token>>, MeteorError> {
+        let mut grouped_tokens: HashMap<(Context, Namespace), Vec<Token>> = HashMap::new();
+        let meteors = input.split(METEOR_DELIMITER);
+
+        for meteor_str in meteors {
+            let trimmed = meteor_str.trim();
+            if trimmed.is_empty() {
                 continue;
             }
 
-            match ch {
-                '\\' if in_quotes => {
-                    escape_next = true;
-                    current.push(ch);
+            // Handle control commands separately (don't aggregate)
+            if trimmed.starts_with("ctl:") {
+                // Skip control commands for aggregation
+                // They should be handled separately or through legacy processing
+                continue;
+            }
+
+            // Process tokens within this meteor
+            let token_parts = smart_split(trimmed, SplitConfig::meteor_streams(';'));
+
+            for token_str in token_parts {
+                let token_trimmed = token_str.trim();
+                if token_trimmed.is_empty() {
+                    continue;
                 }
-                '"' => {
-                    in_quotes = !in_quotes;
-                    current.push(ch);
+
+                // Skip control tokens (ns=, ctx=) - these don't apply to explicit meteors
+                if token_trimmed.starts_with("ns=") || token_trimmed.starts_with("ctx=") {
+                    continue;
                 }
-                ch if ch == delimiter && !in_quotes => {
-                    if !current.trim().is_empty() {
-                        result.push(current.trim().to_string());
+
+                // Parse as explicit meteor format: context:namespace:key=value
+                if let Some((key_value, _)) = token_trimmed.split_once('=') {
+                    let value = &token_trimmed[key_value.len() + 1..];
+
+                    // Parse the key part as context:namespace:key
+                    let key_parts: Vec<&str> = key_value.split(':').collect();
+                    if key_parts.len() == 3 {
+                        let (context_str, namespace_str, key) = (key_parts[0], key_parts[1], key_parts[2]);
+
+                        let context = Context::from_str(context_str)
+                            .map_err(|e| MeteorError::other(format!("Invalid context '{}': {}", context_str, e)))?;
+                        let namespace = Namespace::from_string(namespace_str);
+                        let token = Token::new(key, value);
+
+                        let meteor_key = (context, namespace);
+                        grouped_tokens.entry(meteor_key).or_insert_with(Vec::new).push(token);
+                    } else {
+                        return Err(MeteorError::other(format!(
+                            "Invalid meteor format: '{}' - expected context:namespace:key=value",
+                            token_trimmed
+                        )));
                     }
-                    current.clear();
-                }
-                _ => {
-                    current.push(ch);
+                } else {
+                    return Err(MeteorError::other(format!(
+                        "Invalid meteor format: '{}' - missing value assignment",
+                        token_trimmed
+                    )));
                 }
             }
         }
 
-        if !current.trim().is_empty() {
-            result.push(current.trim().to_string());
-        }
+        Ok(grouped_tokens)
+    }
 
-        result
+    /// Store tokens from a validated meteor into the engine
+    fn store_meteor_tokens(engine: &mut MeteorEngine, meteor: &Meteor) -> Result<(), MeteorError> {
+        for token in meteor.tokens() {
+            let path = format!(
+                "{}:{}:{}",
+                meteor.context().to_string(),
+                meteor.namespace().to_string(),
+                token.key().transformed()
+            );
+            engine.set(&path, token.value())
+                .map_err(|e| MeteorError::other(e))?;
+        }
+        Ok(())
     }
 }
 
