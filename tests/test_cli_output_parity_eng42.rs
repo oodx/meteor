@@ -32,7 +32,10 @@ fn test_cli_text_output_basic() {
     // Verify ordering (app meteors should come before user meteors)
     let app_pos = output.find("Context: app").unwrap();
     let user_pos = output.find("Context: user").unwrap();
-    assert!(app_pos < user_pos, "Workspace ordering should place app before user");
+    assert!(
+        app_pos < user_pos,
+        "Workspace ordering should place app before user"
+    );
 }
 
 /// Test basic CLI JSON output with meteor view APIs
@@ -43,19 +46,27 @@ fn test_cli_json_output_basic() {
     let output = run_cli_parse_json(input).expect("CLI should execute successfully");
 
     // Parse JSON to verify structure
-    let json: serde_json::Value = serde_json::from_str(&output)
-        .expect("CLI should produce valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&output).expect("CLI should produce valid JSON");
 
     // Verify JSON structure contains expected top-level fields
     assert!(json.get("cursor").is_some(), "JSON should contain cursor");
-    assert!(json.get("contexts").is_some(), "JSON should contain contexts count");
-    assert!(json.get("meteors").is_some(), "JSON should contain meteors array");
+    assert!(
+        json.get("contexts").is_some(),
+        "JSON should contain contexts count"
+    );
+    assert!(
+        json.get("meteors").is_some(),
+        "JSON should contain meteors array"
+    );
 
     // Verify contexts count
     assert_eq!(json["contexts"], 2);
 
     // Verify meteors array
-    let meteors = json["meteors"].as_array().expect("meteors should be an array");
+    let meteors = json["meteors"]
+        .as_array()
+        .expect("meteors should be an array");
     assert_eq!(meteors.len(), 3);
 
     // Check first meteor (app:ui:button=click)
@@ -93,27 +104,30 @@ fn test_cli_output_parity_complex() {
     let json_output = run_cli_parse_json(input).expect("CLI JSON should execute successfully");
 
     // Parse JSON for structured comparison
-    let json: serde_json::Value = serde_json::from_str(&json_output)
-        .expect("CLI should produce valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&json_output).expect("CLI should produce valid JSON");
 
     // Verify both formats contain the same key-value pairs
 
     // Check app:ui:message
     assert!(text_output.contains(r#"message = "Hello; World""#));
-    assert_eq!(json["app"]["ui"]["message"], r#""Hello; World""#);
+    assert_eq!(json["app"]["ui"]["message"], "\"Hello; World\"");
 
     // Check app:config:path
     assert!(text_output.contains(r#"path = "/usr/bin""#));
-    assert_eq!(json["app"]["config"]["path"], r#""/usr/bin""#);
+    assert_eq!(json["app"]["config"]["path"], "\"/usr/bin\"");
 
     // Check user:profile:name
     assert!(text_output.contains(r#"name = "John Doe""#));
-    assert_eq!(json["user"]["profile"]["name"], r#""John Doe""#);
+    assert_eq!(json["user"]["profile"]["name"], "\"John Doe\"");
 
     // Verify context ordering is consistent
     let app_pos = text_output.find("Context: app").unwrap();
     let user_pos = text_output.find("Context: user").unwrap();
-    assert!(app_pos < user_pos, "Text output should maintain workspace ordering");
+    assert!(
+        app_pos < user_pos,
+        "Text output should maintain workspace ordering"
+    );
 }
 
 /// Test text/JSON parity for bracket notation
@@ -125,21 +139,21 @@ fn test_cli_output_parity_bracket_notation() {
     let json_output = run_cli_parse_json(input).expect("CLI JSON should execute successfully");
 
     // Parse JSON for structured comparison
-    let json: serde_json::Value = serde_json::from_str(&json_output)
-        .expect("CLI should produce valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&json_output).expect("CLI should produce valid JSON");
 
     // Verify bracket notation is handled consistently
-    // Note: The implementation flattens bracket notation to __i_ format
+    // Note: The implementation preserves bracket notation in display (ENG-21)
 
-    // Check flattened keys in text output
-    assert!(text_output.contains("items__i_0 = apple"));
-    assert!(text_output.contains("items__i_1 = banana"));
-    assert!(text_output.contains("cell__i_2_3 = value"));
+    // Check bracket notation keys in text output
+    assert!(text_output.contains("items[0] = apple"));
+    assert!(text_output.contains("items[1] = banana"));
+    assert!(text_output.contains("cell[2,3] = value"));
 
-    // Check flattened keys in JSON output
-    assert_eq!(json["app"]["list"]["items__i_0"], "apple");
-    assert_eq!(json["app"]["list"]["items__i_1"], "banana");
-    assert_eq!(json["app"]["grid"]["cell__i_2_3"], "value");
+    // Check bracket notation keys in JSON output
+    assert_eq!(json["app"]["list"]["items[0]"], "apple");
+    assert_eq!(json["app"]["list"]["items[1]"], "banana");
+    assert_eq!(json["app"]["grid"]["cell[2,3]"], "value");
 }
 
 /// Test text/JSON parity for control tokens
@@ -151,8 +165,8 @@ fn test_cli_output_parity_control_tokens() {
     let json_output = run_cli_parse_json(input).expect("CLI JSON should execute successfully");
 
     // Parse JSON for structured comparison
-    let json: serde_json::Value = serde_json::from_str(&json_output)
-        .expect("CLI should produce valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&json_output).expect("CLI should produce valid JSON");
 
     // Verify control tokens are processed (delete should not appear as data)
     // Only the stored values should appear
@@ -171,17 +185,17 @@ fn test_cli_output_parity_control_tokens() {
     assert!(json.get("ctl").is_none());
 }
 
-/// Test text/JSON parity for empty/minimal input
+/// Test text/JSON parity for minimal input with proper meteor format
 #[test]
 fn test_cli_output_parity_minimal() {
-    let input = "key=value";
+    let input = "app:main:key=value";
 
     let text_output = run_cli_parse_text(input).expect("CLI text should execute successfully");
     let json_output = run_cli_parse_json(input).expect("CLI JSON should execute successfully");
 
     // Parse JSON for structured comparison
-    let json: serde_json::Value = serde_json::from_str(&json_output)
-        .expect("CLI should produce valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&json_output).expect("CLI should produce valid JSON");
 
     // Verify minimal input produces consistent output
     assert!(text_output.contains("key = value"));
@@ -210,12 +224,20 @@ fn test_cli_output_error_handling_parity() {
             let json_lower = json.to_lowercase();
 
             // Both should either show the error or handle it the same way
-            assert!(text_lower.contains("error") || text_lower.contains("empty") || !text_lower.is_empty());
-            assert!(json_lower.contains("error") || json_lower.contains("empty") || !json_lower.is_empty());
-        },
+            assert!(
+                text_lower.contains("error")
+                    || text_lower.contains("empty")
+                    || !text_lower.is_empty()
+            );
+            assert!(
+                json_lower.contains("error")
+                    || json_lower.contains("empty")
+                    || !json_lower.is_empty()
+            );
+        }
         (Err(_), Err(_)) => {
             // Both failing is also acceptable - consistent error handling
-        },
+        }
         _ => {
             panic!("Text and JSON outputs should handle errors consistently");
         }
@@ -232,8 +254,8 @@ fn test_cli_output_workspace_ordering_parity() {
     let json_output = run_cli_parse_json(input).expect("CLI JSON should execute successfully");
 
     // Parse JSON to check ordering
-    let json: serde_json::Value = serde_json::from_str(&json_output)
-        .expect("CLI should produce valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&json_output).expect("CLI should produce valid JSON");
 
     // In text output, check context ordering
     let app_pos = text_output.find("Context: app").unwrap();
@@ -270,7 +292,11 @@ fn run_cli_parse_text(input: &str) -> Result<String, Box<dyn std::error::Error>>
         .output()?;
 
     if !output.status.success() {
-        return Err(format!("CLI command failed: {}", String::from_utf8_lossy(&output.stderr)).into());
+        return Err(format!(
+            "CLI command failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .into());
     }
 
     Ok(String::from_utf8(output.stdout)?)
@@ -279,12 +305,24 @@ fn run_cli_parse_text(input: &str) -> Result<String, Box<dyn std::error::Error>>
 fn run_cli_parse_json(input: &str) -> Result<String, Box<dyn std::error::Error>> {
     // Run the CLI command with JSON output
     let output = Command::new("cargo")
-        .args(&["run", "--bin", "meteor", "--", "parse", "--format=json", input])
+        .args(&[
+            "run",
+            "--bin",
+            "meteor",
+            "--",
+            "parse",
+            "--format=json",
+            input,
+        ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()?;
 
     if !output.status.success() {
-        return Err(format!("CLI command failed: {}", String::from_utf8_lossy(&output.stderr)).into());
+        return Err(format!(
+            "CLI command failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .into());
     }
 
     Ok(String::from_utf8(output.stdout)?)

@@ -46,6 +46,7 @@ Format: "app:ui:button=click;theme=dark :;: user:main:profile=admin"
 - ✅ **Meteor delimiter**: `:;:` separates meteors
 - ✅ **Semicolon within**: `;` separates tokens within meteors
 - **No folding**: Each meteor is independent
+- **CLI enforcement**: `meteor parse` delegates to `MeteorStreamParser` and rejects abbreviated tokens like `key=value` with `Invalid meteor format` errors; callers must supply the full `context:namespace:key=value` path.
 
 ## Storage Architecture
 

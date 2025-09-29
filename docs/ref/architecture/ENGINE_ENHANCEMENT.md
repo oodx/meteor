@@ -1240,6 +1240,78 @@ println!("{}", meteor);
 // Output: doc:guides.install:sections[intro]=Welcome;sections[10_setup]=Step 1;sections[20_config]=Configure
 ```
 
+## CLI Parse Output Format (CLI-05)
+
+**Status**: ✅ Implemented and tested
+
+The `meteor parse` command now leans entirely on the meteor aggregation APIs. Text and JSON modes consume the same cursor-aware data, so parity tests can assert on ordering, bracket notation, and escaping without poking internal storage.
+
+### Text Mode
+
+```
+Current cursor: app:main
+
+=== Parsed Data ===
+Meteor 1:
+  Context: app
+  Namespace: ui
+  Key: button
+  Value: click
+  button = click
+
+...
+
+Total: 3 meteors across 2 contexts
+```
+
+- Context/namespace ordering follows `EngineWorkspace::key_order` (ENG-10/ENG-11).
+- Each meteor block keeps a `key = value` line so scripts and regression fixtures stay simple.
+- Bracket notation is preserved end-to-end (`items[0] = apple`) per ENG-21.
+
+### JSON Mode
+
+`--format=json` produces a deterministic structure that mirrors text mode:
+
+```json
+{
+  "cursor": {
+    "context": "app",
+    "namespace": "main"
+  },
+  "contexts": 2,
+  "meteors": [
+    {
+      "context": "app",
+      "namespace": "ui",
+      "key": "button",
+      "value": "click"
+    },
+    {
+      "context": "app",
+      "namespace": "ui",
+      "key": "theme",
+      "value": "dark"
+    }
+  ],
+  "app": {
+    "ui": {
+      "button": "click",
+      "theme": "dark"
+    }
+  },
+  "user": {
+    "settings": {
+      "lang": "en"
+    }
+  }
+}
+```
+
+- The flat `meteors` array preserves legacy consumers that expect one record per token.
+- Nested context/namespace maps give modern tooling O(1) lookups without extra iteration.
+- Values funnel through `serde_json`, so escaped quotes and backslashes remain faithful to storage data.
+- Invalid meteors (such as `key=value`) fail before rendering, matching the MeteorStream rules documented in `STREAM_ARCHITECTURE.md`.
+
 **Shell script parts in insertion order:**
 ```rust
 engine.set("shell:setup.env:parts[env_check]", "#!/bin/bash\necho checking").unwrap();

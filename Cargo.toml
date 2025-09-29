@@ -36,12 +36,12 @@ workspace-instrumentation = []  # Enable cache hit/miss tracking
 
 [dependencies]
 # Hub integration for shared dependencies - removed cli-ext for native RSB CLI, added test-ext for criterion, data-ext for export/import
-hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext", "data-ext", "test-ext"] }
+hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext", "data-ext", "test-ext", "tokio-full"] }
 rsb = { git = "https://github.com/oodx/rsb.git", features = ["visuals", "stdopts"] }
+serde_json = "1.0"
 
 [dev-dependencies]
 # criterion provided by hub test-ext feature
-serde_json = "1.0"
 tempfile = "3.0"
 
 [profile.dev]

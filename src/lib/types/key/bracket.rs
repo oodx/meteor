@@ -244,7 +244,6 @@ pub fn reverse_transform_key(flat_key: &str) -> Option<String> {
 
         // Check if it's an index pattern (starts with "i_")
         if let Some(indices) = suffix.strip_prefix("i_") {
-
             if indices == "APPEND" {
                 // Special case for append
                 return Some(format!("{}[]", base));

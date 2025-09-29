@@ -36,5 +36,7 @@ pub mod token_stream;
 
 pub use escape::{parse_escaped_value, validate_escapes};
 pub use meteor_stream::MeteorStreamParser;
-pub use split::{smart_split, smart_split_borrowed, smart_split_multi_char, smart_split_semicolons, SplitConfig};
+pub use split::{
+    smart_split, smart_split_borrowed, smart_split_multi_char, smart_split_semicolons, SplitConfig,
+};
 pub use token_stream::TokenStreamParser;

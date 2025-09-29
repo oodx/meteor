@@ -22,7 +22,7 @@ pub use key::{
 };
 pub use meteor::{
     ContentType, ControlCommand, Cursor, CursorGuard, EntriesIterator, ExportData, ExportFormat,
-    ExportMetadata, ImportDiff, ImportResult, Meteor, MeteorEngine, MeteorsIterator, MeteorShower,
+    ExportMetadata, ImportDiff, ImportResult, Meteor, MeteorEngine, MeteorShower, MeteorsIterator,
     NamespaceView, ScratchSlotGuard, StorageData, METEOR_DELIMITER,
 };
 pub use namespace::{

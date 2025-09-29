@@ -2,15 +2,15 @@
 
 Purpose: fast bootstrapping reference when returning with zero context.
 
-Project Status (2025-10-03)
-- ME-1 (workspace foundations) and ME-2 (iterators, namespace view, cursor guard) are complete.
-- ME-3 (meteor aggregation & virtualization, 18 SP) is the next active milestone. No implementation started yet.
-- Current test suite: 288 tests passing (100 lib + 179 integration + 9 doc). Feature flag `workspace-instrumentation` adds extra instrumentation tests.
+Project Status (2025-10-05)
+- ME-1 (workspace foundations), ME-2 (iterators / namespace view / cursor guard), and ME-3 (meteor aggregation + export/import) are delivered.
+- ME-4 (parsing & query polish, 10 SP) is next up: path parser errors, glob-aware queries, smart-split cleanup, strict setter options.
+- Current test suite: 365 tests green (100 lib + 256 integration + 9 doc). `workspace-instrumentation` feature continues to gate cache metrics tests.
 
 Key Documents / Read Order
 1. docs/procs/ROADMAP.txt — milestone overview (updated after ME-2).
 2. docs/procs/TASKS.txt — detailed task board with acceptance notes and ticket status.
-3. docs/ref/architecture/ENGINE_ENHANCEMENT.md — spec for iterators, namespace view, cursor guard, and upcoming ME-3 APIs (meteors(), export/import, etc.).
+3. docs/ref/architecture/ENGINE_ENHANCEMENT.md — spec for iterators, namespace view, cursor guard, ME-3 aggregation/export/import, and CLI output contract.
 4. docs/PROFILE_TESTING.md — instructions for profile-aware regression testing (namespace depth).
 5. DOC_VIRTUALIZATION_MODEL.md (in docs/ref/architecture) — background for ME-3 virtualization hooks.
 
@@ -28,18 +28,16 @@ Tooling / Commands
 - Lint on default profile: `cargo fmt -- --check` and `cargo clippy -- -D warnings`.
 
 Recently Completed Highlights
-- TokenBucket fully removed; MeteorEngine + StorageData is the sole storage path.
-- NamespaceView provides ordered iteration + metadata; CursorGuard handles panic-safe cursor restoration.
+- Meteor aggregation APIs (`meteors()`, `meteor_for()`) now feed CLI/REPL/export with workspace ordering baked in.
+- Export/import helpers land with checksum metadata and bracket-notation preservation; scratch-slot API powers REPL mem commands.
+- CLI/REPL parse flows emit shared text/JSON formats via `serde_json`; hardened `Meteor::try_new*` constructors enforce single `(context, namespace)`.
 
-Next Steps (ME-3 Kickoff Checklist)
-1. ENG-20: Implement `meteors()` / `meteor_for()` returning grouped meteor views (context+namespace) backed by workspace ordering.
-2. ENG-21: Ensure emitted sections/parts honor ordering metadata (ties into NamespaceView + workspace ordering).
-3. ENG-22/ENG-23: Build export/import helpers with metadata manifests and round-trip tests.
-4. ENG-24: Introduce workspace-backed scratch slots (REPL integration target).
-5. ENG-40/ENG-41: Enforce meteor invariant + align parsers with grouped meteors (may require updates in parsers/token_stream.rs and meteor_stream.rs).
-6. CLI-05 / REPL-05: After views exist, reroute CLI/REPL to new APIs; plan smoke tests.
-7. ENG-42: Centralize smart-split (keep regression coverage for quoting literals).
-8. QA-10: Maintain zero-warning baseline; ensure new warnings fail CI.
+Next Steps (ME-4 Prep Checklist)
+1. ENG-30: Centralise meteor path parsing into `meteor::path` with structured errors the CLI/REPL can display.
+2. ENG-31: Replace substring search with workspace-backed glob/prefix query helpers; keep a compatibility flag until consumers migrate.
+3. ENG-32: Finish smart-split consolidation—retire remaining hand-rolled splitting logic and update regression tests.
+4. ENG-33: Introduce `EngineSetOptions` so setters can opt into strict validation (namespace depth, reserved tokens, etc.).
+5. Coordinate with CLI/REPL to adopt new error surfaces once ENG-30/31 land; schedule TEST-01..03 + REGR-01 afterwards.
 
 Patterns / Guard Rails
 - Use workspace ordering (`key_order`) whenever exposing iteration to user-facing APIs.
@@ -49,6 +47,6 @@ Patterns / Guard Rails
 - Tests should cover all four METEOR_PROFILE variants when behavior depends on namespace depth.
 
 Verification Notes
-- Before merging ME-3 work, run `cargo test --all-features` to include instrumentation coverage.
-- For export/import, plan fixture-based integration tests and ensure round-trip idempotency.
-
+- Default smoke: `cargo test` (optionally `--features workspace-instrumentation` for cache metrics).
+- Profiles: `METEOR_PROFILE=<default|enterprise|embedded|strict> cargo test` per regression guard.
+- For upcoming ME-4 parser changes, plan targeted fixtures under `tests/test_parser_alignment_eng41.rs` and ensure CLI parity suite stays green (`--test test_cli_output_parity_eng42`).

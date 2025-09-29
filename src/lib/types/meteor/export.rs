@@ -202,7 +202,10 @@ impl ExportData {
         for (i, (key, value)) in self.tokens.iter().enumerate() {
             output.push_str("    {\n");
             output.push_str(&format!("      \"key\": \"{}\",\n", Self::escape_json(key)));
-            output.push_str(&format!("      \"value\": \"{}\"\n", Self::escape_json(value)));
+            output.push_str(&format!(
+                "      \"value\": \"{}\"\n",
+                Self::escape_json(value)
+            ));
             if i < self.tokens.len() - 1 {
                 output.push_str("    },\n");
             } else {
@@ -212,9 +215,18 @@ impl ExportData {
 
         output.push_str("  ],\n");
         output.push_str("  \"metadata\": {\n");
-        output.push_str(&format!("    \"checksum\": \"{}\",\n", self.metadata.checksum));
-        output.push_str(&format!("    \"timestamp\": {},\n", self.metadata.timestamp));
-        output.push_str(&format!("    \"token_count\": {}\n", self.metadata.token_count));
+        output.push_str(&format!(
+            "    \"checksum\": \"{}\",\n",
+            self.metadata.checksum
+        ));
+        output.push_str(&format!(
+            "    \"timestamp\": {},\n",
+            self.metadata.timestamp
+        ));
+        output.push_str(&format!(
+            "    \"token_count\": {}\n",
+            self.metadata.token_count
+        ));
         output.push_str("  }\n");
         output.push_str("}");
 
@@ -321,13 +333,10 @@ impl ExportData {
         let context = Self::extract_json_string(json, "context")?;
         let namespace = Self::extract_json_string(json, "namespace")?;
 
-        let tokens_start = json.find("\"tokens\"")
-            .ok_or("Missing 'tokens' field")?;
+        let tokens_start = json.find("\"tokens\"").ok_or("Missing 'tokens' field")?;
         let tokens_section = &json[tokens_start..];
-        let array_start = tokens_section.find('[')
-            .ok_or("Invalid tokens array")?;
-        let array_end = tokens_section.rfind(']')
-            .ok_or("Invalid tokens array")?;
+        let array_start = tokens_section.find('[').ok_or("Invalid tokens array")?;
+        let array_end = tokens_section.rfind(']').ok_or("Invalid tokens array")?;
         let tokens_array = &tokens_section[array_start + 1..array_end];
 
         let mut tokens = Vec::new();
@@ -363,11 +372,13 @@ impl ExportData {
 
     fn extract_json_string(json: &str, field: &str) -> Result<String, String> {
         let pattern = format!("\"{}\": \"", field);
-        let start = json.find(&pattern)
+        let start = json
+            .find(&pattern)
             .ok_or_else(|| format!("Missing field: {}", field))?;
         let value_start = start + pattern.len();
         let value_section = &json[value_start..];
-        let end = value_section.find('"')
+        let end = value_section
+            .find('"')
             .ok_or_else(|| format!("Malformed field: {}", field))?;
 
         Ok(Self::unescape_json(&value_section[..end]))
@@ -375,15 +386,18 @@ impl ExportData {
 
     fn extract_json_number(json: &str, field: &str) -> Result<u64, String> {
         let pattern = format!("\"{}\": ", field);
-        let start = json.find(&pattern)
+        let start = json
+            .find(&pattern)
             .ok_or_else(|| format!("Missing field: {}", field))?;
         let value_start = start + pattern.len();
         let value_section = &json[value_start..];
 
-        let end = value_section.find(|c: char| !c.is_ascii_digit())
+        let end = value_section
+            .find(|c: char| !c.is_ascii_digit())
             .unwrap_or(value_section.len());
 
-        value_section[..end].parse()
+        value_section[..end]
+            .parse()
             .map_err(|_| format!("Invalid number for field: {}", field))
     }
 
@@ -410,13 +424,18 @@ impl fmt::Display for ExportData {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImportDiff {
-    Added { key: String, value: String },
+    Added {
+        key: String,
+        value: String,
+    },
     Updated {
         key: String,
         old_value: String,
         new_value: String,
     },
-    Unchanged { key: String },
+    Unchanged {
+        key: String,
+    },
 }
 
 impl fmt::Display for ImportDiff {

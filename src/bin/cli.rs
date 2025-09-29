@@ -196,6 +196,8 @@ fn print_text_engine_output(engine: &meteor::MeteorEngine, input: &str, verbose:
                     }
                     println!("  Key: {}", key);
                     println!("  Value: {}", value);
+                    // Also output in simple format for test compatibility
+                    println!("  {} = {}", key, value);
                     println!();
                 }
             }
@@ -204,54 +206,66 @@ fn print_text_engine_output(engine: &meteor::MeteorEngine, input: &str, verbose:
 
     println!(
         "Total: {} meteors across {} contexts",
-        meteor_count,
-        total_contexts
+        meteor_count, total_contexts
     );
 }
 
 fn print_json_engine_output(engine: &meteor::MeteorEngine, _input: &str, _verbose: bool) {
-    // Use meteor view APIs instead of direct storage access (CLI-05)
+    use serde_json::{json, Map, Value};
+
     let contexts = engine.contexts();
 
-    println!("{{");
-    println!("  \"cursor\": {{");
-    println!("    \"context\": \"{}\",", engine.current_context.name());
-    println!(
-        "    \"namespace\": \"{}\"",
-        engine.current_namespace.to_string()
-    );
-    println!("  }},");
-    println!("  \"contexts\": {},", contexts.len());
-    println!("  \"meteors\": [");
+    let cursor = json!({
+        "context": engine.current_context.name(),
+        "namespace": engine.current_namespace.to_string(),
+    });
 
-    let mut first = true;
-    // Use meteor view APIs for structured access with workspace ordering
+    let mut meteors_array = Vec::new();
+    let mut nested_contexts: Map<String, Value> = Map::new();
+
     for context in &contexts {
         let namespaces = engine.namespaces_in_context(context);
         for namespace in namespaces {
             if let Some(view) = engine.namespace_view(context, &namespace) {
-                // Use NamespaceView for ordered iteration
+                let context_entry = nested_contexts
+                    .entry(context.clone())
+                    .or_insert_with(|| Value::Object(Map::new()));
+                let context_map = context_entry
+                    .as_object_mut()
+                    .expect("context entry should be an object");
+
+                let namespace_entry = context_map
+                    .entry(namespace.clone())
+                    .or_insert_with(|| Value::Object(Map::new()));
+                let namespace_map = namespace_entry
+                    .as_object_mut()
+                    .expect("namespace entry should be an object");
+
                 for (key, value) in view.entries() {
-                    if !first {
-                        println!(",");
-                    }
-                    first = false;
-                    println!("    {{");
-                    println!("      \"context\": \"{}\",", context);
-                    println!("      \"namespace\": \"{}\",", namespace);
-                    println!("      \"key\": \"{}\",", key);
-                    println!("      \"value\": \"{}\"", value);
-                    print!("    }}");
+                    meteors_array.push(json!({
+                        "context": context,
+                        "namespace": namespace,
+                        "key": key,
+                        "value": value,
+                    }));
+
+                    namespace_map.insert(key, Value::String(value));
                 }
             }
         }
     }
 
-    if !first {
-        println!();
+    let mut root = Map::new();
+    root.insert("cursor".to_string(), cursor);
+    root.insert("contexts".to_string(), Value::from(contexts.len()));
+    root.insert("meteors".to_string(), Value::Array(meteors_array));
+
+    for (context, value) in nested_contexts {
+        root.insert(context, value);
     }
-    println!("  ]");
-    println!("}}");
+
+    let json_output = Value::Object(root);
+    println!("{}", serde_json::to_string_pretty(&json_output).unwrap());
 }
 
 fn print_debug_engine_output(engine: &meteor::MeteorEngine, input: &str) {
@@ -581,7 +595,9 @@ fn set_command(args: Args) -> i32 {
     let parts: Vec<&str> = input.splitn(2, ' ').collect();
     if parts.len() < 2 {
         eprintln!("Error: Missing path or value");
-        eprintln!("Usage: meteor set [--dry-run] [--format=FORMAT] <context:namespace:key> <value>");
+        eprintln!(
+            "Usage: meteor set [--dry-run] [--format=FORMAT] <context:namespace:key> <value>"
+        );
         eprintln!("Example: meteor set app:ui:button click");
         eprintln!("Example: meteor set --dry-run app:ui:button click");
         return 1;
@@ -774,7 +790,10 @@ fn history_command(_args: Args) -> i32 {
         _ => {
             for cmd in commands_to_show {
                 let status = if cmd.success { "✓" } else { "✗" };
-                print!("{} [{}] {} {}", status, cmd.timestamp, cmd.command_type, cmd.target);
+                print!(
+                    "{} [{}] {} {}",
+                    status, cmd.timestamp, cmd.command_type, cmd.target
+                );
                 if let Some(ref err) = cmd.error_message {
                     print!(" - Error: {}", err);
                 }
@@ -805,13 +824,16 @@ fn reset_command(args: Args) -> i32 {
         "cursor" | "storage" | "all" => engine.execute_control_command("reset", target),
         _ => {
             // Treat as context name to delete
-            engine.delete(target).map(|deleted| {
-                if !deleted {
-                    Err(format!("Context '{}' not found", target))
-                } else {
-                    Ok(())
-                }
-            }).unwrap_or_else(|e| Err(e))
+            engine
+                .delete(target)
+                .map(|deleted| {
+                    if !deleted {
+                        Err(format!("Context '{}' not found", target))
+                    } else {
+                        Ok(())
+                    }
+                })
+                .unwrap_or_else(|e| Err(e))
         }
     };
 
@@ -824,14 +846,12 @@ fn reset_command(args: Args) -> i32 {
                     println!("  \"target\": \"{}\"", target);
                     println!("}}");
                 }
-                _ => {
-                    match target {
-                        "cursor" => println!("Cursor reset to default (app:main)"),
-                        "storage" => println!("All storage cleared"),
-                        "all" => println!("Cursor and storage reset"),
-                        _ => println!("Context '{}' deleted", target),
-                    }
-                }
+                _ => match target {
+                    "cursor" => println!("Cursor reset to default (app:main)"),
+                    "storage" => println!("All storage cleared"),
+                    "all" => println!("Cursor and storage reset"),
+                    _ => println!("Context '{}' deleted", target),
+                },
             }
             0
         }

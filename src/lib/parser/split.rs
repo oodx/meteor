@@ -59,7 +59,7 @@ impl SplitConfig {
     /// Configuration for meteor delimiter parsing (:;:)
     pub fn meteor_delimiter() -> Self {
         Self {
-            delimiter: ':',  // Will be handled specially for multi-char delimiter
+            delimiter: ':', // Will be handled specially for multi-char delimiter
             handle_escapes: true,
             escapes_only_in_quotes: true,
             preserve_delimiters: false,
@@ -247,21 +247,30 @@ mod tests {
         let config = SplitConfig::semicolon_tokens();
         let result = smart_split("key=value; message=\"hello; world\"; theme=dark", config);
         // Semicolon config preserves whitespace (validators.rs compatibility)
-        assert_eq!(result, vec!["key=value", " message=\"hello; world\"", " theme=dark"]);
+        assert_eq!(
+            result,
+            vec!["key=value", " message=\"hello; world\"", " theme=dark"]
+        );
     }
 
     #[test]
     fn test_escaped_quotes_token_style() {
         let config = SplitConfig::general_parsing(';');
         let result = smart_split("key=\"value with \\\"quotes\\\"\"; theme=dark", config);
-        assert_eq!(result, vec!["key=\"value with \\\"quotes\\\"\"", "theme=dark"]);
+        assert_eq!(
+            result,
+            vec!["key=\"value with \\\"quotes\\\"\"", "theme=dark"]
+        );
     }
 
     #[test]
     fn test_escaped_quotes_meteor_style() {
         let config = SplitConfig::meteor_streams(';');
         let result = smart_split("key=\"value with \\\"quotes\\\"\"; theme=dark", config);
-        assert_eq!(result, vec!["key=\"value with \\\"quotes\\\"\"", "theme=dark"]);
+        assert_eq!(
+            result,
+            vec!["key=\"value with \\\"quotes\\\"\"", "theme=dark"]
+        );
     }
 
     #[test]
@@ -270,9 +279,12 @@ mod tests {
         let result = smart_split_multi_char(
             "app:ui:button=click :;: user:main:profile=admin",
             ":;:",
-            config
+            config,
         );
-        assert_eq!(result, vec!["app:ui:button=click", "user:main:profile=admin"]);
+        assert_eq!(
+            result,
+            vec!["app:ui:button=click", "user:main:profile=admin"]
+        );
     }
 
     #[test]
@@ -281,23 +293,35 @@ mod tests {
         let result = smart_split_multi_char(
             "app:ui:button=click :;: user:main:profile=\"admin :;: test\"",
             ":;:",
-            config
+            config,
         );
-        assert_eq!(result, vec!["app:ui:button=click", "user:main:profile=\"admin :;: test\""]);
+        assert_eq!(
+            result,
+            vec![
+                "app:ui:button=click",
+                "user:main:profile=\"admin :;: test\""
+            ]
+        );
     }
 
     #[test]
     fn test_control_tokens() {
         let config = SplitConfig::general_parsing(';');
         let result = smart_split("button=click; ns=ui; ctl:delete=app:main:test", config);
-        assert_eq!(result, vec!["button=click", "ns=ui", "ctl:delete=app:main:test"]);
+        assert_eq!(
+            result,
+            vec!["button=click", "ns=ui", "ctl:delete=app:main:test"]
+        );
     }
 
     #[test]
     fn test_bracket_notation() {
         let config = SplitConfig::general_parsing(';');
         let result = smart_split("list[0]=first; grid[1,2]=cell; config[debug]=true", config);
-        assert_eq!(result, vec!["list[0]=first", "grid[1,2]=cell", "config[debug]=true"]);
+        assert_eq!(
+            result,
+            vec!["list[0]=first", "grid[1,2]=cell", "config[debug]=true"]
+        );
     }
 
     #[test]
@@ -310,8 +334,12 @@ mod tests {
     #[test]
     fn test_semicolon_compatibility() {
         // Test compatibility with validators.rs behavior (preserves whitespace)
-        let result = smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
-        assert_eq!(result, vec!["key=value", " message=\"hello; world\"", " theme=dark"]);
+        let result =
+            smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
+        assert_eq!(
+            result,
+            vec!["key=value", " message=\"hello; world\"", " theme=dark"]
+        );
     }
 
     #[test]
@@ -323,8 +351,18 @@ mod tests {
     #[test]
     fn test_complex_escaping() {
         let config = SplitConfig::general_parsing(';');
-        let result = smart_split("path=\"/usr/bin\"; message=\"Hello\\nWorld\"; escaped=\"quote\\\"here\"", config);
-        assert_eq!(result, vec!["path=\"/usr/bin\"", "message=\"Hello\\nWorld\"", "escaped=\"quote\\\"here\""]);
+        let result = smart_split(
+            "path=\"/usr/bin\"; message=\"Hello\\nWorld\"; escaped=\"quote\\\"here\"",
+            config,
+        );
+        assert_eq!(
+            result,
+            vec![
+                "path=\"/usr/bin\"",
+                "message=\"Hello\\nWorld\"",
+                "escaped=\"quote\\\"here\""
+            ]
+        );
     }
 
     #[test]

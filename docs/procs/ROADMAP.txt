@@ -5,7 +5,7 @@
 🎯 Vision: Deliver a stateful MeteorEngine with first-class iteration, aggregation,
           and virtualization APIs that unblock CLI/REPL parity and ProntoDB streams.
 📅 Horizon: Milestones cover the next three delivery cycles (≈6–8 weeks total).
-🚀 Priority: ME-1 ✅ → ME-2 ✅ → ME-3 in flight (aggregation/export/import focus).
+🚀 Priority: ME-1 ✅ → ME-2 ✅ → ME-3 ✅ → ME-4 (parsing/query polish in planning).
 
 ================================================================================
  📆 MILESTONE OVERVIEW
@@ -15,9 +15,10 @@
 |-----------|----------------|-------------------------------------------------------|---------------|--------|
 | ME-1      | Week 1–2       | Engine workspace foundations + cache invalidation     | Workspace behind API, mutation hooks gated, debug dump ready | ✅ Delivered |
 | ME-2      | Week 3–4       | Iterator surfaces, namespace views, cursor guards     | CLI/REPL ready helpers, cursor guard restores on error        | ✅ Delivered |
-| ME-3      | Week 5–6       | Meteor aggregation/export/import + parser alignment   | CLI/REPL powered by meteor views, export/import round trips   | 🔵 Ready |
+| ME-3      | Week 5–6       | Meteor aggregation/export/import + parser alignment   | CLI/REPL powered by meteor views, export/import round trips   | ✅ Delivered |
+| ME-4      | Week 7–8       | Parsing & query polish + strict validation hooks      | Structured path errors, glob-aware queries, unified split, strict setters | 🔵 Ready |
 
-Total Planned Capacity: 33 SP (ME-1: 8 SP ✅, ME-2: 7 SP ✅, ME-3: 18 SP pending).
+Total Planned Capacity: 43 SP (ME-1: 8 SP ✅, ME-2: 7 SP ✅, ME-3: 18 SP ✅, ME-4: 10 SP 🔵).
 
 ================================================================================
  🧱 ME-1 — Workspace Foundations (Phase 0)
@@ -70,17 +71,17 @@ up export/import capabilities in preparation for document virtualization.
 
 | Ticket | SP | Status | Summary |
 |--------|----|--------|---------|
-| ENG-20 | 3 | 🔵 Ready | Expose `meteors()` / `meteor_for()` grouped views feeding CLI/REPL outputs. |
-| ENG-21 | 2 | 🔵 Ready | Honor ordering metadata when emitting sections/parts/snippets. |
-| ENG-22 | 2 | 🔵 Ready | Implement `export_namespace` helper supporting multiple formats. |
-| ENG-23 | 2 | 🔵 Ready | Implement `import_namespace` with metadata capture & validation. |
-| ENG-24 | 2 | 🔵 Ready | Provide workspace-backed scratch slots (`scratch_slot`) for REPL workflows. |
-| ENG-40 | 3 | 🔵 Ready | Enforce meteor invariant (single context/namespace) and update constructors. |
-| ENG-41 | 2 | 🔵 Ready | Align parsers with grouped meteors and mixed-address policy toggles. |
-| CLI-05 | 1 | 🔵 Ready | Route CLI `parse` output through meteor views (text/json parity). |
-| REPL-05 | 1 | 🔵 Ready | Update REPL `meteor`, `list`, `history` commands to new APIs. |
-| ENG-42 | 1 | 🔵 Ready | Centralize semicolon smart-split logic; regression tests for quoted literals. |
-| QA-10  | 1 | 🔵 Ready | Maintain zero-warning baseline post-refactor. |
+| ENG-20 | 3 | ✅ Delivered | Expose `meteors()` / `meteor_for()` grouped views feeding CLI/REPL outputs. |
+| ENG-21 | 2 | ✅ Delivered | Honor ordering metadata when emitting sections/parts/snippets. |
+| ENG-22 | 2 | ✅ Delivered | Implement `export_namespace` helper supporting multiple formats. |
+| ENG-23 | 2 | ✅ Delivered | Implement `import_namespace` with metadata capture & validation. |
+| ENG-24 | 2 | ✅ Delivered | Provide workspace-backed scratch slots (`scratch_slot`) for REPL workflows. |
+| ENG-40 | 3 | ✅ Delivered | Enforce meteor invariant (single context/namespace) and update constructors. |
+| ENG-41 | 2 | ✅ Delivered | Align parsers with grouped meteors and mixed-address policy toggles. |
+| CLI-05 | 1 | ✅ Delivered | Route CLI `parse` output through meteor views (text/json parity). |
+| REPL-05 | 1 | ✅ Delivered | Update REPL `meteor`, `list`, `history` commands to new APIs. |
+| ENG-42 | 1 | ✅ Delivered | Centralize semicolon smart-split logic; regression tests for quoted literals. |
+| QA-10  | 1 | ✅ Delivered | Maintain zero-warning baseline post-refactor. |
 
 **Dependencies**: ME-2 iterators/guards.
 **Acceptance Focus**:
@@ -106,6 +107,6 @@ up export/import capabilities in preparation for document virtualization.
 - CLI/REPL latency within ±5% of pre-workspace benchmarks once ME-3 lands.
 - Workspace debug tooling available for diagnostics without impacting release builds.
 
-Last Updated: 2025-10-03 (ME-1 & ME-2 delivered)
-Next Review: Post ME-3 delivery or earlier if scope shifts.
+Last Updated: 2025-10-05 (ME-1..ME-3 delivered; ME-4 queued)
+Next Review: Kickoff ME-4 once CLI/REPL teams confirm readiness for parser/path updates.
 ================================================================================

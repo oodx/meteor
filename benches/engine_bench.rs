@@ -1,6 +1,6 @@
 use hub::criterion::{criterion_group, criterion_main, Criterion};
-use std::hint::black_box;
 use meteor::MeteorEngine;
+use std::hint::black_box;
 
 fn bench_engine_set(c: &mut Criterion) {
     c.bench_function("engine: set operation", |b| {
@@ -19,9 +19,7 @@ fn bench_engine_get_existing(c: &mut Criterion) {
     engine.set("app:ui:button", "click").unwrap();
 
     c.bench_function("engine: get existing", |b| {
-        b.iter(|| {
-            engine.get(black_box("app:ui:button"))
-        })
+        b.iter(|| engine.get(black_box("app:ui:button")))
     });
 }
 
@@ -29,9 +27,7 @@ fn bench_engine_get_missing(c: &mut Criterion) {
     let engine = MeteorEngine::new();
 
     c.bench_function("engine: get missing", |b| {
-        b.iter(|| {
-            engine.get(black_box("app:ui:nonexistent"))
-        })
+        b.iter(|| engine.get(black_box("app:ui:nonexistent")))
     });
 }
 
@@ -57,11 +53,7 @@ fn bench_engine_contexts(c: &mut Criterion) {
     engine.set("user:settings:theme", "dark").unwrap();
     engine.set("system:config:debug", "true").unwrap();
 
-    c.bench_function("engine: list contexts", |b| {
-        b.iter(|| {
-            engine.contexts()
-        })
-    });
+    c.bench_function("engine: list contexts", |b| b.iter(|| engine.contexts()));
 }
 
 fn bench_engine_namespaces(c: &mut Criterion) {
@@ -71,9 +63,7 @@ fn bench_engine_namespaces(c: &mut Criterion) {
     engine.set("app:config:debug", "true").unwrap();
 
     c.bench_function("engine: list namespaces", |b| {
-        b.iter(|| {
-            engine.namespaces_in_context(black_box("app"))
-        })
+        b.iter(|| engine.namespaces_in_context(black_box("app")))
     });
 }
 

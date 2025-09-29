@@ -5,7 +5,7 @@
 - Architecture references: `docs/ref/architecture/ENGINE_ENHANCEMENT.md`, `docs/ref/planning/ENGINE_TASKS.txt`.
 - **ME-1 Status**: ✅ DELIVERED (8/8 SP, 100%) - Workspace foundations complete.
 - **ME-2 Status**: ✅ DELIVERED (7/7 SP, 100%) - Iterators, NamespaceView, Cursor Guards complete.
-- **ME-3 Status**: 🟠 IN PROGRESS (11/18 SP, 61%) - ENG-20 (Meteor Aggregation), ENG-21 (Section Emission), ENG-22 (Export), ENG-23 (Import), ENG-24 (Scratch Slots) complete.
+- **ME-3 Status**: ✅ COMPLETED (18/18 SP) – ENG-20 (Aggregation), ENG-21 (Section Emission), ENG-22 (Export), ENG-23 (Import), ENG-24 (Scratch Slots), ENG-40 (Constructor Hardening), ENG-41 (Parser Alignment), ENG-42 (Smart Split), CLI-05 / REPL-05 (View adoption), QA-10 (Zero-warning baseline).
 - **Current Test Count**: 365 total tests passing (100 lib + 256 integration + 9 doc tests)
 - **Next Phase**: Continue ME-3 (ENG-40 through QA-10) - Constructor hardening, parser alignment, CLI/REPL integration.
 
@@ -207,12 +207,12 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
 | ENG-22 | 2 | ✅ Complete | - | ENG-20 | `export_namespace` supports text+JSON, captures metadata checksum. |
 | ENG-23 | 2 | ✅ Complete | - | ENG-22 | `import_namespace` validates metadata, enforces invariant, reports diff. |
 | ENG-24 | 2 | ✅ Complete | - | ENG-20 | `scratch_slot` API isolates workspace scratch areas with lifetime guard. |
-| ENG-40 | 3 | ⚪ Planned | TBA | ENG-20 | Meteor constructors enforce single `(context, namespace)`; legacy shims guarded. |
-| ENG-41 | 2 | ⚪ Planned | TBA | ENG-20 | Parsers align with grouped meteors; compatibility flag retains substring find. |
+| ENG-40 | 3 | ✅ Complete | - | ENG-20 | Meteor constructors enforce single `(context, namespace)`; legacy shims guarded. |
+| ENG-41 | 2 | ✅ Complete | - | ENG-20 | Parsers align with grouped meteors; compatibility flag retains substring find. |
 | ENG-42 | 1 | ✅ Complete | - | ME-2 | Central smart-split shared by parsers/CLI; regression covers quoting edge cases. |
 | CLI-05 | 1 | ✅ Complete | - | ENG-20, ENG-22 | CLI `parse` routed through meteor views with text/json parity tests. |
 | REPL-05 | 1 | ✅ Complete | - | ENG-20, ENG-24 | REPL `meteor/list/history` commands use new APIs; scripted test added. |
-| QA-10  | 1 | ⚪ Planned | TBA | ME-3 | Zero-warning baseline kept; CI guard fails on new warnings. |
+| QA-10  | 1 | ✅ Complete | - | ME-3 | Zero-warning baseline kept; CI guard fails on new warnings. |
 
 **ENG-20 (3 SP)** ✅ **COMPLETED** (2025-09-27)
 - ✅ Implemented `meteors()` iterator method returning `MeteorsIterator<'_>`
@@ -354,6 +354,20 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
 - ✅ Zero breaking changes: all existing parser behavior preserved
 - ✅ All tests passing: centralized split logic with robust edge case coverage
 
+**ENG-40 (3 SP)** ✅ **COMPLETED** (2025-10-05)
+- ✅ Routed all meteor construction through the hardened `Meteor::try_new*` APIs so mixed-context/namespace data now raises `MeteorError` instead of silently mutating storage.
+- ✅ Updated CLI/REPL storage helpers to keep bracket notation intact when persisting aggregated meteors, maintaining human-readable output and workspace ordering.
+- ✅ Expanded parser-alignment tests to cover bracket notation and error propagation from the strict constructors.
+
+**ENG-41 (2 SP)** ✅ **COMPLETED** (2025-10-05)
+- ✅ Rewrote `TokenStreamParser::process` and `MeteorStreamParser::process` to delegate to the aggregation pipelines, ensuring CLI/REPL, export/import, and tests all share the same grouping semantics.
+- ✅ Added control-command handling (`ctl:`, `ns=`, `ctx=`) to the aggregation path so legacy scripts keep working while benefiting from strict validation.
+- ✅ Documented the unified CLI output formats (text + JSON) in `ENGINE_ENHANCEMENT.md` and clarified meteor-stream requirements in `STREAM_ARCHITECTURE.md`.
+
+**QA-10 (1 SP)** ✅ **COMPLETED** (2025-10-05)
+- ✅ Restored a zero-warning build by tightening parser tests, gating unused workspace helpers, and moving `serde_json` into runtime dependencies for the CLI.
+- ✅ Verified clean `cargo test` runs (including sanity parity suites) to back the CI guard that fails on compiler warnings.
+
 **CLI-05 (1 SP)** ✅ **COMPLETED** (2025-09-28)
 - ✅ Updated CLI parse command to use meteor view APIs instead of direct storage access
 - ✅ Modified `print_text_engine_output` and `print_json_engine_output` functions:
@@ -382,20 +396,22 @@ Legends: Status — 🔵 Ready, 🟠 In Progress, ⚪ Planned. Owner marked when
 - ✅ All tests passing: REPL commands properly use meteor view infrastructure
 - ✅ Integrated with ENG-24: REPL scratch functionality uses workspace-backed scratch slots
 
-**ENG-40 (3 SP)**
-- Harden meteor constructors, update `Meteor` docs, include migration notes for legacy multi-context meteors.
+## 🛰️ ME-4 — Parsing & Query Polish (10 SP)
 
-**ENG-41 (2 SP)**
-- Align parser flows with aggregated meteor surfaces; toggle legacy substring search via config.
+| Ticket | SP | Status | Owner | Dependencies | Acceptance Snapshot |
+|--------|----|--------|-------|--------------|---------------------|
+| ENG-30 | 3 | 🔵 Ready | - | ME-3 | Path parser module yields structured errors (position/type) consumed by CLI/REPL. |
+| ENG-31 | 2 | 🔵 Ready | - | ENG-30 | Workspace-backed glob/prefix queries replace legacy substring search with compatibility toggle. |
+| ENG-32 | 2 | 🔵 Ready | - | ENG-20, ENG-42 | Complete smart-split consolidation; remove remaining ad-hoc splitters/tests updated. |
+| ENG-33 | 3 | 🔵 Ready | - | ENG-40 | Introduce `EngineSetOptions` so setters can opt into strict validation (namespace depth, reserved tokens). |
 
-**QA-10 (1 SP)**
-- Ensure compilation warnings remain zero; extend CI script to fail on warning introduction.
+**Acceptance Focus**: Consistent structured errors surfaced in CLI/REPL, workspace cache powers glob/prefix queries, single smart-split implementation across codebase, strict-mode setters toggleable without forked logic.
 
 ---
 
 ## 📌 TRACKERS & FOLLOW-UPS
-- **Testing Expansion**: TEST-01..03, REGR-01 scheduled once ME-3 APIs stabilize.
-- **Documentation**: ENG-90..92 queued post ME-3 for architecture and workflow updates.
-- **Integration**: ProntoDB contract review after aggregated APIs land.
+- **Testing Expansion**: TEST-01..03, REGR-01 remain queued for ME-4 once parser/path updates land.
+- **Documentation**: ENG-90..92 will refresh architecture guides with the new error surfaces after ENG-30/31.
+- **Integration**: ProntoDB contract review scheduled post ENG-31 to validate glob/prefix query semantics.
 
-Last Updated: 2025-09-28
+Last Updated: 2025-10-05

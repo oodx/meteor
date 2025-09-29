@@ -214,7 +214,11 @@ impl Meteor {
     ///
     /// Returns `Err` if the token's namespace doesn't match the meteor's namespace.
     /// This is the preferred constructor for new code.
-    pub fn try_new(context: Context, namespace: Namespace, token: Token) -> Result<Self, MeteorError> {
+    pub fn try_new(
+        context: Context,
+        namespace: Namespace,
+        token: Token,
+    ) -> Result<Self, MeteorError> {
         Self::try_new_with_tokens(context, namespace, vec![token])
     }
 
@@ -242,7 +246,10 @@ impl Meteor {
     /// Try to create with default context (ENG-40: Safe constructor)
     ///
     /// Returns `Err` if the token's namespace doesn't match the meteor's namespace.
-    pub fn try_with_default_context(namespace: Namespace, token: Token) -> Result<Self, MeteorError> {
+    pub fn try_with_default_context(
+        namespace: Namespace,
+        token: Token,
+    ) -> Result<Self, MeteorError> {
         Self::try_new(Context::default(), namespace, token)
     }
 
@@ -481,7 +488,10 @@ impl Meteor {
 
                     // Remember the first mismatch for detailed error reporting
                     if first_mismatch.is_none() {
-                        first_mismatch = Some((token_namespace.to_string(), token.key_notation().to_string()));
+                        first_mismatch = Some((
+                            token_namespace.to_string(),
+                            token.key_notation().to_string(),
+                        ));
                     }
                 }
             }

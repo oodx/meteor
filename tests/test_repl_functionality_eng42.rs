@@ -4,8 +4,8 @@
 //! refactoring. These tests validate key REPL functionality through automated
 //! scripted interactions.
 
-use std::process::{Command, Stdio};
 use std::io::Write;
+use std::process::{Command, Stdio};
 
 /// Test basic REPL parsing and engine state
 #[test]
@@ -13,7 +13,7 @@ fn test_repl_basic_parse_and_state() {
     let commands = vec![
         "parse app:ui:button=click; app:ui:theme=dark",
         "show",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -36,7 +36,7 @@ fn test_repl_list_command() {
         "parse app:ui:button=click; app:ui:theme=dark; user:settings:lang=en",
         "list app ui",
         "list user settings",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -59,7 +59,7 @@ fn test_repl_contexts_namespaces() {
         "namespaces app",
         "namespaces sys",
         "namespaces user",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -91,7 +91,7 @@ fn test_repl_crud_operations() {
         "get app:ui:theme",
         "delete app:ui:theme",
         "get app:ui:theme",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -119,7 +119,7 @@ fn test_repl_mem_functionality() {
         "mem get test_key",
         "mem delete test_key",
         "mem list",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -149,10 +149,7 @@ fn test_repl_mem_functionality() {
 /// Test REPL token parsing functionality
 #[test]
 fn test_repl_token_parsing() {
-    let commands = vec![
-        "token button=click; theme=dark; ui:lang=en",
-        "exit"
-    ];
+    let commands = vec!["token button=click; theme=dark; ui:lang=en", "exit"];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
 
@@ -179,7 +176,7 @@ fn test_repl_validation() {
         "validate app:ui:button=click; app:ui:theme=dark",
         "validate app:ui:button=click :;: user:settings:lang=en",
         "validate invalid_format_here",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -198,15 +195,15 @@ fn test_repl_bracket_notation() {
         "parse app:list:items[0]=apple; app:list:items[1]=banana; app:grid:cell[2,3]=value",
         "list app list",
         "get app:list:items[0]",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
 
-    // Verify bracket notation is handled correctly (flattened)
-    assert!(output.contains("items__i_0 = apple"));
-    assert!(output.contains("items__i_1 = banana"));
-    assert!(output.contains("cell__i_2_3 = value"));
+    // Verify bracket notation is handled correctly (preserved per ENG-21)
+    assert!(output.contains("items[0] = apple"));
+    assert!(output.contains("items[1] = banana"));
+    assert!(output.contains("cell[2,3] = value"));
 
     // Verify get operation works with bracket notation
     assert!(output.contains("= apple") || output.contains("apple"));
@@ -219,9 +216,9 @@ fn test_repl_help_and_errors() {
         "help",
         "mem help",
         "unknown_command",
-        "get",  // Missing argument
+        "get", // Missing argument
         "set", // Missing arguments
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -245,7 +242,7 @@ fn test_repl_workspace_ordering() {
         "parse user:profile:name=John; app:ui:theme=dark; sys:config:debug=true; app:ui:lang=en",
         "show",
         "contexts",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -259,8 +256,10 @@ fn test_repl_workspace_ordering() {
     let sys_pos = show_section.find("Context: sys").unwrap();
     let user_pos = show_section.find("Context: user").unwrap();
 
-    assert!(app_pos < sys_pos && sys_pos < user_pos,
-            "Contexts should appear in workspace order: app < sys < user");
+    assert!(
+        app_pos < sys_pos && sys_pos < user_pos,
+        "Contexts should appear in workspace order: app < sys < user"
+    );
 
     // Verify all meteors are properly displayed
     assert!(show_section.contains("name = John"));

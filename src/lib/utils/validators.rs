@@ -369,21 +369,27 @@ mod tests {
 
     #[test]
     fn test_smart_semicolon_splitting() {
-        let result =
-            crate::parser::split::smart_split_semicolons("key=value; message=\"hello; world\"; theme=dark").unwrap();
+        let result = crate::parser::split::smart_split_semicolons(
+            "key=value; message=\"hello; world\"; theme=dark",
+        )
+        .unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(result[0], "key=value");
         assert_eq!(result[1], " message=\"hello; world\"");
         assert_eq!(result[2], " theme=dark");
 
-        let result =
-            crate::parser::split::smart_split_semicolons("message=\"value;;; with lots; of semicolons\"").unwrap();
+        let result = crate::parser::split::smart_split_semicolons(
+            "message=\"value;;; with lots; of semicolons\"",
+        )
+        .unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0], "message=\"value;;; with lots; of semicolons\"");
 
         // Test unclosed quotes
         assert!(crate::parser::split::smart_split_semicolons("key=\"unclosed quote").is_none());
-        assert!(crate::parser::split::smart_split_semicolons("key=value; message=\"unclosed").is_none());
+        assert!(
+            crate::parser::split::smart_split_semicolons("key=value; message=\"unclosed").is_none()
+        );
     }
 
     #[test]

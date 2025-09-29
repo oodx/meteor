@@ -11,8 +11,8 @@
 //! - Full command audit trail
 //! - Dot-notation path operations
 
+use super::{workspace::EngineWorkspace, Meteor};
 use crate::types::{Context, Namespace, StorageData, Token};
-use super::{Meteor, workspace::EngineWorkspace};
 
 /// Command execution record for audit trail
 #[derive(Debug, Clone)]
@@ -107,7 +107,11 @@ impl<'a> Cursor<'a> {
 
     /// Get the current cursor position as a formatted string (context:namespace)
     pub fn position(&self) -> String {
-        format!("{}:{}", self.engine.current_context.name(), self.engine.current_namespace.to_string())
+        format!(
+            "{}:{}",
+            self.engine.current_context.name(),
+            self.engine.current_namespace.to_string()
+        )
     }
 }
 
@@ -727,9 +731,9 @@ impl MeteorEngine {
             if let Some(old_value) = existing_tokens.get(key) {
                 if old_value == new_value {
                     result.tokens_unchanged += 1;
-                    result.diff.push(super::export::ImportDiff::Unchanged {
-                        key: key.clone(),
-                    });
+                    result
+                        .diff
+                        .push(super::export::ImportDiff::Unchanged { key: key.clone() });
                 } else {
                     self.set(&full_key, new_value)?;
                     result.tokens_updated += 1;
@@ -749,7 +753,8 @@ impl MeteorEngine {
             }
         }
 
-        let recalc_export = self.export_namespace(&data.context, &data.namespace, data.format.clone());
+        let recalc_export =
+            self.export_namespace(&data.context, &data.namespace, data.format.clone());
         result.checksum_valid = if let Some(recalc) = recalc_export {
             recalc.metadata.checksum == data.metadata.checksum
         } else {
@@ -811,11 +816,13 @@ impl MeteorEngine {
     // ================================
 
     /// Get mutable reference to workspace (internal use only)
+    #[allow(dead_code)]
     pub(crate) fn workspace_mut(&mut self) -> &mut EngineWorkspace {
         &mut self.workspace
     }
 
     /// Get reference to workspace (internal use only)
+    #[allow(dead_code)]
     pub(crate) fn workspace(&self) -> &EngineWorkspace {
         &self.workspace
     }
@@ -1135,7 +1142,9 @@ impl<'a> NamespaceView<'a> {
 
     /// Get all keys that match a pattern (supports * wildcard)
     pub fn find_keys(&self, pattern: &str) -> Vec<String> {
-        self.engine.storage.find_keys(&self.context, &self.namespace, pattern)
+        self.engine
+            .storage
+            .find_keys(&self.context, &self.namespace, pattern)
     }
 }
 

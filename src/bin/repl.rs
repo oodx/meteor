@@ -47,7 +47,9 @@ fn run_repl(engine: &mut meteor::MeteorEngine) {
 
                 let mut parts = line.splitn(2, ' ');
                 // SAFETY: splitn(2, ' ') on non-empty string always yields at least one element
-                let command = parts.next().expect("splitn always yields at least one element");
+                let command = parts
+                    .next()
+                    .expect("splitn always yields at least one element");
                 let rest = parts.next().unwrap_or("").trim();
 
                 match command {
@@ -502,7 +504,11 @@ fn mem_delete(engine: &mut meteor::MeteorEngine, raw_name: &str) {
 
 fn mem_list(engine: &mut meteor::MeteorEngine) {
     // Use scratch slot APIs for listing - collect names first to avoid borrowing conflicts
-    let slot_names: Vec<String> = engine.list_scratch_slots().iter().map(|s| s.to_string()).collect();
+    let slot_names: Vec<String> = engine
+        .list_scratch_slots()
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
     if slot_names.is_empty() {
         println!("Scratch pad empty");
         return;

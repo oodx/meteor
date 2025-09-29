@@ -3,8 +3,8 @@
 //! Tests that verify the REPL mem commands properly use the new workspace-backed
 //! scratch slot APIs with lifetime-managed handles instead of direct storage.
 
-use std::process::{Command, Stdio};
 use std::io::Write;
+use std::process::{Command, Stdio};
 
 /// Test that REPL mem commands use scratch slot APIs instead of direct storage
 #[test]
@@ -13,7 +13,7 @@ fn test_repl_mem_uses_scratch_slots() {
         "mem set scratch_test test_value",
         "mem get scratch_test",
         "mem list",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -36,7 +36,7 @@ fn test_repl_scratch_slot_lifecycle() {
         "mem list",
         "mem get temp_slot",
         "mem get persistent_slot",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -58,8 +58,14 @@ fn test_repl_scratch_slot_lifecycle() {
 
     // temp_slot should appear once (in first list only)
     // persistent_slot should appear 3 times (first list, second list, final get)
-    assert_eq!(temp_slot_entries, 1, "temp_slot should appear once in output");
-    assert_eq!(persistent_slot_entries, 3, "persistent_slot should appear three times in output");
+    assert_eq!(
+        temp_slot_entries, 1,
+        "temp_slot should appear once in output"
+    );
+    assert_eq!(
+        persistent_slot_entries, 3,
+        "persistent_slot should appear three times in output"
+    );
 }
 
 /// Test REPL mem edit functionality with scratch slots
@@ -68,7 +74,7 @@ fn test_repl_mem_edit_with_scratch_slots() {
     let commands = vec![
         "mem set editable_slot initial_value",
         "mem get editable_slot",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -91,7 +97,7 @@ fn test_repl_multiple_scratch_slots() {
         "mem get slot3",
         "mem delete slot2",
         "mem list",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -117,7 +123,10 @@ fn test_repl_multiple_scratch_slots() {
     let slot3_entries = output.matches("$slot3 = value3").count();
 
     assert_eq!(slot1_entries, 3, "slot1 should appear 3 times");
-    assert_eq!(slot2_entries, 2, "slot2 should appear 2 times (before deletion)");
+    assert_eq!(
+        slot2_entries, 2,
+        "slot2 should appear 2 times (before deletion)"
+    );
     assert_eq!(slot3_entries, 3, "slot3 should appear 3 times");
 }
 
@@ -126,13 +135,13 @@ fn test_repl_multiple_scratch_slots() {
 fn test_repl_scratch_slot_persistence() {
     let commands = vec![
         "mem set persistent_data important_value",
-        "parse app:ui:button=click",  // Other operations shouldn't affect scratch
+        "parse app:ui:button=click", // Other operations shouldn't affect scratch
         "set app:ui:theme dark",
         "mem get persistent_data",
         "mem list",
         "contexts", // Another operation
         "mem get persistent_data",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -141,7 +150,11 @@ fn test_repl_scratch_slot_persistence() {
     assert!(output.contains("Stored $persistent_data"));
 
     // Should be accessible after parse operation
-    let after_parse = extract_section(&output, "meteor> mem get persistent_data", "meteor> mem list");
+    let after_parse = extract_section(
+        &output,
+        "meteor> mem get persistent_data",
+        "meteor> mem list",
+    );
     assert!(after_parse.contains("$persistent_data = important_value"));
 
     // Should still be in list
@@ -159,10 +172,10 @@ fn test_repl_scratch_slot_naming_edge_cases() {
     let commands = vec![
         "mem set simple test1",
         "mem set with_underscore test2",
-        "mem set $prefixed test3",  // $ prefix should be handled
-        "mem set \"quoted name\" test4",  // Quoted names should be cleaned
+        "mem set $prefixed test3",       // $ prefix should be handled
+        "mem set \"quoted name\" test4", // Quoted names should be cleaned
         "mem list",
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -185,7 +198,7 @@ fn test_repl_scratch_slot_error_handling() {
         "mem get nonexistent_slot",
         "mem delete nonexistent_slot",
         "mem list", // Should show empty
-        "exit"
+        "exit",
     ];
 
     let output = run_repl_commands(&commands).expect("REPL should execute successfully");
@@ -227,7 +240,8 @@ fn run_repl_commands(commands: &[&str]) -> Result<String, Box<dyn std::error::Er
 fn extract_section(output: &str, start_marker: &str, end_marker: &str) -> String {
     let start_pos = output.find(start_marker).unwrap_or(0);
     let search_from = start_pos + start_marker.len();
-    let end_pos = output[search_from..].find(end_marker)
+    let end_pos = output[search_from..]
+        .find(end_marker)
         .map(|pos| search_from + pos)
         .unwrap_or(output.len());
 

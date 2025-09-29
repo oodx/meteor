@@ -7,9 +7,9 @@
 //! - Delegation to MeteorEngine for state changes
 //! - ENG-41: Meteor aggregation with hardened constructors
 
+use crate::parser::split::{smart_split, smart_split_multi_char, SplitConfig};
 use crate::types::{Context, Meteor, MeteorEngine, MeteorError, Namespace, Token};
 use crate::utils::validators::is_valid_meteor_format;
-use crate::parser::split::{smart_split_multi_char, smart_split, SplitConfig};
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -30,18 +30,12 @@ impl MeteorStreamParser {
     /// let mut engine = MeteorEngine::new();
     /// MeteorStreamParser::process_with_aggregation(&mut engine, "app:ui:button=click :;: app:ui:theme=dark")?;
     /// ```
-    pub fn process_with_aggregation(engine: &mut MeteorEngine, input: &str) -> Result<(), MeteorError> {
-        let grouped_tokens = Self::parse_explicit_meteors(input)?;
-
-        // Create meteors using hardened constructors and store them
-        for ((context, namespace), tokens) in grouped_tokens {
-            if !tokens.is_empty() {
-                let meteor = Meteor::try_new_with_tokens(context, namespace, tokens)?;
-                Self::store_meteor_tokens(engine, &meteor)?;
-            }
-        }
-
-        Ok(())
+    pub fn process_with_aggregation(
+        engine: &mut MeteorEngine,
+        input: &str,
+    ) -> Result<(), MeteorError> {
+        let (order, grouped_tokens) = Self::parse_explicit_meteors(engine, input)?;
+        Self::store_grouped_tokens(engine, order, grouped_tokens)
     }
 
     /// Parse and process a meteor stream (Legacy method)
@@ -59,77 +53,25 @@ impl MeteorStreamParser {
     /// MeteorStreamParser::process(&mut engine, "app:ui:button=click :;: user:main:profile=admin")?;
     /// ```
     pub fn process(engine: &mut MeteorEngine, input: &str) -> Result<(), String> {
-        // Split by meteor delimiter (:;:) to get individual meteors
-        let meteors = input.split(METEOR_DELIMITER);
-
-        for meteor_str in meteors {
-            let trimmed = meteor_str.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-
-            // Process this meteor (which may contain multiple tokens separated by semicolons)
-            Self::process_single_meteor(engine, trimmed)?;
-        }
-
-        Ok(())
+        let (order, grouped_tokens) =
+            Self::parse_explicit_meteors(engine, input).map_err(|e| e.to_string())?;
+        Self::store_grouped_tokens(engine, order, grouped_tokens).map_err(|e| e.to_string())
     }
 
-    /// Process a single meteor that may contain multiple semicolon-separated tokens
-    fn process_single_meteor(engine: &mut MeteorEngine, meteor_str: &str) -> Result<(), String> {
-        // Split by semicolon to get individual tokens within this meteor
-        let token_parts = smart_split(meteor_str, SplitConfig::meteor_streams(';'));
-
-        for token_str in token_parts {
-            let trimmed = token_str.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-
-            // Check if it's a control command
-            if trimmed.starts_with("ctl:") {
-                Self::process_control_command(engine, trimmed)?;
-                continue;
-            }
-
-            // Check if it's a namespace control token
-            if trimmed.starts_with("ns=") {
-                let namespace_name = &trimmed[3..];
-                let namespace = crate::types::Namespace::from_string(namespace_name);
-                engine.switch_namespace(namespace);
-                continue;
-            }
-
-            // Check if it's a context control token
-            if trimmed.starts_with("ctx=") {
-                let context_name = &trimmed[4..];
-                let context = crate::types::Context::from_str(context_name)
-                    .map_err(|e| format!("Invalid context '{}': {}", context_name, e))?;
-                engine.switch_context(context);
-                continue;
-            }
-
-            // Parse as explicit meteor format: context:namespace:key=value
-            if let Some((key_value, _)) = trimmed.split_once('=') {
-                // Extract key=value part
-                let value = &trimmed[key_value.len() + 1..];
-
-                // Parse the key part as context:namespace:key
-                let key_parts: Vec<&str> = key_value.split(':').collect();
-                if key_parts.len() == 3 {
-                    let (context, namespace, key) = (key_parts[0], key_parts[1], key_parts[2]);
-                    engine.set(&format!("{}:{}:{}", context, namespace, key), value)?;
-                } else {
-                    return Err(format!(
-                        "Invalid meteor format: '{}' - expected context:namespace:key=value",
-                        trimmed
-                    ));
+    fn store_grouped_tokens(
+        engine: &mut MeteorEngine,
+        order: Vec<(Context, Namespace)>,
+        mut grouped_tokens: HashMap<(Context, Namespace), Vec<Token>>,
+    ) -> Result<(), MeteorError> {
+        for (context, namespace) in order {
+            if let Some(tokens) = grouped_tokens.remove(&(context.clone(), namespace.clone())) {
+                if tokens.is_empty() {
+                    continue;
                 }
-            } else {
-                return Err(format!(
-                    "Invalid meteor format: '{}' - missing value assignment",
-                    trimmed
-                ));
+
+                let meteor =
+                    Meteor::try_new_with_tokens(context.clone(), namespace.clone(), tokens)?;
+                Self::store_meteor_tokens(engine, &meteor)?;
             }
         }
 
@@ -140,7 +82,8 @@ impl MeteorStreamParser {
     fn process_control_command(engine: &mut MeteorEngine, command: &str) -> Result<(), String> {
         // Parse ctl:command=target format
         // SAFETY: Caller ensures command starts with "ctl:" via starts_with check
-        let without_prefix = command.strip_prefix("ctl:")
+        let without_prefix = command
+            .strip_prefix("ctl:")
             .expect("control command must start with 'ctl:' prefix");
         let parts: Vec<&str> = without_prefix.splitn(2, '=').collect();
 
@@ -192,8 +135,18 @@ impl MeteorStreamParser {
     // ================================
 
     /// Parse explicit meteors and group tokens by (context, namespace)
-    fn parse_explicit_meteors(input: &str) -> Result<HashMap<(Context, Namespace), Vec<Token>>, MeteorError> {
+    fn parse_explicit_meteors(
+        engine: &mut MeteorEngine,
+        input: &str,
+    ) -> Result<
+        (
+            Vec<(Context, Namespace)>,
+            HashMap<(Context, Namespace), Vec<Token>>,
+        ),
+        MeteorError,
+    > {
         let mut grouped_tokens: HashMap<(Context, Namespace), Vec<Token>> = HashMap::new();
+        let mut order: Vec<(Context, Namespace)> = Vec::new();
         let meteors = input.split(METEOR_DELIMITER);
 
         for meteor_str in meteors {
@@ -202,14 +155,26 @@ impl MeteorStreamParser {
                 continue;
             }
 
-            // Handle control commands separately (don't aggregate)
             if trimmed.starts_with("ctl:") {
-                // Skip control commands for aggregation
-                // They should be handled separately or through legacy processing
+                Self::process_control_command(engine, trimmed).map_err(MeteorError::other)?;
                 continue;
             }
 
-            // Process tokens within this meteor
+            if trimmed.starts_with("ns=") {
+                let namespace = Namespace::from_string(&trimmed[3..]);
+                engine.switch_namespace(namespace);
+                continue;
+            }
+
+            if trimmed.starts_with("ctx=") {
+                let ctx_name = &trimmed[4..];
+                let context = Context::from_str(ctx_name).map_err(|e| {
+                    MeteorError::other(format!("Invalid context '{}': {}", ctx_name, e))
+                })?;
+                engine.switch_context(context);
+                continue;
+            }
+
             let token_parts = smart_split(trimmed, SplitConfig::meteor_streams(';'));
 
             for token_str in token_parts {
@@ -218,43 +183,60 @@ impl MeteorStreamParser {
                     continue;
                 }
 
-                // Skip control tokens (ns=, ctx=) - these don't apply to explicit meteors
-                if token_trimmed.starts_with("ns=") || token_trimmed.starts_with("ctx=") {
+                if token_trimmed.starts_with("ctl:") {
+                    Self::process_control_command(engine, token_trimmed)
+                        .map_err(MeteorError::other)?;
                     continue;
                 }
 
-                // Parse as explicit meteor format: context:namespace:key=value
-                if let Some((key_value, _)) = token_trimmed.split_once('=') {
-                    let value = &token_trimmed[key_value.len() + 1..];
+                if token_trimmed.starts_with("ns=") {
+                    let namespace = Namespace::from_string(&token_trimmed[3..]);
+                    engine.switch_namespace(namespace);
+                    continue;
+                }
 
-                    // Parse the key part as context:namespace:key
-                    let key_parts: Vec<&str> = key_value.split(':').collect();
-                    if key_parts.len() == 3 {
-                        let (context_str, namespace_str, key) = (key_parts[0], key_parts[1], key_parts[2]);
+                if token_trimmed.starts_with("ctx=") {
+                    let ctx_name = &token_trimmed[4..];
+                    let context = Context::from_str(ctx_name).map_err(|e| {
+                        MeteorError::other(format!("Invalid context '{}': {}", ctx_name, e))
+                    })?;
+                    engine.switch_context(context);
+                    continue;
+                }
 
-                        let context = Context::from_str(context_str)
-                            .map_err(|e| MeteorError::other(format!("Invalid context '{}': {}", context_str, e)))?;
-                        let namespace = Namespace::from_string(namespace_str);
-                        let token = Token::new(key, value);
-
-                        let meteor_key = (context, namespace);
-                        grouped_tokens.entry(meteor_key).or_insert_with(Vec::new).push(token);
-                    } else {
-                        return Err(MeteorError::other(format!(
-                            "Invalid meteor format: '{}' - expected context:namespace:key=value",
-                            token_trimmed
-                        )));
-                    }
-                } else {
-                    return Err(MeteorError::other(format!(
+                let (key_value, value) = token_trimmed.split_once('=').ok_or_else(|| {
+                    MeteorError::other(format!(
                         "Invalid meteor format: '{}' - missing value assignment",
+                        token_trimmed
+                    ))
+                })?;
+
+                let key_parts: Vec<&str> = key_value.split(':').collect();
+                if key_parts.len() != 3 {
+                    return Err(MeteorError::other(format!(
+                        "Invalid meteor format: '{}' - expected context:namespace:key=value",
                         token_trimmed
                     )));
                 }
+
+                let context = Context::from_str(key_parts[0]).map_err(|e| {
+                    MeteorError::other(format!("Invalid context '{}': {}", key_parts[0], e))
+                })?;
+                let namespace = Namespace::from_string(key_parts[1]);
+                let token = Token::new(key_parts[2], value);
+
+                let map_key = (context.clone(), namespace.clone());
+                if !grouped_tokens.contains_key(&map_key) {
+                    order.push(map_key.clone());
+                }
+                grouped_tokens
+                    .entry(map_key)
+                    .or_insert_with(Vec::new)
+                    .push(token);
             }
         }
 
-        Ok(grouped_tokens)
+        Ok((order, grouped_tokens))
     }
 
     /// Store tokens from a validated meteor into the engine
@@ -264,9 +246,10 @@ impl MeteorStreamParser {
                 "{}:{}:{}",
                 meteor.context().to_string(),
                 meteor.namespace().to_string(),
-                token.key().transformed()
+                token.key_notation()
             );
-            engine.set(&path, token.value())
+            engine
+                .set(&path, token.value())
                 .map_err(|e| MeteorError::other(e))?;
         }
         Ok(())

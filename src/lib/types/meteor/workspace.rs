@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(feature = "workspace-instrumentation")]
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 type ContextNamespaceKey = (String, String);
 
@@ -106,7 +106,8 @@ impl NamespaceWorkspace {
     #[cfg(feature = "workspace-instrumentation")]
     pub(crate) fn record_iteration(&self, key_count: usize) {
         self.iteration_count.set(self.iteration_count.get() + 1);
-        self.keys_iterated.set(self.keys_iterated.get() + key_count as u64);
+        self.keys_iterated
+            .set(self.keys_iterated.get() + key_count as u64);
     }
 
     #[cfg(feature = "workspace-instrumentation")]
@@ -134,6 +135,10 @@ impl ScratchSlot {
             data: HashMap::new(),
             created_at: current_timestamp(),
         }
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
     }
 
     pub(crate) fn set(&mut self, key: String, value: String) {
@@ -224,7 +229,9 @@ impl<'a> ScratchSlotGuard<'a> {
     pub fn keys(&self) -> Vec<String> {
         self.workspace
             .get_scratch_slot(&self.name)
-            .map_or(Vec::new(), |slot| slot.keys().map(|s| s.to_string()).collect())
+            .map_or(Vec::new(), |slot| {
+                slot.keys().map(|s| s.to_string()).collect()
+            })
     }
 
     pub fn entries(&self) -> Vec<(String, String)> {
@@ -300,6 +307,7 @@ impl EngineWorkspace {
         self.namespaces.get(&key)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn invalidate_namespace(&mut self, context: &str, namespace: &str) {
         let key = (context.to_string(), namespace.to_string());
         if let Some(ns_workspace) = self.namespaces.get_mut(&key) {
@@ -307,6 +315,7 @@ impl EngineWorkspace {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn invalidate_context(&mut self, context: &str) {
         for ((ctx, _ns), workspace) in self.namespaces.iter_mut() {
             if ctx == context {
@@ -315,6 +324,7 @@ impl EngineWorkspace {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn invalidate_all(&mut self) {
         for workspace in self.namespaces.values_mut() {
             workspace.invalidate_caches();
@@ -332,7 +342,8 @@ impl EngineWorkspace {
     }
 
     pub(crate) fn remove_context(&mut self, context: &str) {
-        self.namespaces.retain(|(ctx, _ns), _workspace| ctx != context);
+        self.namespaces
+            .retain(|(ctx, _ns), _workspace| ctx != context);
     }
 
     pub(crate) fn reserve_scratch_slot(&mut self, name: String) -> &mut ScratchSlot {
@@ -358,7 +369,10 @@ impl EngineWorkspace {
     }
 
     pub(crate) fn list_scratch_slots(&self) -> Vec<&str> {
-        self.scratch_slots.keys().map(|s| s.as_str()).collect()
+        self.scratch_slots
+            .values()
+            .map(|slot| slot.name())
+            .collect()
     }
 
     #[cfg(debug_assertions)]
@@ -366,7 +380,11 @@ impl EngineWorkspace {
         #[cfg(feature = "workspace-instrumentation")]
         let (total_hits, total_misses, hit_ratio) = {
             let hits: u64 = self.namespaces.values().map(|ns| ns.cache_hits.get()).sum();
-            let misses: u64 = self.namespaces.values().map(|ns| ns.cache_misses.get()).sum();
+            let misses: u64 = self
+                .namespaces
+                .values()
+                .map(|ns| ns.cache_misses.get())
+                .sum();
             let total = hits + misses;
             let ratio = if total == 0 {
                 0.0
@@ -378,8 +396,16 @@ impl EngineWorkspace {
 
         #[cfg(feature = "workspace-instrumentation")]
         let (total_iters, total_keys_iter, avg_keys) = {
-            let iters: u64 = self.namespaces.values().map(|ns| ns.iteration_count.get()).sum();
-            let keys: u64 = self.namespaces.values().map(|ns| ns.keys_iterated.get()).sum();
+            let iters: u64 = self
+                .namespaces
+                .values()
+                .map(|ns| ns.iteration_count.get())
+                .sum();
+            let keys: u64 = self
+                .namespaces
+                .values()
+                .map(|ns| ns.keys_iterated.get())
+                .sum();
             let avg = if iters == 0 {
                 0.0
             } else {
@@ -619,8 +645,12 @@ mod tests {
     fn test_workspace_clear() {
         let mut workspace = EngineWorkspace::new();
 
-        workspace.get_or_create_namespace("app", "main").add_key("key1");
-        workspace.get_or_create_namespace("app", "ui").add_key("key2");
+        workspace
+            .get_or_create_namespace("app", "main")
+            .add_key("key1");
+        workspace
+            .get_or_create_namespace("app", "ui")
+            .add_key("key2");
         workspace.reserve_scratch_slot("scratch1".to_string());
 
         assert_eq!(workspace.namespaces.len(), 2);
@@ -638,7 +668,9 @@ mod tests {
     fn test_workspace_status_debug_only() {
         let mut workspace = EngineWorkspace::new();
 
-        workspace.get_or_create_namespace("app", "main").add_key("key1");
+        workspace
+            .get_or_create_namespace("app", "main")
+            .add_key("key1");
         workspace
             .get_or_create_namespace("app", "ui")
             .query_cache

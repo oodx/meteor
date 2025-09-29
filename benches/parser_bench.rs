@@ -1,8 +1,8 @@
 use hub::criterion::{criterion_group, criterion_main, Criterion};
-use std::hint::black_box;
-use meteor::{MeteorEngine, Token};
-use meteor::parser::token_stream::TokenStreamParser;
 use meteor::parser::meteor_stream::MeteorStreamParser;
+use meteor::parser::token_stream::TokenStreamParser;
+use meteor::{MeteorEngine, Token};
+use std::hint::black_box;
 
 fn bench_token_stream_simple(c: &mut Criterion) {
     c.bench_function("token_stream: simple parsing", |b| {

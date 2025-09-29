@@ -3,7 +3,9 @@
 //! Comprehensive regression coverage for escaped quotes, control tokens,
 //! and edge cases in the centralized smart-split implementation.
 
-use meteor::parser::split::{smart_split, smart_split_multi_char, smart_split_semicolons, SplitConfig};
+use meteor::parser::split::{
+    smart_split, smart_split_multi_char, smart_split_semicolons, SplitConfig,
+};
 
 #[test]
 fn test_escaped_quotes_various_contexts() {
@@ -11,19 +13,28 @@ fn test_escaped_quotes_various_contexts() {
     let config = SplitConfig::general_parsing(';');
 
     // Basic escaped quotes
-    let result = smart_split("key=\"value with \\\"quotes\\\"\"; theme=dark", config.clone());
+    let result = smart_split(
+        "key=\"value with \\\"quotes\\\"\"; theme=dark",
+        config.clone(),
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "key=\"value with \\\"quotes\\\"\"");
     assert_eq!(result[1], "theme=dark");
 
     // Multiple escaped quotes
-    let result = smart_split("message=\"\\\"Hello\\\", said \\\"world\\\"\"; status=ok", config.clone());
+    let result = smart_split(
+        "message=\"\\\"Hello\\\", said \\\"world\\\"\"; status=ok",
+        config.clone(),
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "message=\"\\\"Hello\\\", said \\\"world\\\"\"");
     assert_eq!(result[1], "status=ok");
 
     // Escaped quotes at boundaries
-    let result = smart_split("start=\"\\\"beginning\"; end=\"ending\\\"\"; middle=value", config);
+    let result = smart_split(
+        "start=\"\\\"beginning\"; end=\"ending\\\"\"; middle=value",
+        config,
+    );
     assert_eq!(result.len(), 3);
     assert_eq!(result[0], "start=\"\\\"beginning\"");
     assert_eq!(result[1], "end=\"ending\\\"\"");
@@ -35,7 +46,10 @@ fn test_escaped_quotes_meteor_style() {
     // Test meteor-style escaping (only inside quotes)
     let config = SplitConfig::meteor_streams(';');
 
-    let result = smart_split("key=\"value with \\\"inner quotes\\\"\"; theme=dark", config.clone());
+    let result = smart_split(
+        "key=\"value with \\\"inner quotes\\\"\"; theme=dark",
+        config.clone(),
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "key=\"value with \\\"inner quotes\\\"\"");
     assert_eq!(result[1], "theme=dark");
@@ -52,7 +66,10 @@ fn test_control_tokens_preservation() {
     // Control tokens should be preserved exactly through splitting
     let config = SplitConfig::general_parsing(';');
 
-    let result = smart_split("button=click; ns=ui; ctl:delete=app:main:test; theme=dark", config.clone());
+    let result = smart_split(
+        "button=click; ns=ui; ctl:delete=app:main:test; theme=dark",
+        config.clone(),
+    );
     assert_eq!(result.len(), 4);
     assert_eq!(result[0], "button=click");
     assert_eq!(result[1], "ns=ui");
@@ -60,14 +77,20 @@ fn test_control_tokens_preservation() {
     assert_eq!(result[3], "theme=dark");
 
     // Control tokens with complex paths
-    let result = smart_split("ctl:reset=cursor; data=value; ctl:delete=app:nested:complex:path[0]", config.clone());
+    let result = smart_split(
+        "ctl:reset=cursor; data=value; ctl:delete=app:nested:complex:path[0]",
+        config.clone(),
+    );
     assert_eq!(result.len(), 3);
     assert_eq!(result[0], "ctl:reset=cursor");
     assert_eq!(result[1], "data=value");
     assert_eq!(result[2], "ctl:delete=app:nested:complex:path[0]");
 
     // Control tokens in quoted values (should not be interpreted as control)
-    let result = smart_split("message=\"Use ctl:delete=path to delete\"; action=ctl:reset=all", config);
+    let result = smart_split(
+        "message=\"Use ctl:delete=path to delete\"; action=ctl:reset=all",
+        config,
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "message=\"Use ctl:delete=path to delete\"");
     assert_eq!(result[1], "action=ctl:reset=all");
@@ -84,7 +107,10 @@ fn test_complex_bracket_notation_edge_cases() {
     assert_eq!(result[1], "simple=test");
 
     // Brackets with quotes
-    let result = smart_split("config[\"key with spaces\"]=value; theme=dark", config.clone());
+    let result = smart_split(
+        "config[\"key with spaces\"]=value; theme=dark",
+        config.clone(),
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "config[\"key with spaces\"]=value");
     assert_eq!(result[1], "theme=dark");
@@ -104,7 +130,7 @@ fn test_meteor_delimiter_edge_cases() {
     let result = smart_split_multi_char(
         "app:ui:message=\"This contains :;: delimiter\" :;: app:ui:theme=dark",
         ":;:",
-        config.clone()
+        config.clone(),
     );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "app:ui:message=\"This contains :;: delimiter\"");
@@ -114,7 +140,7 @@ fn test_meteor_delimiter_edge_cases() {
     let result = smart_split_multi_char(
         "app:ui:test=:value :;: app:ui:other=;value",
         ":;:",
-        config.clone()
+        config.clone(),
     );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "app:ui:test=:value");
@@ -124,7 +150,7 @@ fn test_meteor_delimiter_edge_cases() {
     let result = smart_split_multi_char(
         "app:ui:first=value :;: :;: app:ui:second=value",
         ":;:",
-        config
+        config,
     );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "app:ui:first=value");
@@ -137,19 +163,28 @@ fn test_quote_escaping_regression() {
 
     // Escaped backslashes before quotes
     let config = SplitConfig::general_parsing(';');
-    let result = smart_split("path=\"C:\\\\Program Files\\\\\"; theme=dark", config.clone());
+    let result = smart_split(
+        "path=\"C:\\\\Program Files\\\\\"; theme=dark",
+        config.clone(),
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "path=\"C:\\\\Program Files\\\\\"");
     assert_eq!(result[1], "theme=dark");
 
     // Sequential escaped quotes
-    let result = smart_split("test=\"\\\"\\\"multiple quotes\\\"\\\"\"; value=ok", config.clone());
+    let result = smart_split(
+        "test=\"\\\"\\\"multiple quotes\\\"\\\"\"; value=ok",
+        config.clone(),
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "test=\"\\\"\\\"multiple quotes\\\"\\\"\"");
     assert_eq!(result[1], "value=ok");
 
     // Mixed escaping
-    let result = smart_split("mixed=\"text \\\"quoted\\\" and \\\\backslash\"; done=true", config);
+    let result = smart_split(
+        "mixed=\"text \\\"quoted\\\" and \\\\backslash\"; done=true",
+        config,
+    );
     assert_eq!(result.len(), 2);
     assert_eq!(result[0], "mixed=\"text \\\"quoted\\\" and \\\\backslash\"");
     assert_eq!(result[1], "done=true");
@@ -163,10 +198,16 @@ fn test_unclosed_quotes_error_handling() {
     assert!(result.is_none(), "Should return None for unclosed quotes");
 
     let result = smart_split_semicolons("key=value; message=\"unclosed");
-    assert!(result.is_none(), "Should return None for unclosed quotes in middle");
+    assert!(
+        result.is_none(),
+        "Should return None for unclosed quotes in middle"
+    );
 
     let result = smart_split_semicolons("key=\"properly closed\"; value=ok");
-    assert!(result.is_some(), "Should succeed with properly closed quotes");
+    assert!(
+        result.is_some(),
+        "Should succeed with properly closed quotes"
+    );
 }
 
 #[test]
@@ -209,16 +250,22 @@ fn test_special_characters_in_values() {
     assert_eq!(result[1], "lang=unicode");
 
     // JSON-like structures
-    let result = smart_split("json=\"{\\\"key\\\": \\\"value\\\", \\\"nested\\\": {\\\"inner\\\": 42}}\"; format=json", config);
+    let result = smart_split(
+        "json=\"{\\\"key\\\": \\\"value\\\", \\\"nested\\\": {\\\"inner\\\": 42}}\"; format=json",
+        config,
+    );
     assert_eq!(result.len(), 2);
-    assert_eq!(result[0], "json=\"{\\\"key\\\": \\\"value\\\", \\\"nested\\\": {\\\"inner\\\": 42}}\"");
+    assert_eq!(
+        result[0],
+        "json=\"{\\\"key\\\": \\\"value\\\", \\\"nested\\\": {\\\"inner\\\": 42}}\""
+    );
     assert_eq!(result[1], "format=json");
 }
 
 #[test]
 fn test_meteor_format_compliance() {
     // Ensure split results can be used to construct valid meteors
-    let config = SplitConfig::meteor_streams(';');
+    let _config = SplitConfig::meteor_streams(';');
 
     let result = smart_split_multi_char(
         "app:ui:button=click :;: app:ui:theme=\"dark with spaces\" :;: user:profile:name=\"John Doe\"",
@@ -232,11 +279,19 @@ fn test_meteor_format_compliance() {
     for meteor_str in &result {
         // Each should contain exactly 2 colons (context:namespace:key=value)
         let colon_count = meteor_str.matches(':').count();
-        assert!(colon_count >= 2, "Meteor format should have at least 2 colons: {}", meteor_str);
+        assert!(
+            colon_count >= 2,
+            "Meteor format should have at least 2 colons: {}",
+            meteor_str
+        );
 
         // Should contain exactly one equals sign
         let equals_count = meteor_str.matches('=').count();
-        assert_eq!(equals_count, 1, "Meteor should have exactly one equals sign: {}", meteor_str);
+        assert_eq!(
+            equals_count, 1,
+            "Meteor should have exactly one equals sign: {}",
+            meteor_str
+        );
     }
 }
 
