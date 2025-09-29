@@ -235,6 +235,34 @@ hub = { git = "https://github.com/oodx/hub.git", features = ["cli-ext", "error-e
 # - portable-pty for terminal interaction
 ```
 
+### RSB Library with Testing (Real-World: Meteor)
+```toml
+[dependencies]
+# Meteor: Token transport library with RSB architecture
+hub = { git = "https://github.com/oodx/hub.git", features = ["core", "async-ext", "error-ext", "test-ext"] }
+rsb = { git = "https://github.com/oodx/rsb.git", features = ["visuals", "stdopts"] }
+
+# Gets you:
+# - Internal: colors (shared RSB color system via hub::core)
+# - External async: tokio-lite for async runtime (basic features)
+# - External error: anyhow + thiserror for error handling
+# - External testing: criterion for benchmarks (from test-ext)
+# - RSB native: visuals (color/formatting) + stdopts (CLI option parsing)
+
+# Why this combination:
+# - Native RSB CLI (rsb::stdopts) instead of clap (avoids cli-ext)
+# - Lean async with tokio-lite (no networking needed)
+# - Comprehensive error handling for library consumers
+# - Benchmarking infrastructure via criterion
+# - Shared color system from hub::core for consistent output
+
+# Usage in code:
+# use hub::error::{Result, anyhow};           # Error handling
+# use hub::colors;                            # Shared color system
+# use rsb::stdopts::Parser;                   # Native RSB CLI parsing
+# use rsb::visuals::{Stylize, Style};         # RSB formatting
+```
+
 ## Lite/Full Variant Usage Examples
 
 ### Lean Project with Lite Defaults

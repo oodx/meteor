@@ -1,0 +1,91 @@
+🐔 CHINA'S CONTEXT REHYDRATION EGG 🥚
+================================================================================
+DATE: 2025-09-27
+PROJECT: Meteor Rust Framework
+
+🔍 PRIORITIZED CONTEXT REHYDRATION DOCUMENTS
+================================================================================
+
+I. CORE ARCHITECTURE DOCUMENTS
+------------------------------
+1. /docs/ref/architecture/METEORSHOWER_ENGINE.md
+   - CRITICAL: Defines core engine architecture
+   - Explains fundamental design principles of Meteor framework
+   - Essential for understanding system core mechanics
+
+2. /docs/ref/architecture/HYBRID_STORAGE_ARCHITECTURE.md
+   - Details storage model and data handling strategies
+   - Provides insights into performance and scalability considerations
+
+3. /docs/procs/ARCHITECTURE_STATUS.md
+   - Current architectural state and recent modifications
+   - Tracks ongoing architectural evolution
+
+II. TASK TRACKING & PROCESS DOCUMENTS
+-------------------------------------
+1. /docs/procs/TASKS.txt
+   - Comprehensive task tracking
+   - Current development priorities and pending work items
+
+2. /docs/procs/SPRINT.txt
+   - Current sprint objectives
+   - Tactical development roadmap
+
+3. /docs/procs/TICKET-013-BREAKDOWN.md
+   - Detailed breakdown of specific development ticket
+   - Provides granular implementation context
+
+III. IMPLEMENTATION GUIDES
+--------------------------
+1. /docs/ref/rsb/MODULE_SPEC.md
+   - Module specification and integration guidelines
+   - Critical for understanding component interactions
+
+2. /docs/ref/guides/INTEGRATION_BRIEFING.md
+   - High-level integration strategy
+   - Explains how different system components interconnect
+
+3. /docs/ref/guides/ERROR_SEMANTICS.md
+   - Error handling and reporting guidelines
+   - Understanding system's error management approach
+
+IV. RECENT ENHANCEMENTS (ME-3 PHASE)
+------------------------------------
+1. /docs/ref/architecture/ENGINE_ENHANCEMENT.md
+   - Latest engine improvements
+   - Captures ME-3 phase development details
+
+2. /docs/archive/REGRESSION_CLI_PARSER_RESOLVED_2025-09-27.md
+   - Recent CLI parser improvements
+   - Tracks resolution of specific implementation challenges
+
+V. API & FEATURE REFERENCES
+---------------------------
+1. /docs/ref/reference/RSB_CLI_FEATURES.md
+   - Comprehensive CLI feature documentation
+   - Details available commands and their functionality
+
+2. /docs/ref/features/ (ENTIRE DIRECTORY)
+   - Granular feature specifications
+   - Includes individual feature guides for various system components
+
+VI. SUPPLEMENTARY CONTEXT DOCUMENTS
+-----------------------------------
+1. /docs/CONFIGURATION.md
+   - System configuration guidelines
+   - Important for understanding deployment and setup
+
+2. /docs/procs/ROADMAP.txt
+   - Long-term project direction
+   - Strategic planning and future objectives
+
+3. /docs/ref/rsb/REBEL.md
+   - Framework philosophical and architectural principles
+   - Provides deeper contextual understanding
+
+🚨 DISCLAIMER
+================================================================================
+These documents represent a snapshot of the Meteor project as of 2025-09-27.
+Context may evolve; always cross-reference with the latest sources.
+
+🐔 Clucked by China, Chief Summarization Chicken 🥚
